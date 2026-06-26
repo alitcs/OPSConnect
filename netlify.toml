@@ -1,0 +1,25 @@
+# Netlify configuration for the ConnectOPS frontend.
+# This file supersedes the equivalent fields in the Netlify UI.
+
+[build]
+  command = "npm --workspace frontend run build"
+  publish = "frontend/dist"
+
+# --- API proxy -------------------------------------------------------------
+# The frontend calls /api/* . In development Vite proxies these to the local
+# backend. In production you must host the backend (Express) somewhere and
+# point these requests at it. Uncomment and set BACKEND_URL once it's deployed.
+#
+# [[redirects]]
+#   from = "/api/*"
+#   to = "https://YOUR-BACKEND-HOST/api/:splat"
+#   status = 200
+#   force = true
+
+# --- SPA fallback ----------------------------------------------------------
+# React Router handles client-side routing, so every non-asset path must serve
+# index.html. Keep this LAST so the /api rule above (when enabled) wins first.
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200

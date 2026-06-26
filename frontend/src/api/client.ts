@@ -1,7 +1,9 @@
-// Typed API client for the ConnectOPS backend.
+// Typed API client for ConnectOPS.
 //
-// All requests go through `request()`, which attaches the mock-auth `x-user-id` header
-// based on the currently selected user (persisted in localStorage by the auth context).
+// This build runs fully client-side: instead of HTTP calls, the client delegates to an
+// in-browser mock backend (see ./mockBackend). The async signatures are preserved so
+// components keep using promises exactly as before. To switch back to a real server,
+// reintroduce a fetch-based `request()` and point these methods at it.
 
 import type {
   ChatMessage,
@@ -14,8 +16,8 @@ import type {
   User,
   UserSummary,
 } from '../types';
+import { ApiError, backend } from './mockBackend';
 
-const BASE = '/api';
 const USER_ID_KEY = 'connectops.currentUserId';
 
 export function getStoredUserId(): number {
@@ -27,97 +29,71 @@ export function setStoredUserId(id: number): void {
   localStorage.setItem(USER_ID_KEY, String(id));
 }
 
-async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
-  const res = await fetch(`${BASE}${path}`, {
-    ...options,
-    headers: {
-      'Content-Type': 'application/json',
-      'x-user-id': String(getStoredUserId()),
-      ...(options.headers || {}),
-    },
+export { ApiError };
+
+// Run a mock-backend call asynchronously so callers keep their promise-based flow,
+// and a small latency makes loading states feel real.
+function run<T>(fn: () => T): Promise<T> {
+  return new Promise((resolve, reject) => {
+    setTimeout(() => {
+      try {
+        resolve(fn());
+      } catch (err) {
+        reject(err);
+      }
+    }, 120);
   });
-
-  if (!res.ok) {
-    let detail = res.statusText;
-    try {
-      const body = await res.json();
-      detail = body.error || detail;
-    } catch {
-      // ignore non-JSON error bodies
-    }
-    throw new ApiError(res.status, detail);
-  }
-
-  if (res.status === 204) return undefined as T;
-  return (await res.json()) as T;
 }
 
-export class ApiError extends Error {
-  constructor(public status: number, message: string) {
-    super(message);
-    this.name = 'ApiError';
-  }
-}
+const me = () => getStoredUserId();
 
-// --- Users / profiles ---
 export const api = {
-  getCurrentUser: () => request<User>('/users/me'),
-  getUser: (id: number) => request<User>(`/users/${id}`),
+  // --- Users / profiles ---
+  getCurrentUser: () => run<User>(() => backend.getCurrentUser(me())),
+  getUser: (id: number) => run<User>(() => backend.getUser(me(), id)),
   updateUser: (id: number, patch: Partial<User>) =>
-    request<User>(`/users/${id}`, { method: 'PUT', body: JSON.stringify(patch) }),
-  getManager: (id: number) => request<UserSummary | null>(`/users/${id}/manager`),
-  getReports: (id: number) => request<UserSummary[]>(`/users/${id}/reports`),
-  getTeammates: (id: number) => request<UserSummary[]>(`/users/${id}/teammates`),
+    run<User>(() => backend.updateUser(me(), id, patch)),
+  getManager: (id: number) => run<UserSummary | null>(() => backend.getManager(id)),
+  getReports: (id: number) => run<UserSummary[]>(() => backend.getReports(id)),
+  getTeammates: (id: number) => run<UserSummary[]>(() => backend.getTeammates(id)),
   getUserLocation: (id: number) =>
-    request<{ floor: number | null; seat: string | null; building: string }>(
-      `/users/${id}/location`,
+    run<{ floor: number | null; seat: string | null; building: string }>(() =>
+      backend.getUserLocation(id),
     ),
 
   // --- Directory ---
-  getDirectory: (params: Record<string, string> = {}) => {
-    const query = new URLSearchParams(params).toString();
-    return request<UserSummary[]>(`/directory${query ? `?${query}` : ''}`);
-  },
-  getDirectoryFilters: () => request<DirectoryFilterOptions>('/directory/filters'),
+  getDirectory: (params: Record<string, string> = {}) =>
+    run<UserSummary[]>(() => backend.getDirectory(params)),
+  getDirectoryFilters: () => run<DirectoryFilterOptions>(() => backend.getDirectoryFilters()),
 
   // --- Chat ---
   sendChat: (message: string, conversationId?: string) =>
-    request<{ conversationId: string; message: ChatMessage }>('/chat', {
-      method: 'POST',
-      body: JSON.stringify({ message, conversationId }),
-    }),
-  listConversations: () => request<Conversation[]>('/chat/conversations'),
+    run<{ conversationId: string; message: ChatMessage }>(() =>
+      backend.sendChat(me(), message, conversationId),
+    ),
+  listConversations: () => run<Conversation[]>(() => backend.listConversations(me())),
   getConversation: (id: string) =>
-    request<{ conversation: Conversation; messages: ChatMessage[] }>(
-      `/chat/conversations/${id}`,
+    run<{ conversation: Conversation; messages: ChatMessage[] }>(() =>
+      backend.getConversation(me(), id),
     ),
   createConversation: (title?: string) =>
-    request<Conversation>('/chat/conversations', {
-      method: 'POST',
-      body: JSON.stringify({ title }),
-    }),
-  deleteConversation: (id: string) =>
-    request<void>(`/chat/conversations/${id}`, { method: 'DELETE' }),
+    run<Conversation>(() => backend.createConversation(me(), title)),
+  deleteConversation: (id: string) => run<void>(() => backend.deleteConversation(me(), id)),
 
   // --- Messaging ---
-  listThreads: () => request<MessageThreadSummary[]>('/messages'),
+  listThreads: () => run<MessageThreadSummary[]>(() => backend.listThreads(me())),
   getThread: (threadId: string) =>
-    request<{
+    run<{
       thread: MessageThreadSummary;
       participant: UserSummary | null;
       messages: DirectMessage[];
-    }>(`/messages/${threadId}`),
+    }>(() => backend.getThread(me(), threadId)),
   sendMessage: (userId: number, text: string) =>
-    request<{ message: DirectMessage }>(`/messages/${userId}`, {
-      method: 'POST',
-      body: JSON.stringify({ text }),
-    }),
+    run<{ message: DirectMessage }>(() => backend.sendMessage(me(), userId, text)),
 
   // --- Floor map ---
-  getFloorMap: (floorId: string, seat: string, building: string) => {
-    const query = new URLSearchParams({ seat, building }).toString();
-    return request<FloorMapData>(`/floors/${floorId}/map?${query}`);
-  },
+  getFloorMap: (floorId: string, seat: string, building: string) =>
+    run<FloorMapData>(() => backend.getFloorMap(floorId, seat, building)),
 };
 
 export type { SurfacedPerson };
