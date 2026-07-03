@@ -17,16 +17,10 @@ import type {
   UserSummary,
 } from '../types';
 import { ApiError, backend } from './mockBackend';
-
-const USER_ID_KEY = 'connectops.currentUserId';
+import { getSessionUserId } from './auth';
 
 export function getStoredUserId(): number {
-  const raw = localStorage.getItem(USER_ID_KEY);
-  return raw ? Number(raw) : 1;
-}
-
-export function setStoredUserId(id: number): void {
-  localStorage.setItem(USER_ID_KEY, String(id));
+  return getSessionUserId() ?? 1;
 }
 
 export { ApiError };

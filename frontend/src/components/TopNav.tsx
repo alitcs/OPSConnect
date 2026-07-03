@@ -15,9 +15,14 @@ const NAV: { to: string; label: string; icon: IconName; end: boolean }[] = [
 ];
 
 export default function TopNav() {
-  const { currentUser } = useAuth();
+  const { currentUser, logout } = useAuth();
   const { theme, toggleTheme } = useTheme();
   const navigate = useNavigate();
+
+  const handleLogout = () => {
+    logout();
+    navigate('/login', { replace: true });
+  };
 
   return (
     <>
@@ -72,6 +77,13 @@ export default function TopNav() {
               </span>
             </button>
           )}
+
+          <button className="sidebar__footer-btn" onClick={handleLogout} title="Log out">
+            <span className="sidebar__link-icon">
+              <Icon name="back" size={18} />
+            </span>
+            <span className="sidebar__link-label">Log out</span>
+          </button>
         </div>
       </aside>
 

@@ -718,4 +718,31 @@ export const backend = {
       highlightedSeat: seat ? { seat, ...seatToCoordinates(seat) } : null,
     };
   },
+
+  // --- Accounts / auth support ---
+
+  /** Case-insensitive lookup of a user by email. */
+  findUserByEmail(email: string): User | undefined {
+    const target = email.trim().toLowerCase();
+    return users.find((u) => u.email.toLowerCase() === target);
+  },
+
+  /** Create a brand-new employee profile and add it to the in-memory directory. */
+  createUser(profile: Omit<User, 'id'>): User {
+    const nextId = users.reduce((max, u) => Math.max(max, u.id), 0) + 1;
+    const user: User = { ...profile, id: nextId };
+    users.push(user);
+    return user;
+  },
+
+  /**
+   * Re-insert a previously created user (e.g. rehydrated from persisted accounts)
+   * so their id resolves after an in-memory reset. Existing ids are left untouched.
+   */
+  registerUser(user: User): User {
+    const existing = getUserById(user.id);
+    if (existing) return existing;
+    users.push(user);
+    return user;
+  },
 };

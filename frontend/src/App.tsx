@@ -11,13 +11,23 @@ import MessagesPage from './pages/Messages';
 import LoginPage from './pages/Login';
 
 export default function App() {
-  const { currentUser, loading } = useAuth();
+  const { currentUser, isAuthenticated, loading } = useAuth();
 
   if (loading && !currentUser) {
     return (
       <div className="app-loading">
         <div className="spinner" />
       </div>
+    );
+  }
+
+  // Unauthenticated: only the login screen is available.
+  if (!isAuthenticated) {
+    return (
+      <Routes>
+        <Route path="/login" element={<LoginPage />} />
+        <Route path="*" element={<Navigate to="/login" replace />} />
+      </Routes>
     );
   }
 
@@ -37,7 +47,7 @@ export default function App() {
             <Route path="/messages" element={<MessagesPage />} />
             <Route path="/messages/:threadId" element={<MessagesPage />} />
             <Route path="/users/:id" element={<UserProfilePage />} />
-            <Route path="/login" element={<LoginPage />} />
+            <Route path="/login" element={<Navigate to="/" replace />} />
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
         </main>

@@ -1,96 +1,210 @@
-import { useEffect, useState } from 'react';
+import { useState, type FormEvent } from 'react';
 import { useNavigate } from 'react-router-dom';
-import type { UserSummary } from '../types';
-import { api, getStoredUserId } from '../api/client';
+import { ALLOWED_DOMAIN, AuthError, isOntarioEmail } from '../api/auth';
 import { useAuth } from '../context/AuthContext';
-import Avatar from '../components/Avatar';
 import Icon from '../components/Icon';
 
-// Mock login / perspective switcher. No real auth — pick a dummy employee to experience
-// the app as them. TODO (production): replace with Microsoft Entra ID / Azure AD via MSAL.
-const PERSPECTIVES: { id: number; note: string }[] = [
-  { id: 8, note: 'Manager — Digital Services' },
-  { id: 1, note: 'Senior employee — Data Analyst' },
-  { id: 2, note: 'Co-op student — Web Development' },
-  { id: 3, note: 'Manager — Infrastructure' },
-];
+// Access is restricted to Ontario Public Service accounts — only "@ontario.ca"
+// email addresses may sign up or log in.
+// TODO (production): replace this mock auth with Microsoft Entra ID / Azure AD via MSAL.
+
+type Mode = 'login' | 'signup';
 
 export default function LoginPage() {
   const navigate = useNavigate();
-  const { switchUser } = useAuth();
-  const [all, setAll] = useState<UserSummary[]>([]);
-  const [activeId, setActiveId] = useState<number>(getStoredUserId());
+  const { login, signup } = useAuth();
 
-  useEffect(() => {
-    api.getDirectory().then(setAll).catch(() => setAll([]));
-  }, []);
+  const [mode, setMode] = useState<Mode>('login');
+  const [name, setName] = useState('');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [submitting, setSubmitting] = useState(false);
 
-  const choose = async (id: number) => {
-    setActiveId(id);
-    await switchUser(id);
-    navigate('/');
+  const emailEntered = email.trim().length > 0;
+  const emailValid = isOntarioEmail(email);
+  const isSignup = mode === 'signup';
+
+  const switchMode = (next: Mode) => {
+    if (next === mode) return;
+    setMode(next);
+    setError(null);
+    setPassword('');
+    setShowPassword(false);
   };
 
-  const byId = (id: number) => all.find((u) => u.id === id);
+  const handleSubmit = async (e: FormEvent) => {
+    e.preventDefault();
+    setError(null);
+
+    if (isSignup && !name.trim()) {
+      setError('Please enter your full name.');
+      return;
+    }
+    if (!emailValid) {
+      setError(`Please use your @${ALLOWED_DOMAIN} email address.`);
+      return;
+    }
+    if (isSignup && password.length < 8) {
+      setError('Password must be at least 8 characters.');
+      return;
+    }
+
+    setSubmitting(true);
+    try {
+      if (isSignup) {
+        await signup({ name, email, password });
+      } else {
+        await login({ email, password });
+      }
+      navigate('/');
+    } catch (err) {
+      setError(
+        err instanceof AuthError ? err.message : 'Something went wrong. Please try again.',
+      );
+    } finally {
+      setSubmitting(false);
+    }
+  };
 
   return (
     <div className="login">
       <div className="login__inner">
-        <div className="login__heading">
-          <div className="login__mark">
-            <Icon name="logo" size={26} />
-          </div>
-          <h1 style={{ margin: '0 0 4px' }}>ConnectOPS</h1>
-          <p className="muted" style={{ margin: '0 0 10px' }}>
-            Ontario Public Service · Choose a perspective to explore the prototype.
-          </p>
-          <span className="copilot-badge">
-            <span className="copilot-badge__icon">
-              <Icon name="sparkle" size={13} />
+        <div className="login__card">
+          <div className="login__heading">
+            <div className="login__mark">
+              <Icon name="logo" size={26} />
+            </div>
+            <h1 className="login__title">ConnectOPS</h1>
+            <p className="login__subtitle">
+              {isSignup
+                ? 'Create your Ontario Public Service account.'
+                : 'Welcome back. Sign in to continue.'}
+            </p>
+            <span className="copilot-badge">
+              <span className="copilot-badge__icon">
+                <Icon name="sparkle" size={13} />
+              </span>
+              Powered by Microsoft Copilot
             </span>
-            Powered by Microsoft Copilot
-          </span>
-        </div>
+          </div>
 
-        <div className="profile__section-label">Suggested perspectives</div>
-        <div className="user-switch" style={{ marginBottom: 24 }}>
-          {PERSPECTIVES.map(({ id, note }) => {
-            const u = byId(id);
-            if (!u) return null;
-            return (
-              <button
-                key={id}
-                className={`user-switch__item ${activeId === id ? 'active' : ''}`}
-                onClick={() => choose(id)}
-              >
-                <Avatar name={u.name} size={38} status={u.status} />
-                <div>
-                  <div style={{ fontWeight: 600 }}>{u.name}</div>
-                  <div className="muted" style={{ fontSize: 13 }}>{note}</div>
-                </div>
-              </button>
-            );
-          })}
-        </div>
-
-        <div className="profile__section-label">Or pick anyone</div>
-        <div className="user-switch">
-          {all.map((u) => (
+          <div className="auth-tabs" role="tablist" aria-label="Log in or sign up">
             <button
-              key={u.id}
-              className={`user-switch__item ${activeId === u.id ? 'active' : ''}`}
-              onClick={() => choose(u.id)}
+              type="button"
+              role="tab"
+              aria-selected={!isSignup}
+              className={`auth-tabs__tab ${!isSignup ? 'active' : ''}`}
+              onClick={() => switchMode('login')}
             >
-              <Avatar name={u.name} size={32} status={u.status} />
-              <div>
-                <div style={{ fontWeight: 600 }}>{u.name}</div>
-                <div className="muted" style={{ fontSize: 13 }}>
-                  {u.title} · {u.ministry}
-                </div>
-              </div>
+              Log in
             </button>
-          ))}
+            <button
+              type="button"
+              role="tab"
+              aria-selected={isSignup}
+              className={`auth-tabs__tab ${isSignup ? 'active' : ''}`}
+              onClick={() => switchMode('signup')}
+            >
+              Sign up
+            </button>
+          </div>
+
+          <form className="auth-form" onSubmit={handleSubmit} noValidate>
+            {isSignup && (
+              <label className="auth-form__field">
+                <span className="auth-form__label">Full name</span>
+                <input
+                  className="auth-form__input"
+                  type="text"
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  placeholder="Jordan Lee"
+                  autoComplete="name"
+                  required
+                />
+              </label>
+            )}
+
+            <label className="auth-form__field">
+              <span className="auth-form__label">Work email</span>
+              <input
+                className={`auth-form__input ${emailEntered && !emailValid ? 'invalid' : ''}`}
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder={`jordan.lee@${ALLOWED_DOMAIN}`}
+                autoComplete="email"
+                aria-invalid={emailEntered && !emailValid}
+                required
+              />
+              <span className={`auth-form__hint ${emailEntered && !emailValid ? 'error' : ''}`}>
+                {emailEntered && !emailValid
+                  ? `Only @${ALLOWED_DOMAIN} addresses are allowed.`
+                  : `Use your @${ALLOWED_DOMAIN} email address.`}
+              </span>
+            </label>
+
+            <label className="auth-form__field">
+              <span className="auth-form__label">Password</span>
+              <div className="auth-form__password">
+                <input
+                  className="auth-form__input"
+                  type={showPassword ? 'text' : 'password'}
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  placeholder={isSignup ? 'At least 8 characters' : 'Your password'}
+                  autoComplete={isSignup ? 'new-password' : 'current-password'}
+                  minLength={isSignup ? 8 : undefined}
+                  required
+                />
+                <button
+                  type="button"
+                  className="auth-form__reveal"
+                  onClick={() => setShowPassword((v) => !v)}
+                  aria-pressed={showPassword}
+                  aria-label={showPassword ? 'Hide password' : 'Show password'}
+                >
+                  {showPassword ? 'Hide' : 'Show'}
+                </button>
+              </div>
+            </label>
+
+            {error && (
+              <div className="auth-form__error" role="alert">
+                <Icon name="info" size={15} />
+                <span>{error}</span>
+              </div>
+            )}
+
+            <button className="auth-form__submit" type="submit" disabled={submitting}>
+              {submitting ? (
+                <span className="auth-form__spinner" aria-hidden="true" />
+              ) : isSignup ? (
+                'Create account'
+              ) : (
+                'Log in'
+              )}
+            </button>
+          </form>
+
+          <p className="auth-switch">
+            {isSignup ? 'Already have an account?' : "Don't have an account?"}{' '}
+            <button
+              type="button"
+              className="auth-switch__link"
+              onClick={() => switchMode(isSignup ? 'login' : 'signup')}
+            >
+              {isSignup ? 'Log in' : 'Sign up'}
+            </button>
+          </p>
         </div>
+
+        <p className="login__footnote">
+          <Icon name="shield" size={13} />
+          Restricted to Ontario Public Service employees.
+        </p>
       </div>
     </div>
   );
