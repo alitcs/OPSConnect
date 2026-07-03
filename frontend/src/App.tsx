@@ -23,9 +23,12 @@ export default function App() {
 
   return (
     <PreviewCardProvider>
+      <a href="#main-content" className="skip-link">
+        Skip to main content
+      </a>
       <div className="app-shell">
         <TopNav />
-        <main className="app-main">
+        <main className="app-main" id="main-content" tabIndex={-1}>
           <Routes>
             <Route path="/" element={<ChatPage />} />
             <Route path="/directory" element={<DirectoryPage />} />

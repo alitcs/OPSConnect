@@ -52,6 +52,15 @@ export default function PreviewCard({
     navigate(`/messages?to=${userId}`);
   };
 
+  const book = () => {
+    if (!user) return;
+    const subject = encodeURIComponent('15 min intro chat');
+    const body = encodeURIComponent(
+      `Hi ${user.name.split(' ')[0]},\n\nWould you have 15 minutes to connect? I found you through ConnectOPS and would love to learn about your work on ${user.team}.\n\nThanks!`,
+    );
+    window.location.href = `mailto:${user.email}?subject=${subject}&body=${body}`;
+  };
+
   return (
     <div className="overlay" onClick={onClose}>
       <div className="preview-card" onClick={(e) => e.stopPropagation()}>
@@ -92,10 +101,16 @@ export default function PreviewCard({
                 View Full Profile
               </button>
               {!isSelf && (
-                <button className="btn" onClick={message}>
-                  <Icon name="messages" size={16} />
-                  Message
-                </button>
+                <div className="preview-card__actions-row">
+                  <button className="btn btn--block" onClick={message}>
+                    <Icon name="teams" size={16} />
+                    Message on Teams
+                  </button>
+                  <button className="btn btn--block" onClick={book}>
+                    <Icon name="calendar" size={16} />
+                    Book 15 min
+                  </button>
+                </div>
               )}
             </div>
           </>

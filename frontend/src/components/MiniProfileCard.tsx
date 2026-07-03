@@ -1,10 +1,13 @@
+import { useNavigate } from 'react-router-dom';
 import type { UserSummary } from '../types';
 import { usePreviewCard } from '../context/PreviewCardContext';
+import { useAuth } from '../context/AuthContext';
 import Avatar from './Avatar';
+import Icon from './Icon';
 
-// Step 1 of the universal flow: a compact, tappable card. Tapping it opens the
-// preview card (step 2). Used inline in chat and in the directory list — identical
-// behavior in both contexts.
+// A compact, tappable person card used inline in chat results and in the directory.
+// Tapping the main region opens the preview card; the action row lets you act on the
+// result directly (message on Teams, view details) so the workflow loop is closed.
 export default function MiniProfileCard({
   person,
   rationale,
@@ -13,21 +16,48 @@ export default function MiniProfileCard({
   rationale?: string;
 }) {
   const { openPreview } = usePreviewCard();
+  const { currentUser } = useAuth();
+  const navigate = useNavigate();
+  const isSelf = currentUser?.id === person.id;
 
   return (
-    <button
-      type="button"
-      className="mini-card"
-      onClick={() => openPreview(person.id)}
-    >
-      <Avatar name={person.name} size={38} status={person.status} />
-      <div className="mini-card__body">
-        <div className="mini-card__name">{person.name}</div>
-        <div className="mini-card__meta">
-          {person.title} · {person.team}
+    <div className="mini-card">
+      <button
+        type="button"
+        className="mini-card__main"
+        onClick={() => openPreview(person.id)}
+        aria-label={`View details for ${person.name}, ${person.title}`}
+      >
+        <Avatar name={person.name} size={38} status={person.status} />
+        <div className="mini-card__body">
+          <div className="mini-card__name">{person.name}</div>
+          <div className="mini-card__meta">
+            {person.title} · {person.team}
+          </div>
+          {rationale && <div className="mini-card__rationale">{rationale}</div>}
         </div>
-        {rationale && <div className="mini-card__rationale">{rationale}</div>}
+      </button>
+
+      <div className="mini-card__actions">
+        {!isSelf && (
+          <button
+            type="button"
+            className="mini-card__action mini-card__action--primary"
+            onClick={() => navigate(`/messages?to=${person.id}`)}
+          >
+            <Icon name="teams" size={14} />
+            Message on Teams
+          </button>
+        )}
+        <button
+          type="button"
+          className="mini-card__action"
+          onClick={() => openPreview(person.id)}
+        >
+          <Icon name="info" size={14} />
+          View details
+        </button>
       </div>
-    </button>
+    </div>
   );
 }

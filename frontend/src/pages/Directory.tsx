@@ -50,16 +50,30 @@ export default function DirectoryPage() {
 
         <DirectoryFilters options={options} value={filters} onChange={setFilters} />
 
-        <div className="directory__count">
-          {loading ? 'Loading…' : `${users.length} ${users.length === 1 ? 'person' : 'people'}`}
+        <div className="directory__count" aria-live="polite">
+          {loading ? 'Searching…' : `${users.length} ${users.length === 1 ? 'person' : 'people'}`}
         </div>
 
         <div className="directory__list">
-          {users.map((u) => (
-            <MiniProfileCard key={u.id} person={u} />
-          ))}
-          {!loading && users.length === 0 && (
-            <p className="muted">No one matches those filters.</p>
+          {loading && users.length === 0 ? (
+            Array.from({ length: 6 }).map((_, i) => (
+              <div className="skeleton-card" key={i} aria-hidden="true">
+                <div className="skeleton" style={{ width: 38, height: 38, borderRadius: '50%' }} />
+                <div className="skeleton-card__lines">
+                  <div className="skeleton" style={{ height: 12, width: '35%' }} />
+                  <div className="skeleton" style={{ height: 10, width: '60%' }} />
+                </div>
+              </div>
+            ))
+          ) : (
+            <>
+              {users.map((u) => (
+                <MiniProfileCard key={u.id} person={u} />
+              ))}
+              {!loading && users.length === 0 && (
+                <p className="muted">No one matches those filters.</p>
+              )}
+            </>
           )}
         </div>
       </div>

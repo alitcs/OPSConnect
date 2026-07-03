@@ -37,7 +37,8 @@ export default function ChatInput({
         <textarea
           ref={textareaRef}
           rows={1}
-          placeholder="Ask about people, teams, or skills at OPS…"
+          aria-label="Ask Copilot about people, teams, or skills"
+          placeholder="Ask Copilot to find people, teams, or skills…"
           value={value}
           disabled={disabled}
           onChange={(e) => {

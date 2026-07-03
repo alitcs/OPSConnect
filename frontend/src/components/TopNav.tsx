@@ -5,10 +5,9 @@ import Avatar from './Avatar';
 import Icon, { type IconName } from './Icon';
 
 // Primary navigation. On desktop this is a persistent left sidebar; on mobile it
-// collapses to a bottom tab bar. Order reflects the spec's importance ranking.
-// TODO (open question #3): the Messages inbox location is undecided.
+// collapses to a bottom tab bar.
 const NAV: { to: string; label: string; icon: IconName; end: boolean }[] = [
-  { to: '/', label: 'Assistant', icon: 'chat', end: true },
+  { to: '/', label: 'Copilot', icon: 'sparkle', end: true },
   { to: '/directory', label: 'Directory', icon: 'directory', end: false },
   { to: '/messages', label: 'Messages', icon: 'messages', end: false },
   { to: '/profile', label: 'Profile', icon: 'profile', end: false },
@@ -23,15 +22,18 @@ export default function TopNav() {
   return (
     <>
       {/* Desktop: persistent left sidebar */}
-      <aside className="sidebar">
-        <NavLink to="/" className="sidebar__brand">
-          <span className="sidebar__brand-mark">
-            <Icon name="logo" size={17} />
+      <aside className="sidebar" aria-label="Primary">
+        <NavLink to="/" className="sidebar__brand" aria-label="ConnectOPS home">
+          <span className="sidebar__brand-row">
+            <span className="sidebar__brand-mark">
+              <Icon name="logo" size={17} />
+            </span>
+            <span className="sidebar__brand-name">ConnectOPS</span>
           </span>
-          <span className="sidebar__brand-name">ConnectOPS</span>
+          <span className="sidebar__brand-sub">Ontario Public Service</span>
         </NavLink>
 
-        <nav className="sidebar__nav">
+        <nav className="sidebar__nav" aria-label="Main navigation">
           {NAV.map((item) => (
             <NavLink
               key={item.to}
@@ -62,7 +64,7 @@ export default function TopNav() {
           </button>
 
           {currentUser && (
-            <button className="sidebar__user" onClick={() => navigate('/login')} title="Switch user">
+            <button className="sidebar__user" onClick={() => navigate('/profile')} title="View your profile">
               <Avatar name={currentUser.name} size={32} status={currentUser.status} />
               <span className="sidebar__user-meta">
                 <span className="sidebar__user-name">{currentUser.name}</span>
@@ -74,7 +76,7 @@ export default function TopNav() {
       </aside>
 
       {/* Mobile bottom tab bar — same items, same order. */}
-      <nav className="tabbar">
+      <nav className="tabbar" aria-label="Main navigation">
         {NAV.map((item) => (
           <NavLink
             key={item.to}

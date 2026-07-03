@@ -1,9 +1,8 @@
 import { useState } from 'react';
+import Icon from './Icon';
 
 // A small inline tag editor: shows existing tags with remove buttons and an input to add
 // new ones. Used for the Tier B fields (skills, interests, etc.).
-// TODO (open questions #1, #2): these fields are currently free-text. The team still needs
-// to decide whether some (e.g. interests) should come from a preset list for professionalism.
 export default function EditableTags({
   values,
   placeholder,
@@ -33,7 +32,7 @@ export default function EditableTags({
         <span key={v} className="tag">
           {v}
           <button className="tag__remove" onClick={() => remove(v)} aria-label={`Remove ${v}`}>
-            ×
+            <Icon name="x" size={11} strokeWidth={2.5} />
           </button>
         </span>
       ))}

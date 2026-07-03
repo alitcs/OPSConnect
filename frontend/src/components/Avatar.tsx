@@ -10,19 +10,19 @@ function initials(name: string): string {
     .toUpperCase();
 }
 
-// A small palette of solid, friendly colors. Each person gets a stable color
-// derived from their name so avatars are colorful but consistent.
+// A small palette of solid, professional tones. Each person gets a stable color
+// derived from their name so avatars are distinct but consistent.
 const COLORS = [
-  '#e5484d', // red
-  '#ff5da2', // pink
-  '#1fb6ff', // sky
-  '#13c296', // teal
-  '#ff8a3d', // orange
-  '#f0476b', // rose
-  '#3b82f6', // blue
-  '#0fb5ba', // cyan
-  '#e9b949', // amber
-  '#16a34a', // green
+  '#0f6cbd', // Ontario blue
+  '#00a4b4', // teal
+  '#2f6f4f', // forest
+  '#3b5bdb', // indigo
+  '#0c7d8c', // deep cyan
+  '#5a4bb3', // slate purple
+  '#1f7a5a', // green
+  '#b45309', // amber-brown
+  '#0e639c', // steel blue
+  '#6b4d8f', // muted violet
 ];
 
 function colorFor(name: string): string {

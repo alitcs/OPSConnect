@@ -36,28 +36,30 @@ export default function ChatSidebar({
             </p>
           )}
           {conversations.map((c) => (
-            <button
+            <div
               key={c.id}
               className={`conversation-item ${activeId === c.id ? 'active' : ''}`}
-              onClick={() => onSelect(c.id)}
             >
-              <span className="conversation-item__icon">
-                <Icon name="chat" size={16} />
-              </span>
-              <span className="conversation-item__title">{c.title}</span>
-              <span
+              <button
+                type="button"
+                className="conversation-item__select"
+                onClick={() => onSelect(c.id)}
+                aria-current={activeId === c.id ? 'true' : undefined}
+              >
+                <span className="conversation-item__icon">
+                  <Icon name="chat" size={16} />
+                </span>
+                <span className="conversation-item__title">{c.title}</span>
+              </button>
+              <button
+                type="button"
                 className="conversation-item__delete"
-                role="button"
-                tabIndex={0}
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onDelete(c.id);
-                }}
-                aria-label="Delete conversation"
+                onClick={() => onDelete(c.id)}
+                aria-label={`Delete conversation: ${c.title}`}
               >
                 <Icon name="trash" size={15} />
-              </span>
-            </button>
+              </button>
+            </div>
           ))}
         </div>
       </aside>

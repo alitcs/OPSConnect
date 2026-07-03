@@ -41,7 +41,15 @@ export default function LoginPage() {
             <Icon name="logo" size={26} />
           </div>
           <h1 style={{ margin: '0 0 4px' }}>ConnectOPS</h1>
-          <p className="muted" style={{ margin: 0 }}>Choose a perspective to explore the prototype.</p>
+          <p className="muted" style={{ margin: '0 0 10px' }}>
+            Ontario Public Service · Choose a perspective to explore the prototype.
+          </p>
+          <span className="copilot-badge">
+            <span className="copilot-badge__icon">
+              <Icon name="sparkle" size={13} />
+            </span>
+            Powered by Microsoft Copilot
+          </span>
         </div>
 
         <div className="profile__section-label">Suggested perspectives</div>
