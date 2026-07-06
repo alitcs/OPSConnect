@@ -6,17 +6,46 @@ import { useToast } from '../context/ToastContext';
 import ChatSidebar from '../components/ChatSidebar';
 import ChatMessage from '../components/ChatMessage';
 import ChatInput from '../components/ChatInput';
-import Icon from '../components/Icon';
+import Icon, { type IconName } from '../components/Icon';
 
-const SUGGESTIONS = [
-  'Who has Python and data visualization experience?',
-  'Who works in cybersecurity?',
-  'I want DevOps experience — who can I shadow?',
-  'Who should I talk to about accessibility standards?',
-  'What teams work on data analytics?',
+// Starter prompts shown on the empty state. Kept together in one clean grid; the tag is a
+// subtle hint of who each is for, not a section divider.
+const SUGGESTIONS: { text: string; icon: IconName; tag: string }[] = [
+  {
+    text: "I'm starting a project that needs Python, data visualization, and Azure — who can help?",
+    icon: 'sparkle',
+    tag: 'Managers',
+  },
+  {
+    text: 'I need to deliver an analytics dashboard — what skills exist internally?',
+    icon: 'chart',
+    tag: 'Managers',
+  },
+  {
+    text: "Who's around and open to help right now?",
+    icon: 'coffee',
+    tag: 'Co-ops',
+  },
+  {
+    text: 'I want DevOps experience — who can I shadow?',
+    icon: 'directory',
+    tag: 'Co-ops',
+  },
+  {
+    text: 'Who works in cybersecurity?',
+    icon: 'shield',
+    tag: 'Explore',
+  },
+  {
+    text: 'What teams work on data analytics?',
+    icon: 'messages',
+    tag: 'Explore',
+  },
 ];
 
-const WELCOME_KEY = 'connectops.welcomeDismissed';
+const prefersReducedMotion =
+  typeof window !== 'undefined' &&
+  window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
 export default function ChatPage() {
   const { currentUser } = useAuth();
@@ -27,15 +56,11 @@ export default function ChatPage() {
   const [sending, setSending] = useState(false);
   const [loadingThread, setLoadingThread] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  const [showWelcome, setShowWelcome] = useState(
-    () => localStorage.getItem(WELCOME_KEY) !== '1',
-  );
+  const [streamingId, setStreamingId] = useState<string | null>(null);
   const threadRef = useRef<HTMLDivElement>(null);
-
-  const dismissWelcome = () => {
-    setShowWelcome(false);
-    localStorage.setItem(WELCOME_KEY, '1');
-  };
+  const streamTimer = useRef<number | null>(null);
+  const followRaf = useRef<number | null>(null);
+  const followActive = useRef(false);
 
   const loadConversations = () =>
     api.listConversations().then(setConversations).catch(() => setConversations([]));
@@ -44,11 +69,51 @@ export default function ChatPage() {
     loadConversations();
   }, [currentUser?.id]);
 
+  // Clean up any in-flight streaming timer on unmount.
   useEffect(() => {
+    return () => {
+      if (streamTimer.current) window.clearInterval(streamTimer.current);
+      if (followRaf.current) cancelAnimationFrame(followRaf.current);
+    };
+  }, []);
+
+  useEffect(() => {
+    // While the people cards are staggering in, an eased follow-scroll is running —
+    // don't fight it with an instant jump.
+    if (followActive.current) return;
     if (threadRef.current) {
       threadRef.current.scrollTop = threadRef.current.scrollHeight;
     }
   }, [messages, sending]);
+
+  // Gently ease the thread down to the bottom over the same window the surfaced people
+  // cards take to stagger in, so the view follows each card instead of jumping.
+  const followScroll = (cardCount: number) => {
+    const el = threadRef.current;
+    if (!el) return;
+    followActive.current = true;
+    const start = el.scrollTop;
+    const duration = (cardCount - 1) * 90 + 340;
+    const startTime = performance.now();
+    const step = (now: number) => {
+      const node = threadRef.current;
+      if (!node) {
+        followActive.current = false;
+        return;
+      }
+      const t = Math.min(1, (now - startTime) / duration);
+      const eased = 1 - Math.pow(1 - t, 2);
+      const target = node.scrollHeight - node.clientHeight;
+      node.scrollTop = start + (target - start) * eased;
+      if (t < 1) {
+        followRaf.current = requestAnimationFrame(step);
+      } else {
+        followRaf.current = null;
+        followActive.current = false;
+      }
+    };
+    followRaf.current = requestAnimationFrame(step);
+  };
 
   const selectConversation = async (id: string) => {
     setActiveId(id);
@@ -81,7 +146,40 @@ export default function ChatPage() {
     }
   };
 
+  // Progressively reveal the assistant reply so it reads like a live Copilot response.
+  // Falls back to instant display when the user prefers reduced motion.
+  const presentAssistant = (full: ChatMessageType) => {
+    const tokens = full.text ? full.text.split(/(\s+)/) : [];
+    if (prefersReducedMotion || tokens.length <= 1) {
+      setMessages((m) => [...m, full]);
+      return;
+    }
+    setMessages((m) => [...m, { ...full, text: '', people: [], followUps: [] }]);
+    setStreamingId(full.id);
+    let i = 0;
+    streamTimer.current = window.setInterval(() => {
+      i += 1;
+      const partial = tokens.slice(0, i).join('');
+      setMessages((m) => m.map((msg) => (msg.id === full.id ? { ...msg, text: partial } : msg)));
+      if (i >= tokens.length) {
+        if (streamTimer.current) window.clearInterval(streamTimer.current);
+        streamTimer.current = null;
+        const peopleCount = full.people?.length ?? 0;
+        // Flag before committing so the autoscroll effect defers to the eased follow.
+        if (peopleCount > 1) followActive.current = true;
+        setMessages((m) => m.map((msg) => (msg.id === full.id ? full : msg)));
+        setStreamingId(null);
+        if (peopleCount > 1) {
+          requestAnimationFrame(() => followScroll(peopleCount));
+        }
+      }
+    }, 22);
+  };
+
   const send = async (text: string) => {
+    // Stop any in-progress follow-scroll from a previous answer.
+    if (followRaf.current) cancelAnimationFrame(followRaf.current);
+    followActive.current = false;
     // Optimistically append the user's message.
     const optimistic: ChatMessageType = {
       id: `temp-${Date.now()}`,
@@ -98,11 +196,11 @@ export default function ChatPage() {
         setActiveId(res.conversationId);
         loadConversations();
       }
-      setMessages((m) => [...m, res.message]);
-    } catch {
-      notify('Copilot could not respond just now. Please try again.', 'error');
-    } finally {
       setSending(false);
+      presentAssistant(res.message);
+    } catch {
+      setSending(false);
+      notify('Copilot could not respond just now. Please try again.', 'error');
     }
   };
 
@@ -146,63 +244,59 @@ export default function ChatPage() {
             </div>
           ) : messages.length === 0 ? (
             <div className="chat__empty">
-              {showWelcome && (
-                <div className="welcome-callout">
-                  <span className="welcome-callout__mark">
-                    <Icon name="sparkle" size={18} />
-                  </span>
-                  <div>
-                    <div className="welcome-callout__title">Welcome to ConnectOPS</div>
-                    <div className="welcome-callout__text">
-                      Ask in plain language to find the right people, skills, teams, and
-                      mentors across the Ontario Public Service — then message them on Teams
-                      or book time, all in one place. Answers are grounded in the OPS
-                      directory, so you skip the email chains.
-                    </div>
-                  </div>
-                  <button
-                    className="welcome-callout__close"
-                    onClick={dismissWelcome}
-                    aria-label="Dismiss welcome message"
-                  >
-                    <Icon name="x" size={15} />
-                  </button>
+              <div className="chat__empty-inner">
+                <div className="chat__empty-mark">
+                  <Icon name="sparkle" size={24} />
                 </div>
-              )}
-              <div className="chat__empty-mark">
-                <Icon name="sparkle" size={26} />
-              </div>
-              <h2>What can Copilot help you find?</h2>
-              <p>Find people, skills, teams, and mentors across the OPS.</p>
-              <div className="suggestions">
-                {SUGGESTIONS.map((s) => (
-                  <button key={s} className="suggestion" onClick={() => send(s)}>
-                    {s}
-                  </button>
-                ))}
-              </div>
-              <div className="message-meta" style={{ marginTop: 22, justifyContent: 'center' }}>
-                <span className="message-meta__source">
+                <h2>What do you need?</h2>
+                <p>Ask who can help, or describe a project.</p>
+
+                <div className="prompt-grid">
+                  {SUGGESTIONS.map((s) => (
+                    <button key={s.text} className="prompt-card" onClick={() => send(s.text)}>
+                      <span className="prompt-card__icon">
+                        <Icon name={s.icon} size={16} />
+                      </span>
+                      <span className="prompt-card__body">
+                        <span className="prompt-card__text">{s.text}</span>
+                        <span className="prompt-card__tag">{s.tag}</span>
+                      </span>
+                    </button>
+                  ))}
+                </div>
+
+                <div className="chat__empty-footer">
                   <span className="copilot-badge__icon">
                     <Icon name="sparkle" size={13} />
                   </span>
-                  Powered by Microsoft Copilot · grounded in the OPS directory
-                </span>
+                  Microsoft Copilot · OPS directory
+                </div>
               </div>
             </div>
           ) : (
             <div className="chat__thread-inner">
               {messages.map((m) => (
-                <ChatMessage key={m.id} message={m} />
+                <ChatMessage
+                  key={m.id}
+                  message={m}
+                  isStreaming={m.id === streamingId}
+                  onFollowUp={send}
+                />
               ))}
               {sending && (
                 <div className="message-row message-row--assistant">
-                  <div className="message-bubble">
-                    <span className="typing" role="status" aria-label="Copilot is typing">
-                      <span />
-                      <span />
-                      <span />
-                    </span>
+                  <div className="message-avatar" aria-hidden="true">
+                    <Icon name="sparkle" size={15} />
+                  </div>
+                  <div className="message-col" data-align="start">
+                    <div className="message-bubble message-bubble--status">
+                      <span className="typing" role="status" aria-label="Copilot is searching the OPS directory">
+                        <span />
+                        <span />
+                        <span />
+                      </span>
+                      <span className="message-status-text">Searching the OPS directory…</span>
+                    </div>
                   </div>
                 </div>
               )}

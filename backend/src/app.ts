@@ -7,6 +7,7 @@ import chatRouter from './routes/chat.js';
 import directoryRouter from './routes/directory.js';
 import messagesRouter from './routes/messages.js';
 import floorsRouter from './routes/floors.js';
+import connectRouter from './routes/connect.js';
 
 export function createApp() {
   const app = express();
@@ -28,6 +29,7 @@ export function createApp() {
   app.use('/api/directory', directoryRouter);
   app.use('/api/messages', messagesRouter);
   app.use('/api/floors', floorsRouter);
+  app.use('/api/connect', connectRouter);
 
   // 404 for unknown API routes.
   app.use('/api', (_req, res) => {

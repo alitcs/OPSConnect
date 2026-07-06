@@ -14,28 +14,43 @@ export default function SettingsPage() {
   const navigate = useNavigate();
 
   const [savingLocation, setSavingLocation] = useState(false);
+  const [savingPrivacy, setSavingPrivacy] = useState(false);
   const [messageAlerts, setMessageAlerts] = useState(true);
   const [announcements, setAnnouncements] = useState(false);
 
-  const locationShared = !!(currentUser?.floorPublic || currentUser?.seatPublic);
+  const floorShared = !!currentUser?.floorPublic;
+  const seatShared = !!currentUser?.seatPublic;
+  const messagePrivacy = currentUser?.messagePrivacy ?? 'everyone';
 
-  const toggleLocation = async () => {
+  const setLocation = async (patch: { floorPublic?: boolean; seatPublic?: boolean }) => {
     if (!currentUser || savingLocation) return;
-    const next = !locationShared;
     setSavingLocation(true);
     try {
-      await api.updateUser(currentUser.id, { floorPublic: next, seatPublic: next });
+      await api.updateUser(currentUser.id, patch);
       await refresh();
-      notify(
-        next
-          ? 'Your desk location is now visible to colleagues.'
-          : 'Your desk location is now private.',
-        'success',
-      );
+      notify('Your location sharing preferences were updated.', 'success');
     } catch {
       notify('Could not update your location sharing preference.', 'error');
     } finally {
       setSavingLocation(false);
+    }
+  };
+
+  const toggleFloor = () => setLocation({ floorPublic: !floorShared });
+  // Sharing an exact seat only makes sense alongside a shared floor.
+  const toggleSeat = () =>
+    setLocation(!seatShared ? { seatPublic: true, floorPublic: true } : { seatPublic: false });
+
+  const setMessagePrivacy = async (value: 'everyone' | 'ministry' | 'none') => {
+    if (!currentUser || savingPrivacy || value === messagePrivacy) return;
+    setSavingPrivacy(true);
+    try {
+      await api.updateUser(currentUser.id, { messagePrivacy: value });
+      await refresh();
+    } catch {
+      notify('Could not update your messaging preference.', 'error');
+    } finally {
+      setSavingPrivacy(false);
     }
   };
 
@@ -58,22 +73,82 @@ export default function SettingsPage() {
 
         <Group title="Privacy & data" icon="shield">
           <ToggleRow
-            label="Share my desk location"
-            description="Let colleagues see your floor and seat on the office map. Off by default."
-            checked={locationShared}
-            onChange={toggleLocation}
+            label="Share my floor"
+            description="Let colleagues see which floor you're on. Powers “who's nearby” on Connect."
+            checked={floorShared}
+            onChange={toggleFloor}
             disabled={savingLocation || !currentUser}
           />
+          <ToggleRow
+            label="Share my exact seat"
+            description="Show your desk on the office map. Turning this on also shares your floor."
+            checked={seatShared}
+            onChange={toggleSeat}
+            disabled={savingLocation || !currentUser}
+          />
+
+          <div className="settings__control">
+            <div className="settings__control-head">
+              <span>Who can message me</span>
+              <span className="muted" style={{ fontSize: 12 }}>
+                Applies to first messages only — existing chats always continue.
+              </span>
+            </div>
+            <div className="segmented" role="group" aria-label="Who can message me">
+              {(
+                [
+                  ['everyone', 'Everyone'],
+                  ['ministry', 'My ministry'],
+                  ['none', 'No one'],
+                ] as const
+              ).map(([value, label]) => (
+                <button
+                  key={value}
+                  type="button"
+                  className={`segmented__option ${messagePrivacy === value ? 'active' : ''}`}
+                  aria-pressed={messagePrivacy === value}
+                  onClick={() => setMessagePrivacy(value)}
+                  disabled={savingPrivacy}
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div className="visibility-preview">
+            <div className="visibility-preview__head">
+              <Icon name="profile" size={15} />
+              What others can see about you
+            </div>
+            <ul className="visibility-preview__list">
+              <li>
+                <Icon name={floorShared ? 'check' : 'x'} size={14} />
+                {floorShared ? `Your floor (${currentUser?.floor ?? '—'})` : 'Your floor is hidden'}
+              </li>
+              <li>
+                <Icon name={seatShared ? 'check' : 'x'} size={14} />
+                {seatShared ? `Your desk (${currentUser?.seat ?? '—'})` : 'Your exact desk is hidden'}
+              </li>
+              <li>
+                <Icon name={messagePrivacy === 'none' ? 'x' : 'check'} size={14} />
+                {messagePrivacy === 'everyone'
+                  ? 'Anyone in the OPS can message you'
+                  : messagePrivacy === 'ministry'
+                    ? 'Only people in your ministry can message you'
+                    : 'No one can start a new message with you'}
+              </li>
+            </ul>
+          </div>
+
           <div className="settings__note">
             <span className="settings__note-icon">
               <Icon name="info" size={16} />
             </span>
             <span>
-              <strong>How your data is used.</strong> ConnectOPS reads the OPS directory from
-              Microsoft&nbsp;Entra&nbsp;ID and Microsoft&nbsp;Graph. Copilot runs inside the
-              protected OPS Microsoft&nbsp;365 tenant — your questions and directory data never
-              leave the OPS boundary and are not used to train external models. You only ever
-              see the details each colleague has chosen to make public.
+              <strong>How your data is used.</strong> Copilot runs inside the OPS
+              Microsoft&nbsp;365 tenant — your data never leaves the OPS boundary or trains
+              external models. You only see what each colleague makes public.
             </span>
           </div>
         </Group>

@@ -11,9 +11,11 @@ import Icon from './Icon';
 export default function MiniProfileCard({
   person,
   rationale,
+  matchStrength,
 }: {
   person: UserSummary;
   rationale?: string;
+  matchStrength?: 'high' | 'medium';
 }) {
   const { openPreview } = usePreviewCard();
   const { currentUser } = useAuth();
@@ -28,36 +30,36 @@ export default function MiniProfileCard({
         onClick={() => openPreview(person.id)}
         aria-label={`View details for ${person.name}, ${person.title}`}
       >
-        <Avatar name={person.name} size={38} status={person.status} />
+        <Avatar name={person.name} size={36} status={person.status} />
         <div className="mini-card__body">
-          <div className="mini-card__name">{person.name}</div>
-          <div className="mini-card__meta">
-            {person.title} · {person.team}
+          <div className="mini-card__name">
+            <span className="mini-card__name-text">{person.name}</span>
+            {matchStrength === 'high' && (
+              <span className="match-flag" title="Strong match" aria-label="Strong match">
+                <Icon name="check" size={11} strokeWidth={3} />
+              </span>
+            )}
           </div>
-          {rationale && <div className="mini-card__rationale">{rationale}</div>}
+          {rationale ? (
+            <div className="mini-card__rationale">{rationale}</div>
+          ) : (
+            <div className="mini-card__meta">
+              {person.title} · {person.team}
+            </div>
+          )}
         </div>
       </button>
 
-      <div className="mini-card__actions">
-        {!isSelf && (
-          <button
-            type="button"
-            className="mini-card__action mini-card__action--primary"
-            onClick={() => navigate(`/messages?to=${person.id}`)}
-          >
-            <Icon name="teams" size={14} />
-            Message on Teams
-          </button>
-        )}
+      {!isSelf && (
         <button
           type="button"
-          className="mini-card__action"
-          onClick={() => openPreview(person.id)}
+          className="mini-card__msg"
+          onClick={() => navigate(`/messages?to=${person.id}`)}
+          aria-label={`Message ${person.name}`}
         >
-          <Icon name="info" size={14} />
-          View details
+          <Icon name="messages" size={16} />
         </button>
-      </div>
+      )}
     </div>
   );
 }

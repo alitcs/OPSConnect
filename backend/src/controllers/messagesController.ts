@@ -1,5 +1,6 @@
 import type { Request, Response } from 'express';
 import {
+  canMessage,
   getMessagesForThread,
   getThreadById,
   getThreadsForUser,
@@ -20,6 +21,8 @@ export function listThreads(req: Request, res: Response): void {
       ...thread,
       participant: other ? toSummary(other) : null,
       lastMessage: last ? last.text : null,
+      lastMessageFromMe: last ? last.fromUserId === me : false,
+      needsReply: last ? last.fromUserId !== me : false,
     };
   });
   res.json(threads);
@@ -32,12 +35,21 @@ export function getThread(req: Request, res: Response): void {
     res.status(404).json({ error: 'Thread not found' });
     return;
   }
-  const otherId = thread.participantIds.find((id) => id !== req.currentUser.id)!;
+  const me = req.currentUser.id;
+  const otherId = thread.participantIds.find((id) => id !== me)!;
   const other = getUserById(otherId);
+  const messages = getMessagesForThread(thread.id);
+  const last = messages[messages.length - 1];
   res.json({
-    thread,
+    thread: {
+      ...thread,
+      participant: other ? toSummary(other) : null,
+      lastMessage: last ? last.text : null,
+      lastMessageFromMe: last ? last.fromUserId === me : false,
+      needsReply: last ? last.fromUserId !== me : false,
+    },
     participant: other ? toSummary(other) : null,
-    messages: getMessagesForThread(thread.id),
+    messages,
   });
 }
 
@@ -55,6 +67,11 @@ export function postMessage(req: Request, res: Response): void {
   }
   if (toUserId === req.currentUser.id) {
     res.status(400).json({ error: 'You cannot message yourself.' });
+    return;
+  }
+  const gate = canMessage(req.currentUser.id, toUserId);
+  if (!gate.ok) {
+    res.status(403).json({ error: gate.reason ?? 'You cannot message this person.' });
     return;
   }
   const { thread, message } = sendDirectMessage(req.currentUser.id, toUserId, text);

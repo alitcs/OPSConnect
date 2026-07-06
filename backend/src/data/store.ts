@@ -9,6 +9,7 @@ import { randomUUID } from 'node:crypto';
 import seedUsers from './users.json' with { type: 'json' };
 import seedConversations from './conversations.json' with { type: 'json' };
 import type {
+  CoffeeChat,
   Conversation,
   ChatMessage,
   DirectMessage,
@@ -61,6 +62,81 @@ function toSummary(u: User) {
   };
 }
 
+// --- Engagement seed: availability, active/idle, admin, coffee-chat log ---
+// Anchored to a fixed "now" so seeded metrics stay stable in the prototype.
+
+export const NOW_ISO = '2026-07-06T13:30:00.000Z';
+
+const IDLE_IDS = new Set<number>([10, 20]);
+const ADMIN_IDS = new Set<number>([1, 5, 25]);
+const AVAILABILITY_SEED: Array<[number, string | null]> = [
+  [1, null],
+  [12, 'Happy to walk through anything data or Tableau'],
+  [18, null],
+  [4, 'Around this afternoon — ask me about web dev'],
+  [5, 'Open between meetings'],
+  [3, null],
+  [11, 'Glad to help with cloud or security questions'],
+  [22, null],
+  [13, 'New co-op — keen to meet the team!'],
+  [17, null],
+  [24, 'Up for a quick chat or walkthrough'],
+  [9, null],
+  [26, 'Ask me anything about accessibility'],
+];
+
+for (const u of users) {
+  u.availableForCoffee = false;
+  u.availabilityNote = null;
+  u.availabilitySetAt = null;
+  u.isActiveUser = !IDLE_IDS.has(u.id);
+  u.isAdmin = ADMIN_IDS.has(u.id);
+  u.messagePrivacy = u.messagePrivacy ?? 'everyone';
+}
+for (const [id, note] of AVAILABILITY_SEED) {
+  const u = users.find((x) => x.id === id);
+  if (u) {
+    u.availableForCoffee = true;
+    u.availabilityNote = note;
+    u.availabilitySetAt = NOW_ISO;
+  }
+}
+
+const coffeeChats: CoffeeChat[] = (
+  [
+    [1, 7, '2026-07-02'],
+    [1, 11, '2026-07-01'],
+    [1, 21, '2026-07-05'],
+    [1, 3, '2026-06-24'],
+    [1, 26, '2026-06-18'],
+    [1, 12, '2026-06-10'],
+    [1, 17, '2026-05-20'],
+    [1, 5, '2026-05-08'],
+    [5, 18, '2026-07-03'],
+    [7, 18, '2026-07-04'],
+    [12, 3, '2026-06-28'],
+    [18, 26, '2026-07-02'],
+    [4, 8, '2026-07-01'],
+    [9, 15, '2026-06-30'],
+    [2, 4, '2026-07-05'],
+    [3, 11, '2026-07-02'],
+    [6, 22, '2026-07-01'],
+    [11, 14, '2026-06-29'],
+    [22, 3, '2026-07-04'],
+    [17, 19, '2026-07-03'],
+    [24, 17, '2026-06-27'],
+    [16, 23, '2026-06-20'],
+    [21, 29, '2026-07-01'],
+    [29, 28, '2026-06-25'],
+    [26, 30, '2026-07-02'],
+  ] as Array<[number, number, string]>
+).map(([userId, withUserId, day], i) => ({
+  id: `cc-seed-${i}`,
+  userId,
+  withUserId,
+  at: `${day}T15:00:00.000Z`,
+}));
+
 // --- Users ---------------------------------------------------------------
 
 export function getAllUsers(): User[] {
@@ -85,6 +161,7 @@ export function updateUser(id: number, patch: Partial<User>): User | undefined {
     'coopInfo',
     'floorPublic',
     'seatPublic',
+    'messagePrivacy',
   ];
   for (const key of editable) {
     if (key in patch) {
@@ -93,6 +170,37 @@ export function updateUser(id: number, patch: Partial<User>): User | undefined {
     }
   }
   return user;
+}
+
+// --- Bulletin board availability & coffee chats --------------------------
+
+export function setAvailability(
+  id: number,
+  available: boolean,
+  note?: string | null,
+): User | undefined {
+  const user = getUserById(id);
+  if (!user) return undefined;
+  user.availableForCoffee = available;
+  user.availabilityNote = available ? (note?.trim() ? note.trim().slice(0, 120) : null) : null;
+  user.availabilitySetAt = available ? new Date().toISOString() : null;
+  user.isActiveUser = true;
+  return user;
+}
+
+export function getCoffeeChats(): CoffeeChat[] {
+  return coffeeChats;
+}
+
+export function addCoffeeChat(userId: number, withUserId: number): CoffeeChat {
+  const chat: CoffeeChat = {
+    id: `cc-${randomUUID()}`,
+    userId,
+    withUserId,
+    at: new Date().toISOString(),
+  };
+  coffeeChats.push(chat);
+  return chat;
 }
 
 // --- Conversations & chat messages ---------------------------------------
@@ -163,6 +271,32 @@ export function getThreadsForUser(userId: number): MessageThread[] {
 
 export function getThreadById(id: string): MessageThread | undefined {
   return threads.find((t) => t.id === id);
+}
+
+/**
+ * Whether `fromUserId` may start a NEW conversation with `toUserId`, honoring the
+ * recipient's message-privacy preference. Existing conversations always continue.
+ */
+export function canMessage(
+  fromUserId: number,
+  toUserId: number,
+): { ok: boolean; reason?: string } {
+  const recipient = getUserById(toUserId);
+  const sender = getUserById(fromUserId);
+  if (!recipient || !sender) return { ok: false, reason: 'Recipient not found' };
+  const existing = threads.find((t) => t.id === threadKey(fromUserId, toUserId));
+  if (existing) return { ok: true };
+  const privacy = recipient.messagePrivacy ?? 'everyone';
+  if (privacy === 'none') {
+    return { ok: false, reason: `${recipient.name.split(' ')[0]} isn’t accepting new messages right now.` };
+  }
+  if (privacy === 'ministry' && sender.ministry !== recipient.ministry) {
+    return {
+      ok: false,
+      reason: `${recipient.name.split(' ')[0]} only accepts messages from people in their ministry.`,
+    };
+  }
+  return { ok: true };
 }
 
 export function getMessagesForThread(threadId: string): DirectMessage[] {

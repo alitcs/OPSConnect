@@ -12,6 +12,31 @@ export default function MessageInbox({
   onSelect: (thread: MessageThreadSummary) => void;
   className?: string;
 }) {
+  // Auto-prioritize without hiding anything: conversations where it's your turn float to a
+  // "Needs your reply" group; everything else stays below. Same on mobile and desktop.
+  const needsReply = threads.filter((t) => t.needsReply);
+  const rest = threads.filter((t) => !t.needsReply);
+
+  const renderThread = (t: MessageThreadSummary) => (
+    <button
+      key={t.id}
+      className={`thread-item ${activeThreadId === t.id ? 'active' : ''}`}
+      onClick={() => onSelect(t)}
+    >
+      {t.participant && <Avatar name={t.participant.name} size={38} status={t.participant.status} />}
+      <div className="thread-item__body">
+        <div className="thread-item__name">
+          {t.participant?.name ?? 'Unknown'}
+          {t.needsReply && <span className="thread-item__dot" aria-label="Awaiting your reply" />}
+        </div>
+        <div className="thread-item__last">
+          {t.lastMessageFromMe && t.lastMessage ? 'You: ' : ''}
+          {t.lastMessage ?? 'No messages yet'}
+        </div>
+      </div>
+    </button>
+  );
+
   return (
     <div className={`messages__list ${className}`}>
       <div className="messages__list-header">Messages</div>
@@ -21,19 +46,23 @@ export default function MessageInbox({
             No conversations yet. Message someone from their profile to start one.
           </p>
         )}
-        {threads.map((t) => (
-          <button
-            key={t.id}
-            className={`thread-item ${activeThreadId === t.id ? 'active' : ''}`}
-            onClick={() => onSelect(t)}
-          >
-            {t.participant && <Avatar name={t.participant.name} size={38} status={t.participant.status} />}
-            <div className="thread-item__body">
-              <div className="thread-item__name">{t.participant?.name ?? 'Unknown'}</div>
-              <div className="thread-item__last">{t.lastMessage ?? 'No messages yet'}</div>
+
+        {needsReply.length > 0 && (
+          <>
+            <div className="messages__group-label">
+              Needs your reply
+              <span className="messages__group-count">{needsReply.length}</span>
             </div>
-          </button>
-        ))}
+            {needsReply.map(renderThread)}
+          </>
+        )}
+
+        {rest.length > 0 && (
+          <>
+            {needsReply.length > 0 && <div className="messages__group-label">Conversations</div>}
+            {rest.map(renderThread)}
+          </>
+        )}
       </div>
     </div>
   );

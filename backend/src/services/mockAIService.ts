@@ -15,6 +15,7 @@ import { toSummary } from './userService.js';
 export interface AIReply {
   text: string;
   people: SurfacedPerson[];
+  followUps?: string[];
 }
 
 const norm = (s: string) => s.toLowerCase();
@@ -29,8 +30,26 @@ function hasSkill(user: User, keyword: string): boolean {
   );
 }
 
-function surface(user: User, rationale: string): SurfacedPerson {
-  return { user: toSummary(user), rationale };
+function surface(
+  user: User,
+  rationale: string,
+  capability?: string,
+  matchStrength?: 'high' | 'medium',
+): SurfacedPerson {
+  const person: SurfacedPerson = { user: toSummary(user), rationale };
+  if (capability) person.capability = capability;
+  if (matchStrength) person.matchStrength = matchStrength;
+  return person;
+}
+
+// Deterministic, explainable confidence: strong when there are multiple direct skill hits
+// (or a title/team match), otherwise a solid "good" match. No black-box scoring.
+function strengthFor(user: User, keywords: string[]): 'high' | 'medium' {
+  const hits = keywords.filter((k) => user.skills.some((s) => norm(s).includes(norm(k)))).length;
+  const titleOrTeam = keywords.some(
+    (k) => norm(user.title).includes(norm(k)) || norm(user.team).includes(norm(k)),
+  );
+  return hits >= 2 || (hits >= 1 && titleOrTeam) ? 'high' : 'medium';
 }
 
 /** Build a contextual rationale for why a person matched a skill query. */
@@ -115,7 +134,7 @@ const intents: Intent[] = [
       const people = users
         .filter((u) => hasSkill(u, 'accessibility'))
         .slice(0, 3)
-        .map((u) => surface(u, rationaleForSkill(u, 'accessibility')));
+        .map((u) => surface(u, rationaleForSkill(u, 'accessibility'), undefined, strengthFor(u, ['accessibility'])));
       if (!people.length) return null;
       return {
         text: 'For accessibility standards, these are the people leading that work across the OPS:',
@@ -138,6 +157,8 @@ const intents: Intent[] = [
             `${u.title} on the ${u.team} team — works on ${u.skills
               .slice(0, 2)
               .join(' and ')}.`,
+            undefined,
+            strengthFor(u, ['cybersecurity', 'security']),
           ),
         );
       if (!people.length) return null;
@@ -164,6 +185,8 @@ const intents: Intent[] = [
             `${u.title} — open to mentoring on ${u.mentoringAreas.join(
               ', ',
             )}. A great person to shadow for ${keyword} experience.`,
+            undefined,
+            strengthFor(u, [keyword]),
           ),
         );
       if (!people.length) return null;
@@ -174,31 +197,57 @@ const intents: Intent[] = [
     },
   },
 
-  // --- Strategic staffing: "I need to deliver an analytics dashboard — what skills exist?" ---
+  // --- Strategic staffing: "I'm launching a project that needs X, Y, Z — who can help?" ---
   {
-    name: 'staffing-dashboard',
+    name: 'project-staffing',
     match: (query, users) => {
-      if (!/(dashboard|deliver|staff|build a team|achieve|project)/.test(query))
+      if (
+        !/(dashboard|deliver|staff|build a team|assemble|put together|initiative|kick ?off|launch|working on|starting a|need (people|someone|a team|help)|who can help|looking for|team to|project)/.test(
+          query,
+        )
+      ) {
         return null;
-      const keywords = SKILL_KEYWORDS.filter((k) => query.includes(k));
-      const search = keywords.length ? keywords : ['data analytics', 'data visualization'];
+      }
+      const needed = SKILL_KEYWORDS.filter((k) => query.includes(k));
+      const search = needed.length ? needed : ['data analytics', 'data visualization'];
       const seen = new Set<number>();
       const people: SurfacedPerson[] = [];
-      for (const k of search) {
-        for (const u of users.filter((u) => hasSkill(u, k))) {
-          if (seen.has(u.id)) continue;
-          seen.add(u.id);
-          people.push(surface(u, rationaleForSkill(u, k)));
-          if (people.length >= 4) break;
-        }
-        if (people.length >= 4) break;
+      const covered: string[] = [];
+      for (const capability of search) {
+        const candidate = users
+          .filter((u) => hasSkill(u, capability) && !seen.has(u.id))
+          .sort((a, b) => Number(b.availableForCoffee) - Number(a.availableForCoffee))[0];
+        if (!candidate) continue;
+        seen.add(candidate.id);
+        covered.push(capability);
+        const matched = candidate.skills.filter((s) =>
+          s.toLowerCase().includes(capability.toLowerCase()),
+        );
+        const skillTxt = matched.length ? ` (${matched.slice(0, 2).join(', ')})` : '';
+        const avail = candidate.availableForCoffee ? ' Open to help today.' : '';
+        people.push(
+          surface(
+            candidate,
+            `${candidate.title} on the ${candidate.team} team${skillTxt}.${avail}`,
+            capability,
+            strengthFor(candidate, [capability]),
+          ),
+        );
+        if (people.length >= 5) break;
       }
       if (!people.length) return null;
+      const intro = needed.length
+        ? `I read your project as needing ${covered.join(
+            ', ',
+          )}. Here's the internal capability that maps to each — a starting team you could reach out to:`
+        : "Here's the internal capability that could help deliver this — a starting team you could reach out to:";
       return {
-        text: `Based on the skills you'd need (${search.join(
-          ', ',
-        )}), here's the internal capability that could help deliver this:`,
+        text: intro,
         people,
+        followUps: [
+          'Only show people open to help now',
+          'Draft an intro message to this team',
+        ],
       };
     },
   },
@@ -275,6 +324,8 @@ const intents: Intent[] = [
           surface(
             u,
             `${u.title} on the ${u.team} team — matches ${matched.join(' and ')}.`,
+            undefined,
+            strengthFor(u, matched),
           ),
         );
         if (people.length >= 4) break;

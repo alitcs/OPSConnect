@@ -56,6 +56,9 @@ export default function ChatInput({
           <Icon name="send" size={18} />
         </button>
       </div>
+      <p className="chat__input-hint">
+        Enter to send · Shift+Enter for new line
+      </p>
     </div>
   );
 }
