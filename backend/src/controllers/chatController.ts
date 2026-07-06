@@ -80,6 +80,7 @@ export function sendMessage(req: Request, res: Response): void {
     role: 'assistant',
     text: reply.text,
     people: reply.people,
+    followUps: reply.followUps,
   });
 
   res.json({ conversationId, message: assistantMessage });

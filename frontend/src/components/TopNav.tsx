@@ -6,11 +6,13 @@ import Icon, { type IconName } from './Icon';
 
 // Primary navigation. On desktop this is a persistent left sidebar; on mobile it
 // collapses to a bottom tab bar.
-const NAV: { to: string; label: string; icon: IconName; end: boolean }[] = [
+const NAV: { to: string; label: string; icon: IconName; end: boolean; adminOnly?: boolean }[] = [
   { to: '/', label: 'Copilot', icon: 'sparkle', end: true },
+  { to: '/connect', label: 'Connect', icon: 'coffee', end: false },
   { to: '/directory', label: 'Directory', icon: 'directory', end: false },
   { to: '/messages', label: 'Messages', icon: 'messages', end: false },
   { to: '/profile', label: 'Profile', icon: 'profile', end: false },
+  { to: '/admin', label: 'Insights', icon: 'chart', end: false, adminOnly: true },
   { to: '/settings', label: 'Settings', icon: 'settings', end: false },
 ];
 
@@ -18,6 +20,8 @@ export default function TopNav() {
   const { currentUser, logout } = useAuth();
   const { theme, toggleTheme } = useTheme();
   const navigate = useNavigate();
+
+  const navItems = NAV.filter((item) => !item.adminOnly || currentUser?.isAdmin);
 
   const handleLogout = () => {
     logout();
@@ -39,15 +43,16 @@ export default function TopNav() {
         </NavLink>
 
         <nav className="sidebar__nav" aria-label="Main navigation">
-          {NAV.map((item) => (
+          {navItems.map((item) => (
             <NavLink
               key={item.to}
               to={item.to}
               end={item.end}
+              title={item.label}
               className={({ isActive }) => `sidebar__link ${isActive ? 'active' : ''}`}
             >
               <span className="sidebar__link-icon">
-                <Icon name={item.icon} size={18} />
+                <Icon name={item.icon} size={20} />
               </span>
               <span className="sidebar__link-label">{item.label}</span>
             </NavLink>
@@ -89,7 +94,7 @@ export default function TopNav() {
 
       {/* Mobile bottom tab bar — same items, same order. */}
       <nav className="tabbar" aria-label="Main navigation">
-        {NAV.map((item) => (
+        {navItems.map((item) => (
           <NavLink
             key={item.to}
             to={item.to}

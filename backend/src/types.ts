@@ -43,6 +43,18 @@ export interface User {
   aspirations: string[];
   mentoringAreas: string[];
   coopInfo: CoopInfo | null;
+
+  // --- Bulletin board availability ("open for coffee today") ---
+  availableForCoffee: boolean;
+  availabilityNote: string | null;
+  availabilitySetAt: string | null;
+
+  // --- Platform engagement ---
+  isActiveUser: boolean;
+  isAdmin: boolean;
+
+  // --- Privacy: who is allowed to start a direct message with you ---
+  messagePrivacy: 'everyone' | 'ministry' | 'none';
 }
 
 /** Compact representation used in lists, mini cards, and preview cards (Tier 1 only). */
@@ -63,6 +75,8 @@ export interface ChatMessage {
   text: string;
   /** People surfaced by the AI for this message (mini cards rendered inline). */
   people?: SurfacedPerson[];
+  /** Suggested next questions rendered as tappable chips under an assistant reply. */
+  followUps?: string[];
   createdAt: string;
 }
 
@@ -70,6 +84,10 @@ export interface ChatMessage {
 export interface SurfacedPerson {
   user: UserSummary;
   rationale: string;
+  /** For project-staffing results: the capability this person covers. */
+  capability?: string;
+  /** How closely this person fits the request — drives the confidence badge. */
+  matchStrength?: 'high' | 'medium';
 }
 
 export interface Conversation {
@@ -113,4 +131,72 @@ export interface FloorMapData {
     x: number;
     y: number;
   } | null;
+}
+
+// --- Bulletin board / Connect feature ---
+
+export interface ConnectPerson {
+  user: UserSummary;
+  availabilityNote: string | null;
+  sharedInterests: string[];
+  proximity: string | null;
+  isNearby: boolean;
+}
+
+export interface ProximitySummary {
+  count: number;
+  floor: number | null;
+  building: string | null;
+  people: ConnectPerson[];
+  shareEnabled: boolean;
+}
+
+export interface DailyNudge {
+  message: string;
+  people: ConnectPerson[];
+}
+
+export interface ConnectionRecord {
+  withUser: UserSummary;
+  at: string;
+  crossTeam: boolean;
+}
+
+export interface ActivityMetrics {
+  coffeeChatsThisMonth: number;
+  coffeeChatsTotal: number;
+  distinctPeople: number;
+  crossTeamCount: number;
+  crossTeamPct: number;
+  history: { month: string; count: number }[];
+  recent: ConnectionRecord[];
+}
+
+export interface TeamInsight {
+  team: string;
+  ministry: string;
+  members: number;
+  activeUsers: number;
+  connections: number;
+  connectionsPerActive: number;
+}
+
+export interface AdminInsights {
+  totalEmployees: number;
+  activeUsers: number;
+  activationRate: number;
+  availableToday: number;
+  totalConnections: number;
+  crossTeamPct: number;
+  coopCount: number;
+  coopConnectionRate: number;
+  teams: TeamInsight[];
+  engagementGaps: string[];
+}
+
+export interface CoffeeChat {
+  id: string;
+  userId: number;
+  withUserId: number;
+  at: string;
 }

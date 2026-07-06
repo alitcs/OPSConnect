@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Navigate, useNavigate, useParams } from 'react-router-dom';
+import { Navigate, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import type { User } from '../types';
 import { api } from '../api/client';
 import { useAuth } from '../context/AuthContext';
@@ -15,7 +15,10 @@ export default function UserProfilePage() {
   const { id } = useParams();
   const userId = Number(id);
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const { currentUser } = useAuth();
+  const isSelf = currentUser?.id === userId;
+  const preview = searchParams.get('preview') === '1';
   const [user, setUser] = useState<User | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [showMap, setShowMap] = useState(false);
@@ -27,7 +30,9 @@ export default function UserProfilePage() {
     api.getUser(userId).then(setUser).catch((e) => setError(e.message));
   }, [userId]);
 
-  if (currentUser?.id === userId) return <Navigate to="/profile" replace />;
+  // Viewing yourself normally redirects to the editable profile — unless you explicitly
+  // asked to preview how your profile appears to others.
+  if (isSelf && !preview) return <Navigate to="/profile" replace />;
 
   return (
     <div className="page">
@@ -42,18 +47,26 @@ export default function UserProfilePage() {
 
         {user && (
           <>
+            {isSelf && preview && (
+              <div className="preview-banner">
+                <Icon name="info" size={15} />
+                This is how your profile appears to others.
+              </div>
+            )}
             <ProfileSection1 user={user} />
 
             <div style={{ height: 16 }} />
 
-            <div className="card" style={{ padding: 20, display: 'flex', gap: 10, flexWrap: 'wrap' }}>
-              <button className="btn btn--primary" onClick={() => navigate(`/messages?to=${user.id}`)}>
-                Message
-              </button>
-              <a className="btn" href={`mailto:${user.email}`}>
-                Email
-              </a>
-            </div>
+            {!isSelf && (
+              <div className="card" style={{ padding: 20, display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+                <button className="btn btn--primary" onClick={() => navigate(`/messages?to=${user.id}`)}>
+                  Message
+                </button>
+                <a className="btn" href={`mailto:${user.email}`}>
+                  Email
+                </a>
+              </div>
+            )}
 
             {/* Tier 2 location — only present if the person opted in (server already gates it). */}
             {(user.floor !== null || user.seat !== null) && (

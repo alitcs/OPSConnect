@@ -6,12 +6,17 @@
 // reintroduce a fetch-based `request()` and point these methods at it.
 
 import type {
+  ActivityMetrics,
+  AdminInsights,
   ChatMessage,
+  ConnectPerson,
   Conversation,
+  DailyNudge,
   DirectMessage,
   DirectoryFilterOptions,
   FloorMapData,
   MessageThreadSummary,
+  ProximitySummary,
   SurfacedPerson,
   User,
   UserSummary,
@@ -59,6 +64,27 @@ export const api = {
   getDirectory: (params: Record<string, string> = {}) =>
     run<UserSummary[]>(() => backend.getDirectory(params)),
   getDirectoryFilters: () => run<DirectoryFilterOptions>(() => backend.getDirectoryFilters()),
+
+  // --- Connect / bulletin board ---
+  getAvailability: () =>
+    run<{ availableForCoffee: boolean; availabilityNote: string | null; availabilitySetAt: string | null }>(
+      () => backend.getAvailability(me()),
+    ),
+  setAvailability: (available: boolean, note?: string | null) =>
+    run<{ availableForCoffee: boolean; availabilityNote: string | null; availabilitySetAt: string | null }>(
+      () => backend.setAvailability(me(), available, note),
+    ),
+  getConnectFeed: () => run<ConnectPerson[]>(() => backend.getConnectFeed(me())),
+  getProximity: () => run<ProximitySummary>(() => backend.getProximity(me())),
+  getDailyNudge: () => run<DailyNudge>(() => backend.getDailyNudge(me())),
+
+  // --- Private activity metric ---
+  getActivityMetrics: () => run<ActivityMetrics>(() => backend.getActivityMetrics(me())),
+  logCoffeeChat: (withUserId: number) =>
+    run<ActivityMetrics>(() => backend.logCoffeeChat(me(), withUserId)),
+
+  // --- Admin insights ---
+  getAdminInsights: () => run<AdminInsights>(() => backend.getAdminInsights(me())),
 
   // --- Chat ---
   sendChat: (message: string, conversationId?: string) =>

@@ -3,6 +3,7 @@ import type { User } from '../types';
 import { api } from '../api/client';
 import { useAuth } from '../context/AuthContext';
 import EditableTags from './EditableTags';
+import InterestSelector from './InterestSelector';
 
 // Section 2 — extended info. Editable, shown only on the user's own profile (not on other
 // people's public profiles). The AI uses this data internally even though most humans never
@@ -52,7 +53,7 @@ export default function ProfileSection2({ user }: { user: User }) {
         placeholder="Add a skill…"
         values={draft.skills}
         onChange={(v) => update({ skills: v })}
-        empty="Add your skills to help others find you."
+        empty="Add skills so others can find you."
       />
       <TagField
         label="Certifications"
@@ -61,26 +62,28 @@ export default function ProfileSection2({ user }: { user: User }) {
         onChange={(v) => update({ certifications: v })}
         empty="Add certifications you hold."
       />
-      <TagField
-        label="Interests"
-        placeholder="Add an interest…"
-        values={draft.interests}
-        onChange={(v) => update({ interests: v })}
-        empty="Share professional interests to spark connections."
-      />
+      <div className="section2__field">
+        <div className="field__label" style={{ marginBottom: 8 }}>Interests</div>
+        {draft.interests.length === 0 && (
+          <div className="placeholder-text" style={{ marginBottom: 8 }}>
+            Pick interests to spark connections.
+          </div>
+        )}
+        <InterestSelector values={draft.interests} onChange={(v) => update({ interests: v })} />
+      </div>
       <TagField
         label="Career Aspirations"
         placeholder="Add an aspiration…"
         values={draft.aspirations}
         onChange={(v) => update({ aspirations: v })}
-        empty="Where do you want to grow? (e.g. “Move into cybersecurity”)"
+        empty="Where do you want to grow?"
       />
       <TagField
         label="Open to Mentoring On"
         placeholder="Add a mentoring area…"
         values={draft.mentoringAreas}
         onChange={(v) => update({ mentoringAreas: v })}
-        empty="List topics you're happy to mentor others on."
+        empty="Topics you'll mentor on."
       />
 
       {/* Co-op rotation info — only relevant for co-op students. */}

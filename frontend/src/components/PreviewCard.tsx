@@ -93,6 +93,13 @@ export default function PreviewCard({
                 <a href={`mailto:${user.email}`}>{user.email}</a>
               </Row>
               <Row label="Phone">{user.phone}</Row>
+              {(user.floor !== null || user.seat !== null) && (
+                <Row label="Desk">
+                  {[user.floor !== null ? `Floor ${user.floor}` : null, user.seat]
+                    .filter(Boolean)
+                    .join(' · ')}
+                </Row>
+              )}
             </div>
 
             <div className="preview-card__actions">
@@ -103,8 +110,8 @@ export default function PreviewCard({
               {!isSelf && (
                 <div className="preview-card__actions-row">
                   <button className="btn btn--block" onClick={message}>
-                    <Icon name="teams" size={16} />
-                    Message on Teams
+                    <Icon name="messages" size={16} />
+                    Message
                   </button>
                   <button className="btn btn--block" onClick={book}>
                     <Icon name="calendar" size={16} />

@@ -119,6 +119,12 @@ function buildNewUserProfile(name: string, email: string): Omit<User, 'id'> {
     aspirations: [],
     mentoringAreas: [],
     coopInfo: null,
+    availableForCoffee: false,
+    availabilityNote: null,
+    availabilitySetAt: null,
+    isActiveUser: true,
+    isAdmin: false,
+    messagePrivacy: 'everyone',
   };
 }
 

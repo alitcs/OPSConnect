@@ -3,11 +3,13 @@ import TopNav from './components/TopNav';
 import { PreviewCardProvider } from './context/PreviewCardContext';
 import { useAuth } from './context/AuthContext';
 import ChatPage from './pages/Chat';
+import ConnectPage from './pages/Connect';
 import DirectoryPage from './pages/Directory';
 import ProfilePage from './pages/Profile';
 import SettingsPage from './pages/Settings';
 import UserProfilePage from './pages/UserProfile';
 import MessagesPage from './pages/Messages';
+import AdminPage from './pages/Admin';
 import LoginPage from './pages/Login';
 
 export default function App() {
@@ -41,12 +43,14 @@ export default function App() {
         <main className="app-main" id="main-content" tabIndex={-1}>
           <Routes>
             <Route path="/" element={<ChatPage />} />
+            <Route path="/connect" element={<ConnectPage />} />
             <Route path="/directory" element={<DirectoryPage />} />
             <Route path="/profile" element={<ProfilePage />} />
             <Route path="/settings" element={<SettingsPage />} />
             <Route path="/messages" element={<MessagesPage />} />
             <Route path="/messages/:threadId" element={<MessagesPage />} />
             <Route path="/users/:id" element={<UserProfilePage />} />
+            <Route path="/admin" element={<AdminPage />} />
             <Route path="/login" element={<Navigate to="/" replace />} />
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>

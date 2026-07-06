@@ -10,13 +10,19 @@
 import seedUsers from '../data/users.json';
 import seedConversations from '../data/conversations.json';
 import type {
+  ActivityMetrics,
+  AdminInsights,
   ChatMessage,
+  ConnectPerson,
   Conversation,
+  DailyNudge,
   DirectMessage,
   DirectoryFilterOptions,
   FloorMapData,
   MessageThreadSummary,
+  ProximitySummary,
   SurfacedPerson,
+  TeamInsight,
   User,
   UserSummary,
 } from '../types';
@@ -59,6 +65,96 @@ function toSummary(u: User): UserSummary {
     status: u.status,
   };
 }
+
+// --- Engagement seed: availability, active/idle, admin, coffee-chat log ---
+//
+// Anchored to a fixed "now" so the seeded activity metric and admin insights stay stable
+// and internally consistent in the demo. Live user actions still use the real clock.
+
+const NOW = new Date('2026-07-06T13:30:00.000Z');
+const NOW_ISO = NOW.toISOString();
+
+// Employees who appear in the directory but haven't actively signed up to ConnectOPS.
+const IDLE_IDS = new Set<number>([10, 20]);
+// Program-coordinator access to the org-level insights page.
+const ADMIN_IDS = new Set<number>([1, 5, 25]);
+// Who has set themselves "open for coffee" today, with an optional note.
+const AVAILABILITY_SEED: Array<[number, string | null]> = [
+  [1, null],
+  [12, 'Happy to walk through anything data or Tableau'],
+  [18, null],
+  [4, 'Around this afternoon — ask me about web dev'],
+  [5, 'Open between meetings'],
+  [3, null],
+  [11, 'Glad to help with cloud or security questions'],
+  [22, null],
+  [13, 'New co-op — keen to meet the team!'],
+  [17, null],
+  [24, 'Up for a quick chat or walkthrough'],
+  [9, null],
+  [26, 'Ask me anything about accessibility'],
+];
+
+for (const u of users) {
+  u.availableForCoffee = false;
+  u.availabilityNote = null;
+  u.availabilitySetAt = null;
+  u.isActiveUser = !IDLE_IDS.has(u.id);
+  u.isAdmin = ADMIN_IDS.has(u.id);
+  u.messagePrivacy = u.messagePrivacy ?? 'everyone';
+}
+for (const [id, note] of AVAILABILITY_SEED) {
+  const u = users.find((x) => x.id === id);
+  if (u) {
+    u.availableForCoffee = true;
+    u.availabilityNote = note;
+    u.availabilitySetAt = NOW_ISO;
+  }
+}
+
+interface CoffeeChat {
+  id: string;
+  userId: number; // who logged it
+  withUserId: number;
+  at: string;
+}
+
+const coffeeChats: CoffeeChat[] = (
+  [
+    // Current user (Priya, id 1) — this month + history for the private metric.
+    [1, 7, '2026-07-02'],
+    [1, 11, '2026-07-01'],
+    [1, 21, '2026-07-05'],
+    [1, 3, '2026-06-24'],
+    [1, 26, '2026-06-18'],
+    [1, 12, '2026-06-10'],
+    [1, 17, '2026-05-20'],
+    [1, 5, '2026-05-08'],
+    // Broader org activity so admin insights are meaningful.
+    [5, 18, '2026-07-03'],
+    [7, 18, '2026-07-04'],
+    [12, 3, '2026-06-28'],
+    [18, 26, '2026-07-02'],
+    [4, 8, '2026-07-01'],
+    [9, 15, '2026-06-30'],
+    [2, 4, '2026-07-05'],
+    [3, 11, '2026-07-02'],
+    [6, 22, '2026-07-01'],
+    [11, 14, '2026-06-29'],
+    [22, 3, '2026-07-04'],
+    [17, 19, '2026-07-03'],
+    [24, 17, '2026-06-27'],
+    [16, 23, '2026-06-20'],
+    [21, 29, '2026-07-01'],
+    [29, 28, '2026-06-25'],
+    [26, 30, '2026-07-02'],
+  ] as Array<[number, number, string]>
+).map(([userId, withUserId, day], i) => ({
+  id: `cc-seed-${i}`,
+  userId,
+  withUserId,
+  at: `${day}T15:00:00.000Z`,
+}));
 
 const chatMessages: ChatMessage[] = [
   {
@@ -164,11 +260,272 @@ function getFilterOptions(): DirectoryFilterOptions {
   };
 }
 
+// --- Bulletin board / Connect helpers ------------------------------------
+
+function normText(s: string): string {
+  return s.trim().toLowerCase();
+}
+
+function sharedInterestsBetween(a: User, b: User): string[] {
+  const setB = new Set(b.interests.map(normText));
+  return a.interests.filter((i) => setB.has(normText(i)));
+}
+
+/** A proximity label if the target shares their floor and is co-located with the viewer today. */
+function proximityLabel(target: User, viewer: User): string | null {
+  // Reciprocal: you only see who's near you if you also share your own location.
+  if (!viewer.floorPublic || viewer.floor == null) return null;
+  if (!target.floorPublic || target.floor == null) return null;
+  if (viewer.location !== target.location || viewer.floor !== target.floor) return null;
+  return `Floor ${target.floor} · ${target.location}`;
+}
+
+function toConnectPerson(target: User, viewer: User): ConnectPerson {
+  const proximity = proximityLabel(target, viewer);
+  return {
+    user: toSummary(target),
+    availabilityNote: target.availabilityNote,
+    sharedInterests: sharedInterestsBetween(viewer, target).slice(0, 3),
+    proximity,
+    isNearby: proximity != null,
+  };
+}
+
+/** Everyone who is an active user and open for coffee today (excluding the viewer). */
+function connectFeed(viewerId: number): ConnectPerson[] {
+  const viewer = requireUser(viewerId);
+  return users
+    .filter((u) => u.id !== viewerId && u.isActiveUser && u.availableForCoffee)
+    .map((u) => toConnectPerson(u, viewer))
+    .sort((a, b) => {
+      if (a.isNearby !== b.isNearby) return a.isNearby ? -1 : 1;
+      if (b.sharedInterests.length !== a.sharedInterests.length) {
+        return b.sharedInterests.length - a.sharedInterests.length;
+      }
+      return a.user.name.localeCompare(b.user.name);
+    });
+}
+
+function proximitySummary(viewerId: number): ProximitySummary {
+  const viewer = requireUser(viewerId);
+  const nearby = connectFeed(viewerId).filter((p) => p.isNearby);
+  return {
+    count: nearby.length,
+    floor: viewer.floor,
+    building: viewer.location,
+    people: nearby,
+    shareEnabled: viewer.floorPublic && viewer.floor != null,
+  };
+}
+
+// Small seeded RNG so the "randomized" daily nudge is stable within a session/day but still
+// feels arbitrary (may surface one, both, or neither of the nearby people).
+function hashSeed(s: string): number {
+  let h = 2166136261;
+  for (let i = 0; i < s.length; i++) {
+    h = Math.imul(h ^ s.charCodeAt(i), 16777619);
+  }
+  return h >>> 0;
+}
+function mulberry32(seed: number): () => number {
+  let a = seed;
+  return () => {
+    a |= 0;
+    a = (a + 0x6d2b79f5) | 0;
+    let t = Math.imul(a ^ (a >>> 15), 1 | a);
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+
+function dailyNudge(viewerId: number): DailyNudge {
+  const viewer = requireUser(viewerId);
+  const nearby = proximitySummary(viewerId).people;
+  const day = NOW_ISO.slice(0, 10);
+  const rng = mulberry32(hashSeed(`${viewerId}:${day}`));
+  const roll = rng();
+  let count = roll < 0.25 ? 0 : roll < 0.7 ? 1 : 2;
+  count = Math.min(count, nearby.length);
+  const pool = [...nearby];
+  for (let i = pool.length - 1; i > 0; i--) {
+    const j = Math.floor(rng() * (i + 1));
+    [pool[i], pool[j]] = [pool[j], pool[i]];
+  }
+  const people = pool.slice(0, count);
+  const floorTxt = viewer.floor != null ? ` on Floor ${viewer.floor}` : '';
+  const message =
+    count === 0
+      ? 'No nudge for you today — but the Connect board always shows who’s around to help.'
+      : `${count} ${count === 1 ? 'person' : 'people'} near you${floorTxt} ${
+          count === 1 ? 'is' : 'are'
+        } open to help today.`;
+  return { message, people };
+}
+
+function activityMetrics(viewerId: number): ActivityMetrics {
+  const viewer = requireUser(viewerId);
+  const mine = coffeeChats.filter((c) => c.userId === viewerId || c.withUserId === viewerId);
+  const otherOf = (c: CoffeeChat) => (c.userId === viewerId ? c.withUserId : c.userId);
+  const monthKey = (iso: string) => iso.slice(0, 7);
+  const thisMonth = NOW_ISO.slice(0, 7);
+
+  const distinct = new Set(mine.map(otherOf));
+  let crossTeamCount = 0;
+  for (const c of mine) {
+    const other = getUserById(otherOf(c));
+    if (other && other.team !== viewer.team) crossTeamCount++;
+  }
+
+  const monthCounts = new Map<string, number>();
+  for (const c of mine) {
+    const k = monthKey(c.at);
+    monthCounts.set(k, (monthCounts.get(k) ?? 0) + 1);
+  }
+  const history = Array.from(monthCounts.entries())
+    .sort((a, b) => a[0].localeCompare(b[0]))
+    .slice(-6)
+    .map(([month, count]) => ({ month, count }));
+
+  const recent = [...mine]
+    .sort((a, b) => b.at.localeCompare(a.at))
+    .slice(0, 5)
+    .map((c) => {
+      const other = getUserById(otherOf(c))!;
+      return { withUser: toSummary(other), at: c.at, crossTeam: other.team !== viewer.team };
+    });
+
+  const total = mine.length;
+  return {
+    coffeeChatsThisMonth: mine.filter((c) => monthKey(c.at) === thisMonth).length,
+    coffeeChatsTotal: total,
+    distinctPeople: distinct.size,
+    crossTeamCount,
+    crossTeamPct: total ? Math.round((crossTeamCount / total) * 100) : 0,
+    history,
+    recent,
+  };
+}
+
+function adminInsights(viewerId: number): AdminInsights {
+  const viewer = requireUser(viewerId);
+  if (!viewer.isAdmin) {
+    throw new ApiError(403, 'Insights are available to program coordinators only.');
+  }
+
+  const totalEmployees = users.length;
+  const activeUsers = users.filter((u) => u.isActiveUser).length;
+  const availableToday = users.filter((u) => u.availableForCoffee).length;
+  const totalConnections = coffeeChats.length;
+
+  let cross = 0;
+  for (const c of coffeeChats) {
+    const a = getUserById(c.userId);
+    const b = getUserById(c.withUserId);
+    if (a && b && a.team !== b.team) cross++;
+  }
+  const crossTeamPct = totalConnections ? Math.round((cross / totalConnections) * 100) : 0;
+
+  const coops = users.filter((u) => u.coopInfo);
+  const coopIds = new Set(coops.map((u) => u.id));
+  const coopConnections = coffeeChats.filter(
+    (c) => coopIds.has(c.userId) || coopIds.has(c.withUserId),
+  ).length;
+  const coopConnectionRate = coops.length
+    ? Math.round((coopConnections / coops.length) * 10) / 10
+    : 0;
+
+  const nonCoops = users.filter((u) => !u.coopInfo);
+  const nonCoopConnections = coffeeChats.filter(
+    (c) => !coopIds.has(c.userId) || !coopIds.has(c.withUserId),
+  ).length;
+  const nonCoopRate = nonCoops.length
+    ? Math.round((nonCoopConnections / nonCoops.length) * 10) / 10
+    : 0;
+
+  interface TeamAgg {
+    team: string;
+    ministry: string;
+    members: number;
+    activeUsers: number;
+    connections: number;
+  }
+  const teamMap = new Map<string, TeamAgg>();
+  const teamOf = (u: User) => `${u.team}|${u.ministry}`;
+  for (const u of users) {
+    const key = teamOf(u);
+    const agg =
+      teamMap.get(key) ??
+      { team: u.team, ministry: u.ministry, members: 0, activeUsers: 0, connections: 0 };
+    agg.members++;
+    if (u.isActiveUser) agg.activeUsers++;
+    teamMap.set(key, agg);
+  }
+  for (const c of coffeeChats) {
+    const a = getUserById(c.userId);
+    const b = getUserById(c.withUserId);
+    if (a) {
+      const agg = teamMap.get(teamOf(a));
+      if (agg) agg.connections++;
+    }
+    if (b && (!a || teamOf(a) !== teamOf(b))) {
+      const agg = teamMap.get(teamOf(b));
+      if (agg) agg.connections++;
+    }
+  }
+  const teams: TeamInsight[] = Array.from(teamMap.values())
+    .map((t) => ({
+      team: t.team,
+      ministry: t.ministry,
+      members: t.members,
+      activeUsers: t.activeUsers,
+      connections: t.connections,
+      connectionsPerActive: t.activeUsers
+        ? Math.round((t.connections / t.activeUsers) * 10) / 10
+        : 0,
+    }))
+    .sort((a, b) => b.connectionsPerActive - a.connectionsPerActive);
+
+  const engagementGaps: string[] = [];
+  engagementGaps.push(
+    `Co-op students average ${coopConnectionRate} connections each vs. ${nonCoopRate} for other employees — the cohort ConnectOPS exists to serve is connecting the least.`,
+  );
+  const laggard = [...teams]
+    .filter((t) => t.activeUsers >= 2)
+    .sort((a, b) => a.connectionsPerActive - b.connectionsPerActive)[0];
+  if (laggard) {
+    engagementGaps.push(
+      `${laggard.team} (${laggard.ministry}) is the lowest-engaging team at ${laggard.connectionsPerActive} connections per active user.`,
+    );
+  }
+  const idle = totalEmployees - activeUsers;
+  if (idle > 0) {
+    engagementGaps.push(
+      `${idle} ${idle === 1 ? 'employee is' : 'employees are'} listed in the directory but ${
+        idle === 1 ? 'has' : 'have'
+      } not activated ConnectOPS yet.`,
+    );
+  }
+
+  return {
+    totalEmployees,
+    activeUsers,
+    activationRate: totalEmployees ? Math.round((activeUsers / totalEmployees) * 100) : 0,
+    availableToday,
+    totalConnections,
+    crossTeamPct,
+    coopCount: coops.length,
+    coopConnectionRate,
+    teams,
+    engagementGaps,
+  };
+}
+
 // --- Mock AI -------------------------------------------------------------
 
 interface AIReply {
   text: string;
   people: SurfacedPerson[];
+  followUps?: string[];
 }
 
 const norm = (s: string) => s.toLowerCase();
@@ -183,8 +540,21 @@ function hasSkill(user: User, keyword: string): boolean {
   );
 }
 
-function surface(user: User, rationale: string): SurfacedPerson {
-  return { user: toSummary(user), rationale };
+function surface(user: User, rationale: string, capability?: string, matchStrength?: 'high' | 'medium'): SurfacedPerson {
+  const person: SurfacedPerson = { user: toSummary(user), rationale };
+  if (capability) person.capability = capability;
+  if (matchStrength) person.matchStrength = matchStrength;
+  return person;
+}
+
+// Deterministic, explainable confidence: strong when there are multiple direct skill hits
+// (or a title/team match), otherwise a solid "good" match. No black-box scoring.
+function strengthFor(user: User, keywords: string[]): 'high' | 'medium' {
+  const hits = keywords.filter((k) => user.skills.some((s) => norm(s).includes(norm(k)))).length;
+  const titleOrTeam = keywords.some(
+    (k) => norm(user.title).includes(norm(k)) || norm(user.team).includes(norm(k)),
+  );
+  return hits >= 2 || (hits >= 1 && titleOrTeam) ? 'high' : 'medium';
 }
 
 function rationaleForSkill(user: User, keyword: string): string {
@@ -204,7 +574,7 @@ function rationaleForSkill(user: User, keyword: string): string {
 
 interface Intent {
   name: string;
-  match: (query: string, list: User[]) => AIReply | null;
+  match: (query: string, list: User[], me: User) => AIReply | null;
 }
 
 const SKILL_KEYWORDS = [
@@ -231,6 +601,46 @@ const SKILL_KEYWORDS = [
 
 const intents: Intent[] = [
   {
+    name: 'proximity-availability',
+    match: (query, _list, me) => {
+      if (
+        !/(open to help|open for coffee|available (for|to)|who'?s around|who is around|around today|near me|nearby|coffee today|my floor|grab a coffee|open to chat|free to chat|who can help me right now)/.test(
+          query,
+        )
+      ) {
+        return null;
+      }
+      const feed = connectFeed(me.id);
+      if (!feed.length) {
+        return {
+          text: 'No one has set themselves as open to help right now. Set your own status on the Connect board to let people know you’re around.',
+          people: [],
+        };
+      }
+      const nearby = feed.filter((p) => p.isNearby);
+      const chosen = (nearby.length ? nearby : feed).slice(0, 4);
+      const people = chosen.map((p) => surface(getUserById(p.user.id)!, connectRationale(p)));
+      const floorTxt = me.floor != null ? ` on Floor ${me.floor}` : '';
+      const text = nearby.length
+        ? `${nearby.length} ${
+            nearby.length === 1 ? 'person is' : 'people are'
+          } open to help near you${floorTxt} right now:`
+        : 'No one is on your floor right now, but here are people across the OPS who are open to help today:';
+      return { text, people };
+    },
+  },
+  {
+    name: 'draft-intro',
+    match: (query, _list, me) => {
+      if (!/((draft|write|help me with).*(intro|message|email))|intro message|reach out to/.test(query)) {
+        return null;
+      }
+      const first = me.name.split(' ')[0];
+      const text = `Here's a short intro you can adapt and send on Teams or by email:\n\n“Hi — I'm ${first} on the ${me.team} team. I'm pulling together a small group to help on a project and your name came up as someone with the right expertise. Would you have 15 minutes this week for a quick chat? No commitment — I'd just like to share what I'm working on and see if it's a fit. Thanks!”\n\nWant me to tailor the tone or shorten it?`;
+      return { text, people: [] };
+    },
+  },
+  {
     name: 'person-lookup',
     match: (query, list) => {
       const match = list.find((u) => {
@@ -255,7 +665,7 @@ const intents: Intent[] = [
       const people = list
         .filter((u) => hasSkill(u, 'accessibility'))
         .slice(0, 3)
-        .map((u) => surface(u, rationaleForSkill(u, 'accessibility')));
+        .map((u) => surface(u, rationaleForSkill(u, 'accessibility'), undefined, strengthFor(u, ['accessibility'])));
       if (!people.length) return null;
       return {
         text: 'For accessibility standards, these are the people leading that work across the OPS:',
@@ -276,6 +686,8 @@ const intents: Intent[] = [
             `${u.title} on the ${u.team} team — works on ${u.skills
               .slice(0, 2)
               .join(' and ')}.`,
+            undefined,
+            strengthFor(u, ['cybersecurity', 'security']),
           ),
         );
       if (!people.length) return null;
@@ -299,6 +711,8 @@ const intents: Intent[] = [
             `${u.title} — open to mentoring on ${u.mentoringAreas.join(
               ', ',
             )}. A great person to shadow for ${keyword} experience.`,
+            undefined,
+            strengthFor(u, [keyword]),
           ),
         );
       if (!people.length) return null;
@@ -309,28 +723,55 @@ const intents: Intent[] = [
     },
   },
   {
-    name: 'staffing-dashboard',
+    name: 'project-staffing',
     match: (query, list) => {
-      if (!/(dashboard|deliver|staff|build a team|achieve|project)/.test(query)) return null;
-      const keywords = SKILL_KEYWORDS.filter((k) => query.includes(k));
-      const search = keywords.length ? keywords : ['data analytics', 'data visualization'];
+      if (
+        !/(dashboard|deliver|staff|build a team|assemble|put together|initiative|kick ?off|launch|working on|starting a|need (people|someone|a team|help)|who can help|looking for|team to|project)/.test(
+          query,
+        )
+      ) {
+        return null;
+      }
+      // Read the project: which capabilities does it call for?
+      const needed = SKILL_KEYWORDS.filter((k) => query.includes(k));
+      const search = needed.length ? needed : ['data analytics', 'data visualization'];
       const seen = new Set<number>();
       const people: SurfacedPerson[] = [];
-      for (const k of search) {
-        for (const u of list.filter((x) => hasSkill(x, k))) {
-          if (seen.has(u.id)) continue;
-          seen.add(u.id);
-          people.push(surface(u, rationaleForSkill(u, k)));
-          if (people.length >= 4) break;
-        }
-        if (people.length >= 4) break;
+      const covered: string[] = [];
+      for (const capability of search) {
+        // Best person for this capability, preferring someone open to help today.
+        const candidate = list
+          .filter((u) => hasSkill(u, capability) && !seen.has(u.id))
+          .sort((a, b) => Number(b.availableForCoffee) - Number(a.availableForCoffee))[0];
+        if (!candidate) continue;
+        seen.add(candidate.id);
+        covered.push(capability);
+        const matched = candidate.skills.filter((s) => norm(s).includes(norm(capability)));
+        const skillTxt = matched.length ? ` (${matched.slice(0, 2).join(', ')})` : '';
+        const avail = candidate.availableForCoffee ? ' Open to help today.' : '';
+        people.push(
+          surface(
+            candidate,
+            `${candidate.title} on the ${candidate.team} team${skillTxt}.${avail}`,
+            capability,
+            strengthFor(candidate, [capability]),
+          ),
+        );
+        if (people.length >= 5) break;
       }
       if (!people.length) return null;
+      const intro = needed.length
+        ? `I read your project as needing ${covered.join(
+            ', ',
+          )}. Here's the internal capability that maps to each — a starting team you could reach out to:`
+        : "Here's the internal capability that could help deliver this — a starting team you could reach out to:";
       return {
-        text: `Based on the skills you'd need (${search.join(
-          ', ',
-        )}), here's the internal capability that could help deliver this:`,
+        text: intro,
         people,
+        followUps: [
+          'Only show people open to help now',
+          'Draft an intro message to this team',
+        ],
       };
     },
   },
@@ -400,7 +841,7 @@ const intents: Intent[] = [
         seen.add(u.id);
         const matched = keywords.filter((k) => hasSkill(u, k));
         people.push(
-          surface(u, `${u.title} on the ${u.team} team — matches ${matched.join(' and ')}.`),
+          surface(u, `${u.title} on the ${u.team} team — matches ${matched.join(' and ')}.`, undefined, strengthFor(u, matched)),
         );
         if (people.length >= 4) break;
       }
@@ -414,9 +855,52 @@ const intents: Intent[] = [
 ];
 
 const OFF_TOPIC = ['poem', 'joke', 'recipe', 'weather', 'sports score', 'movie', 'song', 'story about'];
-const ADJACENT = ['lunch', 'coffee', 'parking', 'commute', 'restaurant'];
+const ADJACENT = ['lunch', 'parking', 'commute', 'restaurant', 'coffee shop', 'café', 'cafe'];
 
-function generateReply(rawQuery: string): AIReply {
+function connectRationale(p: ConnectPerson): string {
+  const parts: string[] = ['Open to help today'];
+  if (p.availabilityNote) parts.push(p.availabilityNote);
+  if (p.sharedInterests.length) parts.push(`you both like ${p.sharedInterests.join(' and ')}`);
+  if (p.proximity) parts.push(`nearby · ${p.proximity}`);
+  return parts.join(' · ');
+}
+
+// Append mutual context ("you both like X") to surfaced people so the AI reads as a social
+// intelligence layer rather than a search bar. Skips people who already carry that context.
+function addMutualContext(people: SurfacedPerson[], me: User): SurfacedPerson[] {
+  return people.map((p) => {
+    if (p.user.id === me.id) return p;
+    if (p.rationale.toLowerCase().includes('you both like')) return p;
+    const target = getUserById(p.user.id);
+    if (!target) return p;
+    const shared = sharedInterestsBetween(me, target).slice(0, 2);
+    if (!shared.length) return p;
+    const base = p.rationale.trim().endsWith('.') ? p.rationale.trim() : `${p.rationale.trim()}.`;
+    return { ...p, rationale: `${base} You both like ${shared.join(' and ')}.` };
+  });
+}
+
+// Contextual next-step chips shown under an assistant reply, derived from the matched intent.
+function followUpsFor(name: string): string[] | undefined {
+  switch (name) {
+    case 'proximity-availability':
+      return ['Show everyone open to help today', 'Who shares my interests?'];
+    case 'cybersecurity-field':
+    case 'accessibility-navigation':
+    case 'skill-discovery':
+      return ["Who's open to help right now?", 'Which teams focus on this?'];
+    case 'shadow-mentor':
+      return ["Who's open to help right now?", 'Show me more mentors'];
+    case 'person-lookup':
+      return ["Who's on their team?", 'Find others with similar skills'];
+    case 'team-discovery':
+      return ['Who leads these teams?', "Who's open to help right now?"];
+    default:
+      return undefined;
+  }
+}
+
+function generateReply(rawQuery: string, me: User): AIReply {
   const query = norm(rawQuery).trim();
   if (OFF_TOPIC.some((t) => query.includes(t)) && !ADJACENT.some((a) => query.includes(a))) {
     return {
@@ -424,19 +908,27 @@ function generateReply(rawQuery: string): AIReply {
       people: [],
     };
   }
+  for (const intent of intents) {
+    const reply = intent.match(query, users, me);
+    if (reply) {
+      const people = addMutualContext(reply.people, me);
+      const followUps = reply.followUps ?? followUpsFor(intent.name);
+      return { ...reply, people, followUps };
+    }
+  }
   if (ADJACENT.some((a) => query.includes(a))) {
     return {
       text: 'There are a few good spots near 777 Bay Street — the food court at College Park and the cafés along Bay Street are popular with the team. Happy to help with people and skills questions too!',
       people: [],
     };
   }
-  for (const intent of intents) {
-    const reply = intent.match(query, users);
-    if (reply) return reply;
-  }
   return {
-    text: "I can help you find people, teams, and skills across the OPS. Try asking something like \u201cWho has Python and data visualization experience?\u201d or \u201cWho works in cybersecurity?\u201d",
+    text: "I can help you find people, teams, and skills across the OPS. Try describing a project — e.g. \u201cI\u2019m launching an analytics dashboard, who can help?\u201d — or ask \u201cWho\u2019s open to help near me?\u201d",
     people: [],
+    followUps: [
+      "I'm starting a project that needs data analytics and Azure — who can help?",
+      "Who's open to help right now?",
+    ],
   };
 }
 
@@ -477,6 +969,7 @@ const EDITABLE_FIELDS: (keyof User)[] = [
   'coopInfo',
   'floorPublic',
   'seatPublic',
+  'messagePrivacy',
 ];
 
 // --- Public handlers (mirror the REST controllers) -----------------------
@@ -543,6 +1036,72 @@ export const backend = {
 
   getDirectoryFilters(): DirectoryFilterOptions {
     return getFilterOptions();
+  },
+
+  // --- Bulletin board / Connect ---
+  getAvailability(userId: number): {
+    availableForCoffee: boolean;
+    availabilityNote: string | null;
+    availabilitySetAt: string | null;
+  } {
+    const u = requireUser(userId);
+    return {
+      availableForCoffee: u.availableForCoffee,
+      availabilityNote: u.availabilityNote,
+      availabilitySetAt: u.availabilitySetAt,
+    };
+  },
+
+  setAvailability(
+    userId: number,
+    available: boolean,
+    note?: string | null,
+  ): { availableForCoffee: boolean; availabilityNote: string | null; availabilitySetAt: string | null } {
+    const u = requireUser(userId);
+    u.availableForCoffee = available;
+    u.availabilityNote = available ? (note?.trim() ? note.trim().slice(0, 120) : null) : null;
+    u.availabilitySetAt = available ? new Date().toISOString() : null;
+    u.isActiveUser = true; // setting availability activates you
+    return {
+      availableForCoffee: u.availableForCoffee,
+      availabilityNote: u.availabilityNote,
+      availabilitySetAt: u.availabilitySetAt,
+    };
+  },
+
+  getConnectFeed(userId: number): ConnectPerson[] {
+    return connectFeed(userId);
+  },
+
+  getProximity(userId: number): ProximitySummary {
+    return proximitySummary(userId);
+  },
+
+  getDailyNudge(userId: number): DailyNudge {
+    return dailyNudge(userId);
+  },
+
+  // --- Private activity metric ---
+  getActivityMetrics(userId: number): ActivityMetrics {
+    return activityMetrics(userId);
+  },
+
+  logCoffeeChat(userId: number, withUserId: number): ActivityMetrics {
+    requireUser(userId);
+    if (!getUserById(withUserId)) throw new ApiError(404, 'Person not found');
+    if (withUserId === userId) throw new ApiError(400, 'You cannot log a chat with yourself.');
+    coffeeChats.push({
+      id: `cc-${uuid()}`,
+      userId,
+      withUserId,
+      at: new Date().toISOString(),
+    });
+    return activityMetrics(userId);
+  },
+
+  // --- Admin insights (program coordinators) ---
+  getAdminInsights(userId: number): AdminInsights {
+    return adminInsights(userId);
   },
 
   // --- Chat ---
@@ -623,13 +1182,14 @@ export const backend = {
     chatMessages.push(userMessage);
     touch(convId);
 
-    const reply = generateReply(text);
+    const reply = generateReply(text, requireUser(userId));
     const assistantMessage: ChatMessage = {
       id: `msg-${uuid()}`,
       conversationId: convId,
       role: 'assistant',
       text: reply.text,
       people: reply.people,
+      followUps: reply.followUps,
       createdAt: now(),
     };
     chatMessages.push(assistantMessage);
@@ -654,6 +1214,8 @@ export const backend = {
           ...thread,
           participant: other ? toSummary(other) : null,
           lastMessage: last ? last.text : null,
+          lastMessageFromMe: last ? last.fromUserId === userId : false,
+          needsReply: last ? last.fromUserId !== userId : false,
         };
       });
   },
@@ -674,7 +1236,13 @@ export const backend = {
       .sort((a, b) => a.createdAt.localeCompare(b.createdAt));
     const last = messages[messages.length - 1];
     return {
-      thread: { ...thread, participant, lastMessage: last ? last.text : null },
+      thread: {
+        ...thread,
+        participant,
+        lastMessage: last ? last.text : null,
+        lastMessageFromMe: last ? last.fromUserId === userId : false,
+        needsReply: last ? last.fromUserId !== userId : false,
+      },
       participant,
       messages,
     };
@@ -683,11 +1251,29 @@ export const backend = {
   sendMessage(userId: number, toUserId: number, text: string): { message: DirectMessage } {
     const body = text?.trim();
     if (!body) throw new ApiError(400, 'text is required');
-    if (!getUserById(toUserId)) throw new ApiError(404, 'Recipient not found');
+    const recipient = getUserById(toUserId);
+    if (!recipient) throw new ApiError(404, 'Recipient not found');
     if (toUserId === userId) throw new ApiError(400, 'You cannot message yourself.');
 
+    // Respect the recipient's message-privacy preference. An existing conversation is always
+    // allowed to continue — the gate only applies to a brand-new first message.
     const id = threadKey(userId, toUserId);
-    let thread = threads.find((t) => t.id === id);
+    const existingThread = threads.find((t) => t.id === id);
+    if (!existingThread) {
+      const privacy = recipient.messagePrivacy ?? 'everyone';
+      const sender = requireUser(userId);
+      if (privacy === 'none') {
+        throw new ApiError(403, `${recipient.name.split(' ')[0]} isn’t accepting new messages right now.`);
+      }
+      if (privacy === 'ministry' && sender.ministry !== recipient.ministry) {
+        throw new ApiError(
+          403,
+          `${recipient.name.split(' ')[0]} only accepts messages from people in their ministry.`,
+        );
+      }
+    }
+
+    let thread = existingThread;
     const now = new Date().toISOString();
     if (!thread) {
       thread = { id, participantIds: [userId, toUserId], lastMessageAt: now };
@@ -742,7 +1328,17 @@ export const backend = {
   registerUser(user: User): User {
     const existing = getUserById(user.id);
     if (existing) return existing;
-    users.push(user);
-    return user;
+    // Backfill fields that may be missing on accounts persisted before they existed.
+    const normalized: User = {
+      ...user,
+      availableForCoffee: user.availableForCoffee ?? false,
+      availabilityNote: user.availabilityNote ?? null,
+      availabilitySetAt: user.availabilitySetAt ?? null,
+      isActiveUser: user.isActiveUser ?? true,
+      isAdmin: user.isAdmin ?? false,
+      messagePrivacy: user.messagePrivacy ?? 'everyone',
+    };
+    users.push(normalized);
+    return normalized;
   },
 };

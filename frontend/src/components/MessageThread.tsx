@@ -1,7 +1,8 @@
 import { useEffect, useRef, useState } from 'react';
 import type { DirectMessage, UserSummary } from '../types';
-import { api } from '../api/client';
+import { api, ApiError } from '../api/client';
 import { useAuth } from '../context/AuthContext';
+import { useToast } from '../context/ToastContext';
 import Avatar from './Avatar';
 import Icon from './Icon';
 
@@ -22,6 +23,7 @@ export default function MessageThread({
   onBack?: () => void;
 }) {
   const { currentUser } = useAuth();
+  const { notify } = useToast();
   const [messages, setMessages] = useState<DirectMessage[]>([]);
   const [draft, setDraft] = useState('');
   const bodyRef = useRef<HTMLDivElement>(null);
@@ -46,9 +48,17 @@ export default function MessageThread({
     const text = draft.trim();
     if (!text) return;
     setDraft('');
-    await api.sendMessage(otherUser.id, text);
-    load();
-    onSent();
+    try {
+      await api.sendMessage(otherUser.id, text);
+      load();
+      onSent();
+    } catch (err) {
+      setDraft(text); // keep what they typed
+      notify(
+        err instanceof ApiError ? err.message : 'Could not send your message. Please try again.',
+        'error',
+      );
+    }
   };
 
   return (
