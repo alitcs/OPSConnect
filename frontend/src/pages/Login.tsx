@@ -77,7 +77,7 @@ export default function LoginPage() {
               <Icon name="logo" size={26} />
             </div>
             <h1 className="login__title">ConnectOPS</h1>
-            <p className="login__subtitle">
+            <p className="login__subtitle" key={mode}>
               {isSignup
                 ? 'Create your Ontario Public Service account.'
                 : 'Welcome back. Sign in to continue.'}
@@ -90,7 +90,12 @@ export default function LoginPage() {
             </span>
           </div>
 
-          <div className="auth-tabs" role="tablist" aria-label="Log in or sign up">
+          <div
+            className="auth-tabs"
+            role="tablist"
+            aria-label="Log in or sign up"
+            data-active={isSignup ? 'signup' : 'login'}
+          >
             <button
               type="button"
               role="tab"
@@ -113,7 +118,7 @@ export default function LoginPage() {
 
           <form className="auth-form" onSubmit={handleSubmit} noValidate>
             {isSignup && (
-              <label className="auth-form__field">
+              <label className="auth-form__field auth-form__field--enter">
                 <span className="auth-form__label">Full name</span>
                 <input
                   className="auth-form__input"
