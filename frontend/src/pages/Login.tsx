@@ -1,6 +1,6 @@
 import { useState, type FormEvent } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ALLOWED_DOMAIN, AuthError, isOntarioEmail } from '../api/auth';
+import { ALLOWED_DOMAIN, AuthError, DEMO_ADMIN, isOntarioEmail } from '../api/auth';
 import { useAuth } from '../context/AuthContext';
 import Icon from '../components/Icon';
 
@@ -58,6 +58,21 @@ export default function LoginPage() {
       } else {
         await login({ email, password });
       }
+      navigate('/');
+    } catch (err) {
+      setError(
+        err instanceof AuthError ? err.message : 'Something went wrong. Please try again.',
+      );
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const handleDemoAdmin = async () => {
+    setError(null);
+    setSubmitting(true);
+    try {
+      await login({ email: DEMO_ADMIN.email, password: DEMO_ADMIN.password });
       navigate('/');
     } catch (err) {
       setError(
@@ -204,6 +219,19 @@ export default function LoginPage() {
               {isSignup ? 'Log in' : 'Sign up'}
             </button>
           </p>
+
+          <div className="auth-demo">
+            <span className="auth-demo__label">Just exploring?</span>
+            <button
+              type="button"
+              className="auth-demo__btn"
+              onClick={handleDemoAdmin}
+              disabled={submitting}
+            >
+              <Icon name="sparkle" size={14} />
+              Sign in as demo admin
+            </button>
+          </div>
         </div>
 
         <p className="login__footnote">

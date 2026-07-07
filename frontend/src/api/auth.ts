@@ -17,6 +17,31 @@ export const ALLOWED_DOMAIN = 'ontario.ca';
 const ACCOUNTS_KEY = 'connectops.accounts';
 const SESSION_KEY = 'connectops.sessionUserId';
 
+/**
+ * Built-in demo accounts. Each maps a login email/password to a real seeded directory
+ * profile (resolved via `mapsToEmail` against users.json), so reviewers can sign in with a
+ * friendly address like admin@ontario.ca while landing on a full seeded profile. The mapped
+ * profile determines admin access. Demo-only passwords; replace with a real identity
+ * provider before production.
+ */
+export const DEMO_ACCOUNTS: Array<{
+  email: string;
+  password: string;
+  label: string;
+  /** The seeded profile (by its real users.json email) this demo account signs in as. */
+  mapsToEmail: string;
+}> = [
+  {
+    email: 'admin@ontario.ca',
+    password: 'admin',
+    label: 'Program coordinator (admin)',
+    mapsToEmail: 'priya.sharma@ontario.ca',
+  },
+];
+
+/** The one-click "demo admin" account surfaced on the login screen. */
+export const DEMO_ADMIN = DEMO_ACCOUNTS[0];
+
 export class AuthError extends Error {
   constructor(message: string) {
     super(message);
@@ -176,14 +201,28 @@ export function login({ email, password }: LoginInput): { userId: number } {
     throw new AuthError(`Only @${ALLOWED_DOMAIN} email addresses can access ConnectOPS.`);
   }
 
+  // 1) A locally-registered account created via sign up.
   const account = findAccount(cleanEmail);
-  if (!account || account.passwordHash !== hashPassword(password)) {
-    throw new AuthError('Incorrect email or password.');
+  if (account) {
+    if (account.passwordHash !== hashPassword(password)) {
+      throw new AuthError('Incorrect email or password.');
+    }
+    backend.registerUser(account.user);
+    setSessionUserId(account.user.id);
+    return { userId: account.user.id };
   }
 
-  backend.registerUser(account.user);
-  setSessionUserId(account.user.id);
-  return { userId: account.user.id };
+  // 2) A built-in demo account mapped to a seeded directory profile (e.g. the admin).
+  const demo = DEMO_ACCOUNTS.find((d) => d.email === cleanEmail);
+  if (demo && demo.password === password) {
+    const user = backend.findUserByEmail(demo.mapsToEmail);
+    if (user) {
+      setSessionUserId(user.id);
+      return { userId: user.id };
+    }
+  }
+
+  throw new AuthError('Incorrect email or password.');
 }
 
 export function logout(): void {
