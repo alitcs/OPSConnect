@@ -12,8 +12,10 @@ import seedConversations from '../data/conversations.json';
 import type {
   ActivityMetrics,
   AdminInsights,
+  BridgeInsight,
   ChatMessage,
   ConnectPerson,
+  ConnectionGraph,
   Conversation,
   DailyNudge,
   DirectMessage,
@@ -65,6 +67,136 @@ function toSummary(u: User): UserSummary {
     status: u.status,
   };
 }
+
+// --- Synthetic roster expansion (demo scale) -----------------------------
+//
+// Grows the hand-authored roster up to a larger population so the org network view looks
+// like a real organization. Fully deterministic (seeded PRNG) so ids and profiles stay
+// stable across reloads. These profiles are lightweight but complete enough to open.
+
+const TARGET_POPULATION = 250;
+
+const SYNTH_FIRST = [
+  'Aaron', 'Bianca', 'Caleb', 'Diana', 'Elias', 'Farah', 'Gabriel', 'Hana', 'Ibrahim',
+  'Julia', 'Kwame', 'Lena', 'Mateo', 'Nadia', 'Omar', 'Paula', 'Quentin', 'Rosa',
+  'Sanjay', 'Tara', 'Umar', 'Vera', 'Wesley', 'Ximena', 'Yara', 'Zane', 'Adrian',
+  'Beatrice', 'Cyrus', 'Delia', 'Ethan', 'Fiona', 'Gregory', 'Helena', 'Ivan', 'Jasmine',
+  'Karl', 'Leah', 'Malik', 'Noor', 'Oscar', 'Petra', 'Rahim', 'Sofia', 'Theo', 'Uma',
+  'Victor', 'Willa', 'Yusuf', 'Zoe',
+];
+const SYNTH_LAST = [
+  'Adams', 'Bakshi', 'Chen', 'Dubois', 'Eze', 'Fernandez', 'Gagnon', 'Hughes', 'Ibrahim',
+  'Jansen', 'Kaur', 'Lopez', 'Mensah', 'Novak', 'Owusu', 'Park', 'Quinn', 'Rossi',
+  'Singh', 'Tremblay', 'Uddin', 'Vasquez', 'Wong', 'Xu', 'Yamamoto', 'Zhang', 'Bello',
+  'Costa', 'Dixit', 'Farrell', 'Grant', 'Haddad', 'Iqbal', 'Johansson', 'Kelly', 'Lund',
+  'Moreau', 'Nair', 'Okafor', 'Petrov', 'Reyes', 'Silva', 'Thompson', 'Volkov', 'Walsh',
+];
+
+const SYNTH_TEAMS: Array<{
+  team: string;
+  branch: string;
+  division: string;
+  ministry: string;
+  cluster: string;
+  titles: string[];
+}> = [
+  { team: 'Data Platform Engineering', branch: 'Analytics Branch', division: 'Health Data Division', ministry: 'Ministry of Health', cluster: 'Health Services I&IT Cluster', titles: ['Data Engineer', 'Analytics Developer', 'BI Analyst', 'Data Scientist'] },
+  { team: 'Clinical Systems', branch: 'Health Systems Branch', division: 'Health Data Division', ministry: 'Ministry of Health', cluster: 'Health Services I&IT Cluster', titles: ['Systems Analyst', 'Integration Specialist', 'Solution Designer'] },
+  { team: 'Network Operations', branch: 'Infrastructure Branch', division: 'Technology Operations Division', ministry: 'Ministry of Transportation', cluster: 'Transportation I&IT Cluster', titles: ['Network Engineer', 'Systems Administrator', 'Site Reliability Engineer'] },
+  { team: 'Traffic Systems', branch: 'Mobility Branch', division: 'Technology Operations Division', ministry: 'Ministry of Transportation', cluster: 'Transportation I&IT Cluster', titles: ['Software Developer', 'IoT Engineer', 'QA Engineer'] },
+  { team: 'Design & Research', branch: 'Digital Services Branch', division: 'Digital Service Division', ministry: 'Treasury Board Secretariat', cluster: 'Central Agencies I&IT Cluster', titles: ['UX Designer', 'Service Designer', 'User Researcher', 'Content Designer'] },
+  { team: 'Platform Services', branch: 'Digital Services Branch', division: 'Digital Service Division', ministry: 'Treasury Board Secretariat', cluster: 'Central Agencies I&IT Cluster', titles: ['Full Stack Developer', 'Platform Engineer', 'DevOps Engineer'] },
+  { team: 'Fiscal Strategy', branch: 'Fiscal Policy Branch', division: 'Office of the Budget', ministry: 'Ministry of Finance', cluster: 'Central Agencies I&IT Cluster', titles: ['Policy Analyst', 'Economist', 'Research Analyst'] },
+  { team: 'Revenue Systems', branch: 'Revenue Branch', division: 'Taxation Division', ministry: 'Ministry of Finance', cluster: 'Central Agencies I&IT Cluster', titles: ['Business Analyst', 'Database Administrator', 'Application Developer'] },
+  { team: 'Justice Applications', branch: 'Justice Solutions Branch', division: 'Justice Technology Division', ministry: 'Ministry of the Attorney General', cluster: 'Justice Technology Services', titles: ['Application Developer', 'Business Analyst', 'Project Manager'] },
+  { team: 'Court Modernization', branch: 'Court Services Branch', division: 'Justice Technology Division', ministry: 'Ministry of the Attorney General', cluster: 'Justice Technology Services', titles: ['Product Manager', 'Change Manager', 'Delivery Lead'] },
+  { team: 'Learning Platforms', branch: 'Education Technology Branch', division: 'Community Services Division', ministry: 'Ministry of Education', cluster: 'Community Services I&IT Cluster', titles: ['Frontend Developer', 'QA Engineer', 'Accessibility Analyst'] },
+  { team: 'Student Data Services', branch: 'Education Technology Branch', division: 'Community Services Division', ministry: 'Ministry of Education', cluster: 'Community Services I&IT Cluster', titles: ['Data Analyst', 'Reporting Analyst', 'Systems Analyst'] },
+  { team: 'Cloud Enablement', branch: 'Platform Engineering Branch', division: 'Health Data Division', ministry: 'Ministry of Health', cluster: 'Health Services I&IT Cluster', titles: ['Cloud Engineer', 'Security Engineer', 'Automation Engineer'] },
+  { team: 'Cybersecurity Operations', branch: 'Security Branch', division: 'Technology Operations Division', ministry: 'Ministry of Transportation', cluster: 'Transportation I&IT Cluster', titles: ['Security Analyst', 'Threat Analyst', 'Incident Responder'] },
+  { team: 'Enterprise Architecture', branch: 'Architecture Branch', division: 'Digital Service Division', ministry: 'Treasury Board Secretariat', cluster: 'Central Agencies I&IT Cluster', titles: ['Solutions Architect', 'Enterprise Architect', 'Technical Lead'] },
+  { team: 'Program Delivery', branch: 'Delivery Branch', division: 'Office of the Budget', ministry: 'Ministry of Finance', cluster: 'Central Agencies I&IT Cluster', titles: ['Delivery Manager', 'Scrum Master', 'Project Coordinator'] },
+];
+
+const SYNTH_LOCATIONS = [
+  '777 Bay Street, Toronto',
+  '5700 Yonge Street, Toronto',
+  '1201 Wilson Avenue, Toronto',
+  '95 Grosvenor Street, Toronto',
+  '720 Bay Street, Toronto',
+  '315 Front Street West, Toronto',
+];
+const SYNTH_STATUSES: User['status'][] = [
+  'Online', 'Online', 'Online', 'Away', 'Away', 'Offline', 'Do Not Disturb',
+];
+const SYNTH_SKILLS = [
+  'Python', 'SQL', 'TypeScript', 'React', 'Azure', 'AWS', 'Kubernetes', 'Figma',
+  'Tableau', 'Power BI', 'Java', 'Go', 'Terraform', 'Agile', 'User Research',
+  'Accessibility', 'Security', 'Data Modelling',
+];
+const SYNTH_INTERESTS = [
+  'Data visualization', 'Cloud native', 'Design systems', 'Cycling', 'Photography',
+  'Hiking', 'Machine learning', 'Accessibility', 'Mentoring', 'Running', 'Chess', 'Cooking',
+];
+const SYNTH_SCHOOLS = ['University of Toronto', 'University of Waterloo', 'York University', 'Toronto Metropolitan University', 'Queen\u2019s University'];
+const SYNTH_PROGRAMS = ['Computer Science', 'Software Engineering', 'Data Science', 'Information Systems'];
+
+(function expandRoster() {
+  const rand = mulberry32(0x5eed1234);
+  const pick = <T,>(arr: T[]): T => arr[Math.floor(rand() * arr.length)];
+  const used = new Set(users.map((u) => u.name));
+  let id = users.reduce((max, u) => Math.max(max, u.id), 0) + 1;
+
+  while (users.length < TARGET_POPULATION) {
+    const t = pick(SYNTH_TEAMS);
+    let name = `${pick(SYNTH_FIRST)} ${pick(SYNTH_LAST)}`;
+    let guard = 0;
+    while (used.has(name) && guard++ < 25) {
+      name = `${pick(SYNTH_FIRST)} ${pick(SYNTH_LAST)}`;
+    }
+    used.add(name);
+    const emailBase = name.toLowerCase().replace(/[^a-z]+/g, '.');
+
+    users.push({
+      id,
+      name,
+      title: pick(t.titles),
+      team: t.team,
+      branch: t.branch,
+      division: t.division,
+      ministry: t.ministry,
+      cluster: t.cluster,
+      location: pick(SYNTH_LOCATIONS),
+      workHours: '9:00 AM \u2013 5:00 PM',
+      status: pick(SYNTH_STATUSES),
+      email: `${emailBase}.${id}@ontario.ca`,
+      phone: `416-555-${String(1000 + id).slice(-4)}`,
+      managerId: null,
+      directReports: [],
+      teammates: [],
+      floor: 3 + Math.floor(rand() * 15),
+      seat: null,
+      floorPublic: rand() < 0.6,
+      seatPublic: false,
+      skills: [pick(SYNTH_SKILLS), pick(SYNTH_SKILLS)],
+      certifications: [],
+      interests: [pick(SYNTH_INTERESTS), pick(SYNTH_INTERESTS)],
+      aspirations: [],
+      mentoringAreas: [],
+      coopInfo:
+        rand() < 0.07
+          ? { school: pick(SYNTH_SCHOOLS), program: pick(SYNTH_PROGRAMS), term: 'Summer 2026' }
+          : null,
+      isActiveUser: true,
+      isAdmin: false,
+      availableForCoffee: false,
+      availabilityNote: null,
+      availabilitySetAt: null,
+      messagePrivacy: 'everyone',
+    } as User);
+    id++;
+  }
+})();
 
 // --- Engagement seed: availability, active/idle, admin, coffee-chat log ---
 //
@@ -415,33 +547,31 @@ function adminInsights(viewerId: number): AdminInsights {
   const totalEmployees = users.length;
   const activeUsers = users.filter((u) => u.isActiveUser).length;
   const availableToday = users.filter((u) => u.availableForCoffee).length;
-  const totalConnections = coffeeChats.length;
+  const activationRate = totalEmployees ? Math.round((activeUsers / totalEmployees) * 100) : 0;
+  const ministryCount = new Set(users.map((u) => u.ministry)).size;
 
-  let cross = 0;
-  for (const c of coffeeChats) {
-    const a = getUserById(c.userId);
-    const b = getUserById(c.withUserId);
-    if (a && b && a.team !== b.team) cross++;
+  // Reuse the exact same network that powers the 3D graph, so the numbers match on screen.
+  const { edges, degree, adjacency } = buildOrgNetwork();
+  const totalConnections = edges.length;
+  const degreeSum = [...degree.values()].reduce((s, d) => s + d, 0);
+  const avgConnections = activeUsers ? Math.round((degreeSum / activeUsers) * 10) / 10 : 0;
+
+  // Silos — how much of the network crosses team and ministry boundaries.
+  let crossTeam = 0;
+  let crossMinistry = 0;
+  for (const e of edges) {
+    const a = getUserById(e.a);
+    const b = getUserById(e.b);
+    if (!a || !b) continue;
+    if (a.team !== b.team) crossTeam++;
+    if (a.ministry !== b.ministry) crossMinistry++;
   }
-  const crossTeamPct = totalConnections ? Math.round((cross / totalConnections) * 100) : 0;
-
-  const coops = users.filter((u) => u.coopInfo);
-  const coopIds = new Set(coops.map((u) => u.id));
-  const coopConnections = coffeeChats.filter(
-    (c) => coopIds.has(c.userId) || coopIds.has(c.withUserId),
-  ).length;
-  const coopConnectionRate = coops.length
-    ? Math.round((coopConnections / coops.length) * 10) / 10
+  const crossTeamPct = totalConnections ? Math.round((crossTeam / totalConnections) * 100) : 0;
+  const crossMinistryPct = totalConnections
+    ? Math.round((crossMinistry / totalConnections) * 100)
     : 0;
 
-  const nonCoops = users.filter((u) => !u.coopInfo);
-  const nonCoopConnections = coffeeChats.filter(
-    (c) => !coopIds.has(c.userId) || !coopIds.has(c.withUserId),
-  ).length;
-  const nonCoopRate = nonCoops.length
-    ? Math.round((nonCoopConnections / nonCoops.length) * 10) / 10
-    : 0;
-
+  // Team leaderboard — connections per active member (network-based).
   interface TeamAgg {
     team: string;
     ministry: string;
@@ -450,29 +580,30 @@ function adminInsights(viewerId: number): AdminInsights {
     connections: number;
   }
   const teamMap = new Map<string, TeamAgg>();
-  const teamOf = (u: User) => `${u.team}|${u.ministry}`;
+  const teamKey = (u: User) => `${u.team}|${u.ministry}`;
   for (const u of users) {
-    const key = teamOf(u);
+    const k = teamKey(u);
     const agg =
-      teamMap.get(key) ??
+      teamMap.get(k) ??
       { team: u.team, ministry: u.ministry, members: 0, activeUsers: 0, connections: 0 };
     agg.members++;
     if (u.isActiveUser) agg.activeUsers++;
-    teamMap.set(key, agg);
+    teamMap.set(k, agg);
   }
-  for (const c of coffeeChats) {
-    const a = getUserById(c.userId);
-    const b = getUserById(c.withUserId);
+  for (const e of edges) {
+    const a = getUserById(e.a);
+    const b = getUserById(e.b);
     if (a) {
-      const agg = teamMap.get(teamOf(a));
+      const agg = teamMap.get(teamKey(a));
       if (agg) agg.connections++;
     }
-    if (b && (!a || teamOf(a) !== teamOf(b))) {
-      const agg = teamMap.get(teamOf(b));
+    if (b) {
+      const agg = teamMap.get(teamKey(b));
       if (agg) agg.connections++;
     }
   }
   const teams: TeamInsight[] = Array.from(teamMap.values())
+    .filter((t) => t.activeUsers >= 2)
     .map((t) => ({
       team: t.team,
       ministry: t.ministry,
@@ -485,39 +616,216 @@ function adminInsights(viewerId: number): AdminInsights {
     }))
     .sort((a, b) => b.connectionsPerActive - a.connectionsPerActive);
 
-  const engagementGaps: string[] = [];
-  engagementGaps.push(
-    `Co-op students average ${coopConnectionRate} connections each vs. ${nonCoopRate} for other employees — the cohort ConnectOPS exists to serve is connecting the least.`,
-  );
-  const laggard = [...teams]
-    .filter((t) => t.activeUsers >= 2)
-    .sort((a, b) => a.connectionsPerActive - b.connectionsPerActive)[0];
-  if (laggard) {
-    engagementGaps.push(
-      `${laggard.team} (${laggard.ministry}) is the lowest-engaging team at ${laggard.connectionsPerActive} connections per active user.`,
-    );
+  // Bridges — people whose connections span the most distinct ministries (ONA connectors).
+  const bridges: BridgeInsight[] = users
+    .map((u) => {
+      const reached = new Set<string>();
+      const nbrs = adjacency.get(u.id);
+      if (nbrs) {
+        for (const nId of nbrs) {
+          const n = getUserById(nId);
+          if (n) reached.add(n.ministry);
+        }
+      }
+      return {
+        id: u.id,
+        name: u.name,
+        title: u.title,
+        ministry: u.ministry,
+        ministriesReached: reached.size,
+        connections: degree.get(u.id) ?? 0,
+      };
+    })
+    .sort(
+      (a, b) => b.ministriesReached - a.ministriesReached || b.connections - a.connections,
+    )
+    .slice(0, 4);
+
+  // Knowledge & expertise — supply-side coverage from listed skills.
+  const skillCount = new Map<string, number>();
+  for (const u of users) {
+    const seen = new Set<string>();
+    for (const raw of u.skills) {
+      const skill = raw.trim();
+      const norm = skill.toLowerCase();
+      if (!skill || seen.has(norm)) continue;
+      seen.add(norm);
+      skillCount.set(skill, (skillCount.get(skill) ?? 0) + 1);
+    }
   }
-  const idle = totalEmployees - activeUsers;
-  if (idle > 0) {
-    engagementGaps.push(
-      `${idle} ${idle === 1 ? 'employee is' : 'employees are'} listed in the directory but ${
-        idle === 1 ? 'has' : 'have'
-      } not activated ConnectOPS yet.`,
-    );
-  }
+  const skillEntries = Array.from(skillCount.entries()).map(([skill, count]) => ({
+    skill,
+    count,
+  }));
+  const distinctSkills = skillEntries.length;
+  const topSkills = [...skillEntries].sort((a, b) => b.count - a.count).slice(0, 6);
+  const scarceSkills = skillEntries
+    .filter((s) => s.count <= 2)
+    .sort((a, b) => a.count - b.count || a.skill.localeCompare(b.skill))
+    .slice(0, 8);
+
+  // Onboarding — how new people (co-ops) engage vs. the wider org.
+  const coops = users.filter((u) => u.coopInfo);
+  const coopConnTotal = coops.reduce((s, u) => s + (degree.get(u.id) ?? 0), 0);
+  const coopConnectionRate = coops.length
+    ? Math.round((coopConnTotal / coops.length) * 10) / 10
+    : 0;
+  const nonCoops = users.filter((u) => !u.coopInfo && u.isActiveUser);
+  const nonCoopConnTotal = nonCoops.reduce((s, u) => s + (degree.get(u.id) ?? 0), 0);
+  const orgConnectionRate = nonCoops.length
+    ? Math.round((nonCoopConnTotal / nonCoops.length) * 10) / 10
+    : 0;
+  const mentorsAvailable = users.filter((u) => u.mentoringAreas.length > 0).length;
+
+  // Adoption trend — deterministic six-month ramp ending at today's active count.
+  const trendRand = mulberry32(0x0a11ce);
+  const monthLabels = ['Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul'];
+  const startValue = Math.round(activeUsers * 0.42);
+  const stepValue = (activeUsers - startValue) / (monthLabels.length - 1);
+  const adoptionTrend = monthLabels.map((month, i) => {
+    if (i === monthLabels.length - 1) return { month, value: activeUsers };
+    const jitter = Math.round((trendRand() - 0.5) * stepValue * 0.5);
+    return { month, value: Math.max(0, Math.round(startValue + stepValue * i + jitter)) };
+  });
+
+  // ROI — a defensible estimate: each connection stands in for a successful "find the right
+  // person" that saved ~15 minutes of hunting through email/Teams/SharePoint.
+  const estHoursSaved = Math.round((totalConnections * 15) / 60);
 
   return {
     totalEmployees,
     activeUsers,
-    activationRate: totalEmployees ? Math.round((activeUsers / totalEmployees) * 100) : 0,
+    activationRate,
     availableToday,
+    ministryCount,
+    adoptionTrend,
     totalConnections,
+    avgConnections,
     crossTeamPct,
+    crossMinistryPct,
+    teams,
+    bridges,
+    distinctSkills,
+    topSkills,
+    scarceSkills,
     coopCount: coops.length,
     coopConnectionRate,
-    teams,
-    engagementGaps,
+    orgConnectionRate,
+    mentorsAvailable,
+    estHoursSaved,
   };
+}
+
+// --- Connection graph (org-wide network) ---------------------------------
+//
+// Nodes are people; an edge means the two people have messaged. The demo seeds a
+// deterministic, clustered communication network (dense within teams, with cross-team
+// bridges) layered on top of real coffee-chat activity, so the 3D network view is rich
+// and stable across reloads without depending on live message history.
+
+// A single person in the org-wide connection graph is built below; the seeded network is
+// deterministic thanks to the shared mulberry32 PRNG defined earlier.
+
+interface OrgEdge {
+  a: number;
+  b: number;
+  weight: number;
+}
+interface OrgNetwork {
+  edges: OrgEdge[];
+  degree: Map<number, number>;
+  adjacency: Map<number, Set<number>>;
+}
+
+// The one source of truth for "who is connected to whom" — powers both the 3D graph and
+// the aggregate insights so the two can never disagree.
+function buildOrgNetwork(): OrgNetwork {
+  const rand = mulberry32(0x0ec0ffee);
+  const edgeWeights = new Map<string, number>();
+  const key = (a: number, b: number) => (a < b ? `${a}-${b}` : `${b}-${a}`);
+  const addEdge = (a: number, b: number, weight = 1) => {
+    if (a === b) return;
+    edgeWeights.set(key(a, b), (edgeWeights.get(key(a, b)) ?? 0) + weight);
+  };
+
+  // 1) Real coffee-chat activity counts as a strong connection.
+  for (const chat of coffeeChats) addEdge(chat.userId, chat.withUserId, 2);
+
+  // 2) A sparse, readable slice of intra-team connectivity.
+  const teamGroups = new Map<string, number[]>();
+  for (const u of users) {
+    const list = teamGroups.get(u.team) ?? [];
+    list.push(u.id);
+    teamGroups.set(u.team, list);
+  }
+  for (const members of teamGroups.values()) {
+    for (let i = 0; i < members.length; i++) {
+      for (let j = i + 1; j < members.length; j++) {
+        if (rand() < 0.18) addEdge(members[i], members[j], 1);
+      }
+    }
+  }
+
+  // 3) Cross-team bridges — each person keeps a couple of contacts outside their team.
+  const allIds = users.map((u) => u.id);
+  for (const u of users) {
+    const bridges = 1 + Math.floor(rand() * 2);
+    for (let b = 0; b < bridges; b++) {
+      const other = allIds[Math.floor(rand() * allIds.length)];
+      const otherUser = getUserById(other);
+      if (otherUser && otherUser.team !== u.team) addEdge(u.id, other, 1);
+    }
+  }
+
+  // 4) A few hub connectors so leads read as central.
+  const connectors = [1, 5, 25, 33, 35, 37, 40, 51, 60];
+  for (const hub of connectors) {
+    const reach = 3 + Math.floor(rand() * 3);
+    for (let r = 0; r < reach; r++) {
+      addEdge(hub, allIds[Math.floor(rand() * allIds.length)], 1);
+    }
+  }
+
+  const degree = new Map<number, number>();
+  const adjacency = new Map<number, Set<number>>();
+  const edges: OrgEdge[] = Array.from(edgeWeights.entries()).map(([k, weight]) => {
+    const [a, b] = k.split('-').map(Number);
+    degree.set(a, (degree.get(a) ?? 0) + 1);
+    degree.set(b, (degree.get(b) ?? 0) + 1);
+    if (!adjacency.has(a)) adjacency.set(a, new Set());
+    if (!adjacency.has(b)) adjacency.set(b, new Set());
+    adjacency.get(a)!.add(b);
+    adjacency.get(b)!.add(a);
+    return { a, b, weight };
+  });
+
+  return { edges, degree, adjacency };
+}
+
+function connectionGraph(viewerId: number): ConnectionGraph {
+  const viewer = requireUser(viewerId);
+  if (!viewer.isAdmin) {
+    throw new ApiError(403, 'The network view is available to program coordinators only.');
+  }
+
+  const { edges, degree } = buildOrgNetwork();
+  const links = edges.map((e) => ({ source: e.a, target: e.b, weight: e.weight }));
+
+  const nodes = users.map((u) => ({
+    id: u.id,
+    name: u.name,
+    title: u.title,
+    team: u.team,
+    ministry: u.ministry,
+    status: u.status,
+    degree: degree.get(u.id) ?? 0,
+    isCoop: u.coopInfo !== null,
+    isActiveUser: u.isActiveUser,
+  }));
+
+  const ministries = Array.from(new Set(users.map((u) => u.ministry))).sort();
+
+  return { nodes, links, ministries };
 }
 
 // --- Mock AI -------------------------------------------------------------
@@ -1102,6 +1410,10 @@ export const backend = {
   // --- Admin insights (program coordinators) ---
   getAdminInsights(userId: number): AdminInsights {
     return adminInsights(userId);
+  },
+
+  getConnectionGraph(userId: number): ConnectionGraph {
+    return connectionGraph(userId);
   },
 
   // --- Chat ---

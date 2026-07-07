@@ -181,16 +181,80 @@ export interface TeamInsight {
   connectionsPerActive: number;
 }
 
-/** Org-level analytics for program coordinators (optional feature). */
+/** A skill and how many people across the org list it. */
+export interface SkillInsight {
+  skill: string;
+  count: number;
+}
+
+/** A person who connects many ministries — an org-network "bridge" / connector. */
+export interface BridgeInsight {
+  id: number;
+  name: string;
+  title: string;
+  ministry: string;
+  ministriesReached: number;
+  connections: number;
+}
+
+/** Org-level analytics for program coordinators — aggregate only, never individual activity. */
 export interface AdminInsights {
+  // Adoption & reach
   totalEmployees: number;
   activeUsers: number;
   activationRate: number;
   availableToday: number;
+  ministryCount: number;
+  adoptionTrend: { month: string; value: number }[];
+
+  // Network health / silos
   totalConnections: number;
+  avgConnections: number;
   crossTeamPct: number;
+  crossMinistryPct: number;
+  teams: TeamInsight[];
+  bridges: BridgeInsight[];
+
+  // Knowledge & expertise
+  distinctSkills: number;
+  topSkills: SkillInsight[];
+  scarceSkills: SkillInsight[];
+
+  // Onboarding
   coopCount: number;
   coopConnectionRate: number;
-  teams: TeamInsight[];
-  engagementGaps: string[];
+  orgConnectionRate: number;
+  mentorsAvailable: number;
+
+  // ROI
+  estHoursSaved: number;
+}
+
+/** A single person in the org-wide connection graph. */
+export interface ConnectionGraphNode {
+  id: number;
+  name: string;
+  title: string;
+  team: string;
+  ministry: string;
+  status: ActivityStatus;
+  /** Number of distinct people this person is connected to. */
+  degree: number;
+  isCoop: boolean;
+  isActiveUser: boolean;
+}
+
+/** A connection (the two people have messaged) between two nodes. */
+export interface ConnectionGraphLink {
+  source: number;
+  target: number;
+  /** How many interactions back this edge — drives edge intensity. */
+  weight: number;
+}
+
+/** Full org connection graph for the admin network view. */
+export interface ConnectionGraph {
+  nodes: ConnectionGraphNode[];
+  links: ConnectionGraphLink[];
+  ministries: string[];
 }

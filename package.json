@@ -15,6 +15,12 @@
     "start": "npm run start --workspace backend"
   },
   "devDependencies": {
+    "@types/three": "^0.185.0",
     "concurrently": "^9.1.0"
+  },
+  "dependencies": {
+    "react-force-graph-3d": "^1.29.1",
+    "three": "^0.185.1",
+    "three-spritetext": "^1.10.0"
   }
 }

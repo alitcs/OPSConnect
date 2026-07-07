@@ -10,6 +10,7 @@ import type {
   AdminInsights,
   ChatMessage,
   ConnectPerson,
+  ConnectionGraph,
   Conversation,
   DailyNudge,
   DirectMessage,
@@ -85,6 +86,7 @@ export const api = {
 
   // --- Admin insights ---
   getAdminInsights: () => run<AdminInsights>(() => backend.getAdminInsights(me())),
+  getConnectionGraph: () => run<ConnectionGraph>(() => backend.getConnectionGraph(me())),
 
   // --- Chat ---
   sendChat: (message: string, conversationId?: string) =>
