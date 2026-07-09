@@ -102,6 +102,10 @@ export const api = {
     run<Conversation>(() => backend.createConversation(me(), title)),
   deleteConversation: (id: string) => run<void>(() => backend.deleteConversation(me(), id)),
 
+  // --- Admin analytics assistant (individual engagement, coordinators only) ---
+  sendAdminChat: (message: string) =>
+    run<{ message: ChatMessage }>(() => backend.sendAdminChat(me(), message)),
+
   // --- Messaging ---
   listThreads: () => run<MessageThreadSummary[]>(() => backend.listThreads(me())),
   getThread: (threadId: string) =>

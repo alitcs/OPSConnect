@@ -6,6 +6,7 @@ import { useAuth } from '../context/AuthContext';
 import Icon, { type IconName } from '../components/Icon';
 
 const ConnectionGraph = lazy(() => import('../components/ConnectionGraph'));
+const InsightsAssistant = lazy(() => import('../components/InsightsAssistant'));
 
 // Org-level analytics for an upper-level (coordinator/executive) audience. Everything here
 // is aggregate — no individual social activity is ever exposed. It answers three executive
@@ -30,17 +31,11 @@ export default function AdminPage() {
   return (
     <div className="page">
       <div className="page__inner admin-page__inner">
-        <header className="ins-hero">
-          <div>
-            <p className="ins-hero__eyebrow">Program insights</p>
-            <h1 className="page__title">Insights</h1>
-            <p className="page__subtitle">
-              How the OPS is connecting, where knowledge lives, and how new people settle in.
-            </p>
-          </div>
+        <header className="ins-topbar">
+          <h1 className="ins-topbar__title">Insights</h1>
           <span className="ins-hero__privacy">
-            <Icon name="shield" size={13} />
-            Aggregate only
+            <Icon name="shield" size={12} />
+            Coordinators only
           </span>
         </header>
 
@@ -48,15 +43,29 @@ export default function AdminPage() {
           <p className="muted">You don't have access to program insights.</p>
         )}
 
-        <Suspense
-          fallback={
-            <div className="graph-panel graph-panel--pending">
-              <div className="graph-panel__loading">Loading network…</div>
-            </div>
-          }
-        >
-          <ConnectionGraph />
-        </Suspense>
+        <div className="ins-workspace">
+          <Suspense
+            fallback={
+              <div className="graph-panel graph-panel--pending">
+                <div className="graph-panel__loading">Loading network…</div>
+              </div>
+            }
+          >
+            <ConnectionGraph />
+          </Suspense>
+
+          {!denied && (
+            <Suspense
+              fallback={
+                <div className="copilot-hero copilot-hero--pending">
+                  <div className="copilot-hero__loading">Waking up Copilot…</div>
+                </div>
+              }
+            >
+              <InsightsAssistant />
+            </Suspense>
+          )}
+        </div>
 
         {loading && <p className="muted">Loading insights…</p>}
         {data && <InsightsBoard data={data} />}
@@ -111,10 +120,7 @@ function InsightsBoard({ data }: { data: AdminInsights }) {
       {/* Silos / network health */}
       <section className="ins-card ins-anim" style={{ animationDelay: '120ms' }}>
         <header className="ins-card__head">
-          <div>
-            <h2 className="ins-card__title">Breaking down silos</h2>
-            <p className="ins-card__meta">Where collaboration crosses team and ministry lines</p>
-          </div>
+          <h2 className="ins-card__title">Breaking down silos</h2>
         </header>
 
         <div className="ins-silo">
@@ -123,7 +129,7 @@ function InsightsBoard({ data }: { data: AdminInsights }) {
             <Gauge value={data.crossMinistryPct} label="cross-ministry" />
           </div>
           <div className="ins-bridges-wrap">
-            <span className="ins-mini-label">Top connectors — bridge the most ministries</span>
+            <span className="ins-mini-label">Top connectors</span>
             <ul className="ins-bridges">
               {data.bridges.map((b) => (
                 <li key={b.id}>
@@ -159,10 +165,7 @@ function InsightsBoard({ data }: { data: AdminInsights }) {
       <div className="ins-grid2">
         <section className="ins-card ins-anim" style={{ animationDelay: '180ms' }}>
           <header className="ins-card__head">
-            <div>
-              <h2 className="ins-card__title">Top expertise</h2>
-              <p className="ins-card__meta">Most represented skills across the org</p>
-            </div>
+            <h2 className="ins-card__title">Top expertise</h2>
           </header>
           <div className="ins-skills">
             {data.topSkills.map((s, i) => (
@@ -179,10 +182,7 @@ function InsightsBoard({ data }: { data: AdminInsights }) {
 
         <section className="ins-card ins-anim" style={{ animationDelay: '240ms' }}>
           <header className="ins-card__head">
-            <div>
-              <h2 className="ins-card__title">Knowledge risks</h2>
-              <p className="ins-card__meta">Skills held by only one or two people</p>
-            </div>
+            <h2 className="ins-card__title">Knowledge risks</h2>
           </header>
           <div className="ins-risks">
             {data.scarceSkills.map((s) => (
@@ -192,19 +192,13 @@ function InsightsBoard({ data }: { data: AdminInsights }) {
               </span>
             ))}
           </div>
-          <p className="ins-note">
-            Single points of failure — strong candidates for cross-training or documentation.
-          </p>
         </section>
       </div>
 
       {/* Onboarding + reach */}
       <section className="ins-card ins-anim" style={{ animationDelay: '300ms' }}>
         <header className="ins-card__head">
-          <div>
-            <h2 className="ins-card__title">Onboarding &amp; reach</h2>
-            <p className="ins-card__meta">How new people and the wider org are engaging</p>
-          </div>
+          <h2 className="ins-card__title">Onboarding &amp; reach</h2>
         </header>
         <div className="ins-stat-row">
           <Stat value={data.coopCount} label="co-op students" />

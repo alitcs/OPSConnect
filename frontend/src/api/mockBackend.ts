@@ -1240,6 +1240,347 @@ function generateReply(rawQuery: string, me: User): AIReply {
   };
 }
 
+// --- Admin analytics assistant -------------------------------------------
+//
+// A second, admin-only AI surface. The org-wide Copilot above is deliberately
+// privacy-preserving — it only ever surfaces aggregate signals. This assistant is the
+// opposite: it answers the coordinator questions that require individual-level engagement
+// data — who is most/least connected, how a specific person is engaging, how the co-ops are
+// settling in, which teams are thriving. It is gated behind isAdmin at the handler and is
+// never reachable by a regular member.
+
+interface AdminPersonStat {
+  user: User;
+  connections: number; // degree in the org network
+  coffeeTotal: number; // coffee chats this person took part in
+  coffeeThisMonth: number;
+  distinctPeople: number; // distinct coffee-chat partners
+  crossTeam: number; // coffee chats with someone outside their team
+  ministriesReached: number; // distinct ministries their connections span
+}
+
+/** Build per-person engagement stats from the same network + coffee-chat log the graph uses. */
+function computeActivity(): Map<number, AdminPersonStat> {
+  const { degree, adjacency } = buildOrgNetwork();
+  const thisMonth = NOW_ISO.slice(0, 7);
+  const stats = new Map<number, AdminPersonStat>();
+
+  for (const u of users) {
+    const reached = new Set<string>();
+    const nbrs = adjacency.get(u.id);
+    if (nbrs) {
+      for (const nId of nbrs) {
+        const n = getUserById(nId);
+        if (n) reached.add(n.ministry);
+      }
+    }
+    stats.set(u.id, {
+      user: u,
+      connections: degree.get(u.id) ?? 0,
+      coffeeTotal: 0,
+      coffeeThisMonth: 0,
+      distinctPeople: 0,
+      crossTeam: 0,
+      ministriesReached: reached.size,
+    });
+  }
+
+  const distinct = new Map<number, Set<number>>();
+  for (const chat of coffeeChats) {
+    for (const [self, other] of [
+      [chat.userId, chat.withUserId],
+      [chat.withUserId, chat.userId],
+    ] as const) {
+      const s = stats.get(self);
+      if (!s) continue;
+      s.coffeeTotal++;
+      if (chat.at.slice(0, 7) === thisMonth) s.coffeeThisMonth++;
+      const partner = getUserById(other);
+      if (partner && partner.team !== s.user.team) s.crossTeam++;
+      const set = distinct.get(self) ?? new Set<number>();
+      set.add(other);
+      distinct.set(self, set);
+    }
+  }
+  for (const [id, set] of distinct) {
+    const s = stats.get(id);
+    if (s) s.distinctPeople = set.size;
+  }
+  return stats;
+}
+
+/** Count with the right singular/plural word: n1(1,'connection','connections') → "1 connection". */
+const n1 = (n: number, singular: string, plural: string): string =>
+  `${n} ${n === 1 ? singular : plural}`;
+
+function topBy(
+  list: AdminPersonStat[],
+  key: (s: AdminPersonStat) => number,
+  count = 5,
+): AdminPersonStat[] {
+  return [...list]
+    .sort((a, b) => key(b) - key(a) || a.user.name.localeCompare(b.user.name))
+    .slice(0, count);
+}
+
+function generateAdminReply(rawQuery: string, me: User): AIReply {
+  const query = norm(rawQuery).trim();
+  const stats = computeActivity();
+  const all = [...stats.values()];
+  const active = all.filter((s) => s.user.isActiveUser);
+
+  // Light guardrail — stay on the analytics topic.
+  if (OFF_TOPIC.some((t) => query.includes(t)) && !ADJACENT.some((a) => query.includes(a))) {
+    return {
+      text: "I'm the program analytics assistant — I can tell you how people are engaging: who's most or least connected, how a specific person is settling in, or how the co-ops and teams are doing.",
+      people: [],
+    };
+  }
+
+  // --- Person lookup: "How engaged is Priya?" / "Tell me about Marcus's activity" ---
+  const words = new Set(query.split(/[^a-z]+/).filter(Boolean));
+  const named = all.find((s) => words.has(norm(s.user.name.split(' ')[0])));
+  if (
+    named &&
+    query.split(/\s+/).length <= 12 &&
+    /(how |activ|interact|engag|doing|connection|coffee|tell me about|about |status|profile|settl|look at)/.test(
+      query,
+    )
+  ) {
+    const s = named;
+    const coopTxt = s.user.coopInfo
+      ? ` As a co-op student (${s.user.coopInfo.program}), this is a good read on how they're settling in.`
+      : '';
+    const text = `${s.user.name} is a ${s.user.title} on the ${s.user.team} team. They hold ${n1(
+      s.connections,
+      'connection',
+      'connections',
+    )} in the org network, reaching ${n1(
+      s.ministriesReached,
+      'ministry',
+      'ministries',
+    )}. They've logged ${n1(s.coffeeTotal, 'coffee chat', 'coffee chats')} (${
+      s.coffeeThisMonth
+    } this month), meeting ${n1(
+      s.distinctPeople,
+      'distinct person',
+      'distinct people',
+    )} — ${s.crossTeam} of those outside their own team.${coopTxt}`;
+    return {
+      text,
+      people: [
+        surface(
+          s.user,
+          `${n1(s.connections, 'connection', 'connections')} · ${s.crossTeam} cross-team · ${
+            s.coffeeThisMonth
+          } this month`,
+          `${s.connections} connections`,
+        ),
+      ],
+      followUps: ['Who are the most connected people?', 'Who needs a nudge to connect?'],
+    };
+  }
+
+  // --- Co-op onboarding: "How are the co-ops settling in?" ---
+  if (/co-?op|intern|new (hire|hires|people|employee|employees|student|students|starter)|onboard|settl/.test(query)) {
+    const coops = [...all]
+      .filter((s) => s.user.coopInfo)
+      .sort((a, b) => a.connections - b.connections);
+    if (coops.length) {
+      const avg =
+        Math.round((coops.reduce((sum, s) => sum + s.connections, 0) / coops.length) * 10) / 10;
+      return {
+        text: `There ${coops.length === 1 ? 'is' : 'are'} ${n1(
+          coops.length,
+          'co-op student',
+          'co-op students',
+        )} in the program, averaging ${avg} connections each. Here's how they're settling into the network — least connected first, so start at the top:`,
+        people: coops
+          .slice(0, 5)
+          .map((s) =>
+            surface(
+              s.user,
+              `${s.user.title} on the ${s.user.team} team — ${n1(
+                s.connections,
+                'connection',
+                'connections',
+              )} so far${
+                s.coffeeTotal === 0 ? ', no coffee chats logged yet' : `, ${s.coffeeTotal} coffee chats`
+              }.`,
+              `${s.connections} connections`,
+            ),
+          ),
+        followUps: ['Who could mentor them?', 'Who are the most connected people?'],
+      };
+    }
+  }
+
+  // --- Bridges: "Who connects the most ministries?" ---
+  if (/bridge|connector|cross-?ministry|cross-?team|silo|span|boundary|boundaries|link/.test(query)) {
+    const top = topBy(active, (s) => s.ministriesReached).filter((s) => s.ministriesReached > 0);
+    if (top.length) {
+      return {
+        text: "These people bridge the most ministries — the connectors keeping the org from siloing:",
+        people: top.map((s) =>
+          surface(
+            s.user,
+            `${s.user.title}, ${s.user.team} — reaches ${n1(
+              s.ministriesReached,
+              'ministry',
+              'ministries',
+            )} through ${n1(s.connections, 'connection', 'connections')}.`,
+            `${s.ministriesReached} ministries`,
+            'high',
+          ),
+        ),
+        followUps: ['Who has the most connections overall?', 'Who needs a nudge to connect?'],
+      };
+    }
+  }
+
+  // --- Available today ---
+  if (/available|open to help|open for coffee|around today|free (to|for)/.test(query)) {
+    const avail = all.filter((s) => s.user.availableForCoffee);
+    return {
+      text: `${n1(avail.length, 'person is', 'people are')} marked open to help today across the OPS:`,
+      people: avail
+        .slice(0, 6)
+        .map((s) =>
+          surface(
+            s.user,
+            `${s.user.title} on the ${s.user.team} team${
+              s.user.availabilityNote ? ` — “${s.user.availabilityNote}”` : ''
+            }.`,
+            `${s.connections} connections`,
+          ),
+        ),
+      followUps: ['Who are the most connected people?', 'Who needs a nudge to connect?'],
+    };
+  }
+
+  // --- Least connected / needs a nudge ---
+  if (/least|lowest|fewest|isolat|quiet|inactive|not active|hasn'?t|struggl|disengag|nudge|need|risk|lonely|left out|behind|weak/.test(query)) {
+    const low = [...active]
+      .sort((a, b) => a.connections - b.connections || a.user.name.localeCompare(b.user.name))
+      .slice(0, 5);
+    return {
+      text: "These active members have the fewest connections — good candidates for an introduction or a nudge toward the Connect board:",
+      people: low.map((s) =>
+        surface(
+          s.user,
+          `${s.user.title} on the ${s.user.team} team — only ${n1(
+            s.connections,
+            'connection',
+            'connections',
+          )} so far${s.coffeeTotal === 0 ? ', no coffee chats logged yet' : ''}.`,
+          `${s.connections} connections`,
+        ),
+      ),
+      followUps: ['Who are the most connected people?', 'How are the co-ops settling in?'],
+    };
+  }
+
+  // --- Team leaderboard ---
+  if (/team/.test(query)) {
+    const insights = adminInsights(me.id);
+    const wantLow = /least|low|lowest|struggl|quiet|behind|weak|nudge/.test(query);
+    const list = wantLow
+      ? [...insights.teams].reverse().slice(0, 5)
+      : insights.teams.slice(0, 5);
+    const lines = list.map(
+      (t, i) =>
+        `${i + 1}. ${t.team} (${t.ministry}) — ${t.connectionsPerActive} connections per active member · ${n1(
+          t.activeUsers,
+          'active member',
+          'active members',
+        )}`,
+    );
+    return {
+      text: `${
+        wantLow ? 'Teams with the lightest internal connectivity' : 'Most connected teams'
+      }, by connections per active member:\n\n${lines.join('\n')}`,
+      people: [],
+      followUps: ['Who are the most connected people?', 'Who bridges the most ministries?'],
+    };
+  }
+
+  // --- Program overview / snapshot ---
+  const overview = (): AIReply => {
+    const ins = adminInsights(me.id);
+    const topConnector = topBy(active, (s) => s.connections)[0];
+    const text = `Program snapshot: ${ins.activeUsers} of ${ins.totalEmployees} people are active (${
+      ins.activationRate
+    }% adoption), with ${ins.totalConnections} connections across the network — ${
+      ins.crossTeamPct
+    }% cross-team and ${ins.crossMinistryPct}% cross-ministry. ${
+      ins.availableToday
+    } are open to help today.${
+      topConnector
+        ? ` ${topConnector.user.name} is currently the most connected (${n1(
+            topConnector.connections,
+            'link',
+            'links',
+          )}).`
+        : ''
+    } Ask me who's most or least connected, how a specific person is engaging, or how the co-ops are settling in.`;
+    return {
+      text,
+      people: topConnector
+        ? [
+            surface(
+              topConnector.user,
+              `Most connected — ${n1(
+                topConnector.connections,
+                'connection',
+                'connections',
+              )} across ${n1(topConnector.ministriesReached, 'ministry', 'ministries')}.`,
+              `${topConnector.connections} connections`,
+              'high',
+            ),
+          ]
+        : [],
+      followUps: [
+        'Who are the most connected people?',
+        'Who needs a nudge to connect?',
+        'How are the co-ops settling in?',
+      ],
+    };
+  };
+  if (/overview|summary|snapshot|health|state of|going|dashboard|report|how (is|are|'?s)|how we/.test(query)) {
+    return overview();
+  }
+
+  // --- Most connected / most active (default leaderboard) ---
+  if (/most|top|highest|busiest|leader|champion|active|connected|engag|interact|social|central|hub/.test(query)) {
+    const top = topBy(active, (s) => s.connections);
+    return {
+      text: "Here are the most connected people across the OPS right now — the strongest hubs in the network:",
+      people: top.map((s) =>
+        surface(
+          s.user,
+          `${s.user.title} on the ${s.user.team} team — connected to ${n1(
+            s.connections,
+            'person',
+            'people',
+          )} across ${n1(s.ministriesReached, 'ministry', 'ministries')}${
+            s.coffeeThisMonth ? `, ${n1(s.coffeeThisMonth, 'coffee chat', 'coffee chats')} this month` : ''
+          }.`,
+          `${s.connections} connections`,
+          'high',
+        ),
+      ),
+      followUps: [
+        'Who bridges the most ministries?',
+        'Who needs a nudge to connect?',
+        'How are the co-ops settling in?',
+      ],
+    };
+  }
+
+  // Fallback → a useful snapshot with guidance.
+  return overview();
+}
+
 // --- Floor map -----------------------------------------------------------
 
 const MAP_WIDTH = 800;
@@ -1508,6 +1849,31 @@ export const backend = {
     touch(convId);
 
     return { conversationId: convId, message: assistantMessage };
+  },
+
+  // --- Admin analytics assistant (program coordinators only) ---
+  //
+  // Stateless by design: replies aren't persisted as conversations, so this admin-only
+  // analytics surface never mixes into a member's personal Copilot history.
+  sendAdminChat(userId: number, message: string): { message: ChatMessage } {
+    const me = requireUser(userId);
+    if (!me.isAdmin) {
+      throw new ApiError(403, 'Program analytics are available to coordinators only.');
+    }
+    const text = message?.trim();
+    if (!text) throw new ApiError(400, 'message is required');
+
+    const reply = generateAdminReply(text, me);
+    const assistantMessage: ChatMessage = {
+      id: `admin-${uuid()}`,
+      conversationId: 'admin-analytics',
+      role: 'assistant',
+      text: reply.text,
+      people: reply.people,
+      followUps: reply.followUps,
+      createdAt: new Date().toISOString(),
+    };
+    return { message: assistantMessage };
   },
 
   // --- Messaging ---
