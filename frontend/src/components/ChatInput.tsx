@@ -4,9 +4,15 @@ import Icon from './Icon';
 export default function ChatInput({
   onSend,
   disabled,
+  placeholder = 'Ask Copilot to find people, teams, or skills…',
+  ariaLabel = 'Ask Copilot about people, teams, or skills',
+  hint = 'Enter to send · Shift+Enter for new line',
 }: {
   onSend: (text: string) => void;
   disabled?: boolean;
+  placeholder?: string;
+  ariaLabel?: string;
+  hint?: string;
 }) {
   const [value, setValue] = useState('');
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -37,8 +43,8 @@ export default function ChatInput({
         <textarea
           ref={textareaRef}
           rows={1}
-          aria-label="Ask Copilot about people, teams, or skills"
-          placeholder="Ask Copilot to find people, teams, or skills…"
+          aria-label={ariaLabel}
+          placeholder={placeholder}
           value={value}
           disabled={disabled}
           onChange={(e) => {
@@ -57,7 +63,7 @@ export default function ChatInput({
         </button>
       </div>
       <p className="chat__input-hint">
-        Enter to send · Shift+Enter for new line
+        {hint}
       </p>
     </div>
   );
