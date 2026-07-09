@@ -17,6 +17,8 @@ export default function AdminPage() {
   const [data, setData] = useState<AdminInsights | null>(null);
   const [loading, setLoading] = useState(true);
   const [denied, setDenied] = useState(false);
+  // A "find <person>" request from the assistant, consumed by the graph to focus a node.
+  const [focusRequest, setFocusRequest] = useState<{ query: string; nonce: number } | null>(null);
 
   useEffect(() => {
     api
@@ -51,7 +53,7 @@ export default function AdminPage() {
               </div>
             }
           >
-            <ConnectionGraph />
+            <ConnectionGraph focusRequest={focusRequest} />
           </Suspense>
 
           {!denied && (
@@ -62,7 +64,9 @@ export default function AdminPage() {
                 </div>
               }
             >
-              <InsightsAssistant />
+              <InsightsAssistant
+                onFindPerson={(name) => setFocusRequest({ query: name, nonce: Date.now() })}
+              />
             </Suspense>
           )}
         </div>

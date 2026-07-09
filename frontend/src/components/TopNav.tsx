@@ -99,6 +99,7 @@ export default function TopNav() {
             key={item.to}
             to={item.to}
             end={item.end}
+            aria-label={item.label}
             className={({ isActive }) => `tabbar__link ${isActive ? 'active' : ''}`}
           >
             <Icon name={item.icon} size={20} />
