@@ -20,6 +20,16 @@ const DIM_COLOR = '#333844';
 const LINK_COLOR = 'rgba(158, 172, 198, 0.28)';
 const LINK_HOT = 'rgba(214, 224, 240, 0.9)';
 
+// Touch devices tap imprecisely and have no hover, so tiny nodes are easy to miss when you
+// try to select one. Render nodes larger on coarse pointers so a fingertip reliably lands
+// on a node (and highlights its connections) instead of hitting empty space.
+const COARSE_POINTER =
+  typeof window !== 'undefined' &&
+  typeof window.matchMedia === 'function' &&
+  window.matchMedia('(pointer: coarse)').matches;
+const NODE_REL_SIZE = COARSE_POINTER ? 3.8 : 2.4;
+
+
 interface GraphNode extends ConnectionGraphNode {
   x?: number;
   y?: number;
@@ -35,7 +45,12 @@ function nodeId(end: number | GraphNode): number {
   return typeof end === 'object' ? end.id : end;
 }
 
-export default function ConnectionGraph() {
+interface ConnectionGraphProps {
+  /** External request to focus/highlight a person by name (e.g. from the assistant). */
+  focusRequest?: { query: string; nonce: number } | null;
+}
+
+export default function ConnectionGraph({ focusRequest = null }: ConnectionGraphProps) {
   const navigate = useNavigate();
   const containerRef = useRef<HTMLDivElement | null>(null);
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -121,6 +136,11 @@ export default function ConnectionGraph() {
   }, [graph]);
 
   const handleNodeClick = (node: GraphNode) => {
+    focusNode(node);
+  };
+
+  // Move the camera to a node and select it (drives the highlight + detail card).
+  const focusNode = (node: GraphNode) => {
     setSelected(node);
     const fg = fgRef.current;
     if (fg && node.x != null && node.y != null && node.z != null) {
@@ -134,6 +154,23 @@ export default function ConnectionGraph() {
       );
     }
   };
+
+  // Respond to an external "find <person>" request by matching a node by name and
+  // focusing it. Matching prefers an exact name, then a first/last-name or prefix hit.
+  useEffect(() => {
+    if (!focusRequest || !graph) return;
+    const q = focusRequest.query.trim().toLowerCase();
+    if (!q) return;
+    const nodes = data.nodes as GraphNode[];
+    const match =
+      nodes.find((n) => n.name.toLowerCase() === q) ??
+      nodes.find((n) => n.name.toLowerCase().split(/\s+/).includes(q)) ??
+      nodes.find((n) => n.name.toLowerCase().startsWith(q)) ??
+      nodes.find((n) => n.name.toLowerCase().includes(q));
+    if (match) focusNode(match);
+    // Re-run only when a new request arrives (nonce changes).
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [focusRequest?.nonce]);
 
   const getNodeColor = (node: GraphNode): string => {
     if (activeSet && !activeSet.has(node.id)) return DIM_COLOR;
@@ -194,7 +231,7 @@ export default function ConnectionGraph() {
             cooldownTicks={90}
             d3AlphaDecay={0.045}
             d3VelocityDecay={0.45}
-            nodeRelSize={2.4}
+            nodeRelSize={NODE_REL_SIZE}
             nodeVal={(node) => getNodeVal(node as GraphNode)}
             nodeColor={(node) => getNodeColor(node as GraphNode)}
             nodeOpacity={0.9}

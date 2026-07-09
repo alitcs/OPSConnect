@@ -22,7 +22,28 @@ const prefersReducedMotion =
   typeof window !== 'undefined' &&
   window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
-export default function InsightsAssistant() {
+// Detect a spatial "find this person" request and pull out the name to highlight.
+// Only explicit locate verbs count, so informational questions still reach the backend.
+function parseFindPerson(raw: string): string | null {
+  const m = raw
+    .trim()
+    .match(/^(?:find|locate|highlight|where is|where's|point out|zoom to|zoom in on)\s+(.+)$/i);
+  if (!m) return null;
+  const name = m[1]
+    .replace(/[?.!]+$/g, '')
+    .replace(/\b(?:on|in)\s+the\s+(?:map|graph|network|chart|nodes?)\b.*$/i, '')
+    .replace(/['’]s\b/gi, '')
+    .replace(/\b(?:node|profile|person|dot|please)\b/gi, '')
+    .replace(/\s+/g, ' ')
+    .trim();
+  return name.length ? name : null;
+}
+
+export default function InsightsAssistant({
+  onFindPerson,
+}: {
+  onFindPerson?: (name: string) => void;
+}) {
   const { notify } = useToast();
   const [messages, setMessages] = useState<ChatMessageType[]>([]);
   const [sending, setSending] = useState(false);
@@ -74,6 +95,21 @@ export default function InsightsAssistant() {
       createdAt: new Date().toISOString(),
     };
     setMessages((m) => [...m, optimistic]);
+
+    // "Find <person>" → highlight their node on the graph instead of querying the backend.
+    const person = onFindPerson ? parseFindPerson(text) : null;
+    if (person) {
+      onFindPerson!(person);
+      presentAssistant({
+        id: `assist-${Date.now()}`,
+        conversationId: 'admin-analytics',
+        role: 'assistant',
+        text: `Highlighting ${person} on the network above — their node is now focused with its direct connections. Tap the background to clear it.`,
+        createdAt: new Date().toISOString(),
+      });
+      return;
+    }
+
     setSending(true);
     try {
       const res = await api.sendAdminChat(text);
@@ -177,7 +213,7 @@ export default function InsightsAssistant() {
       <ChatInput
         onSend={send}
         disabled={sending}
-        placeholder="Ask Copilot how people are engaging…"
+        placeholder="Ask how people are engaging — or “find Priya Chen” to highlight them…"
         ariaLabel="Ask Copilot about individual engagement"
         hint="Copilot · individual engagement data, visible to coordinators only"
       />
