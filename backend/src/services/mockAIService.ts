@@ -8,13 +8,15 @@
 // dedicated Python AI microservice. Keep the returned shape (`AIReply`) identical so the
 // controller and frontend don't change.
 
-import type { SurfacedPerson, User } from '../types.js';
+import type { SurfacedPerson, SurfacedProject, ProjectTicket, User } from '../types.js';
 import { getAllUsers } from '../data/store.js';
+import { projects } from '../data/projects.js';
 import { toSummary } from './userService.js';
 
 export interface AIReply {
   text: string;
   people: SurfacedPerson[];
+  projects?: SurfacedProject[];
   followUps?: string[];
 }
 
@@ -97,7 +99,124 @@ const SKILL_KEYWORDS = [
   'environmental',
 ];
 
+// Priority ordering so the active-portfolio view leads with the most urgent work.
+const PRIORITY_RANK: Record<string, number> = { Critical: 3, High: 2, Medium: 1, Low: 0 };
+
+function fmtDate(iso: string): string {
+  return new Date(iso).toLocaleDateString('en-CA', {
+    month: 'short',
+    day: 'numeric',
+    year: 'numeric',
+  });
+}
+
+// Map a project's required skills to internal people — one best-fit person per skill,
+// preferring someone open to help today. Records which skills are covered vs. a staffing gap.
+function surfaceProject(
+  project: ProjectTicket,
+  list: User[],
+  rationale?: string,
+): SurfacedProject {
+  const seen = new Set<number>();
+  const suggestedPeople: SurfacedPerson[] = [];
+  const coveredSkills: string[] = [];
+  const gapSkills: string[] = [];
+  for (const skill of project.requiredSkills) {
+    const candidate = list
+      .filter((u) => hasSkill(u, skill) && !seen.has(u.id))
+      .sort((a, b) => Number(b.availableForCoffee) - Number(a.availableForCoffee))[0];
+    if (!candidate) {
+      gapSkills.push(skill);
+      continue;
+    }
+    seen.add(candidate.id);
+    coveredSkills.push(skill);
+    const matched = candidate.skills.filter((s) => norm(s).includes(norm(skill)));
+    const skillTxt = matched.length ? ` (${matched.slice(0, 2).join(', ')})` : '';
+    const avail = candidate.availableForCoffee ? ' Open to help today.' : '';
+    suggestedPeople.push(
+      surface(
+        candidate,
+        `${candidate.title} on the ${candidate.team} team${skillTxt}.${avail}`,
+        skill,
+        strengthFor(candidate, [skill]),
+      ),
+    );
+  }
+  return { project, rationale, suggestedPeople, coveredSkills, gapSkills };
+}
+
 const intents: Intent[] = [
+  // --- Project / ticket intelligence: "What projects are active?" / "Who can work on FIN-77?" ---
+  {
+    name: 'project-intelligence',
+    match: (query, users) => {
+      const idMatch = query.match(/\b([a-z]{2,5})-(\d{1,5})\b/i);
+      const mentionsTickets =
+        /\b(ticket|tickets|jira|kanban|sprint|backlog|epic|devops board|azure devops)\b/.test(
+          query,
+        );
+      // Browsing existing, tracked projects — not describing a brand-new project to staff.
+      const browsingProjects =
+        /\bprojects?\b/.test(query) &&
+        /(being worked|worked on|active|current|ongoing|underway|in progress|in-flight|in flight|happening|list|show me|what|which|status|deadline|timeline|due|going on|on the go)/.test(
+          query,
+        );
+      // A new-project staffing ask ("I'm starting a project that needs…") belongs to
+      // project-staffing, which surfaces people directly — don't hijack it here.
+      const isNewProjectStaffing =
+        /(i'?m |i am |we'?re |we are |i want to|i need to|launching|starting a|kick ?off|assemble|build a team|put together)/.test(
+          query,
+        );
+      if (!idMatch && !mentionsTickets && (!browsingProjects || isNewProjectStaffing)) {
+        return null;
+      }
+
+      // 1) Specific ticket by ID.
+      if (idMatch) {
+        const id = idMatch[0].toUpperCase();
+        const project = projects.find((p) => p.id.toUpperCase() === id);
+        if (project) {
+          const surfaced = surfaceProject(project, users, 'Direct match on ticket ID.');
+          return {
+            text: `Here's ${project.id} — ${project.title}. It's a ${project.priority.toLowerCase()}-priority ${project.type.toLowerCase()} for ${project.team} (${project.ministry}), currently ${project.status.toLowerCase()} and due ${fmtDate(
+              project.dueDate,
+            )}. Based on the skills it needs, here's who could work on it:`,
+            people: [],
+            projects: [surfaced],
+          };
+        }
+      }
+
+      // 2) Projects that call for a specific skill.
+      const skill = SKILL_KEYWORDS.find((k) => query.includes(k));
+      if (skill && /(need|require|skill|who can|staff|work on)/.test(query)) {
+        const matches = projects.filter((p) =>
+          p.requiredSkills.some((s) => norm(s).includes(norm(skill))),
+        );
+        if (matches.length) {
+          return {
+            text: `Projects across the OPS that call for ${skill}. Each card shows the people whose skills map to the work:`,
+            people: [],
+            projects: matches.slice(0, 3).map((p) => surfaceProject(p, users, `Requires ${skill}.`)),
+          };
+        }
+      }
+
+      // 3) General "what's being worked on" — the active portfolio, most urgent first.
+      const active = projects
+        .filter((p) => p.status !== 'Done')
+        .sort((a, b) => PRIORITY_RANK[b.priority] - PRIORITY_RANK[a.priority])
+        .slice(0, 3);
+      return {
+        text: 'Here are projects currently in flight across the OPS, drawn from each team\u2019s ticketing tool. Ask about any ticket by ID to see who could staff it:',
+        people: [],
+        projects: active.map((p) => surfaceProject(p, users)),
+        followUps: ['Which projects need Python?', 'Who can work on HDP-482?'],
+      };
+    },
+  },
+
   // --- Person lookup by name: "Tell me about Priya" ---
   {
     name: 'person-lookup',

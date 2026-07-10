@@ -75,6 +75,8 @@ export interface ChatMessage {
   text: string;
   /** People surfaced by the AI for this message (mini cards rendered inline). */
   people?: SurfacedPerson[];
+  /** Projects/tickets surfaced with suggested staffing. */
+  projects?: SurfacedProject[];
   /** Suggested next questions rendered as tappable chips under an assistant reply. */
   followUps?: string[];
   createdAt: string;
@@ -88,6 +90,65 @@ export interface SurfacedPerson {
   capability?: string;
   /** How closely this person fits the request — drives the confidence badge. */
   matchStrength?: 'high' | 'medium';
+}
+
+// --- Project / ticket intelligence ---
+//
+// A general, tool-agnostic view of work in flight across the OPS. Different teams use
+// different ticketing systems (Atlassian Jira, Azure DevOps, Trello, ServiceNow…), so this
+// shape is deliberately neutral — `source` just records where the item came from. The AI
+// reads a project's required skills and maps internal people to it.
+
+export type ProjectStatus =
+  | 'Backlog'
+  | 'To Do'
+  | 'In Progress'
+  | 'In Review'
+  | 'Blocked'
+  | 'Done';
+
+export type ProjectPriority = 'Low' | 'Medium' | 'High' | 'Critical';
+
+/** A single dated checkpoint on a project's timeline. */
+export interface ProjectMilestone {
+  label: string;
+  date: string;
+  done: boolean;
+}
+
+/** A project or ticket pulled from a team's ticketing tool. */
+export interface ProjectTicket {
+  id: string;
+  title: string;
+  /** The ticketing tool this item came from (Jira, Azure DevOps, Trello…). */
+  source: string;
+  /** Item type as it appears in the source tool (Project, Epic, Story, Bug, Task). */
+  type: string;
+  status: ProjectStatus;
+  priority: ProjectPriority;
+  team: string;
+  ministry: string;
+  summary: string;
+  /** Capabilities the work calls for — the AI maps these to internal people. */
+  requiredSkills: string[];
+  startDate: string;
+  dueDate: string;
+  /** Completion 0–100. */
+  progress: number;
+  milestones: ProjectMilestone[];
+}
+
+/** A project surfaced in chat, with the internal people whose skills map to its needs. */
+export interface SurfacedProject {
+  project: ProjectTicket;
+  /** Why this project matched the query. */
+  rationale?: string;
+  /** People whose skills cover the project's required capabilities. */
+  suggestedPeople: SurfacedPerson[];
+  /** Required skills with internal capability found. */
+  coveredSkills: string[];
+  /** Required skills with no internal match surfaced (a staffing gap). */
+  gapSkills: string[];
 }
 
 export interface Conversation {

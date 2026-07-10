@@ -17,29 +17,39 @@ const SUGGESTIONS: { text: string; icon: IconName; tag: string }[] = [
     tag: 'Managers',
   },
   {
-    text: 'I need to deliver an analytics dashboard — what skills exist internally?',
-    icon: 'chart',
-    tag: 'Managers',
+    text: 'Who could work on HDP-482, the health analytics dashboard?',
+    icon: 'layers',
+    tag: 'Projects',
   },
   {
-    text: "Who's around and open to help right now?",
+    text: 'What projects are due soon or blocked across the OPS?',
+    icon: 'ticket',
+    tag: 'Projects',
+  },
+  {
+    text: 'How is the OPS structured?',
+    icon: 'directory',
+    tag: 'Explore',
+  },
+  {
+    text: 'Who works in the Ministry of Health?',
+    icon: 'pin',
+    tag: 'Explore',
+  },
+  {
+    text: "I'm a new co-op — who should I meet on my team?",
     icon: 'coffee',
     tag: 'Co-ops',
   },
   {
-    text: 'I want DevOps experience — who can I shadow?',
-    icon: 'directory',
-    tag: 'Co-ops',
-  },
-  {
-    text: 'Who works in cybersecurity?',
+    text: 'Who has a security certification?',
     icon: 'shield',
     tag: 'Explore',
   },
   {
-    text: 'What teams work on data analytics?',
+    text: 'Who shares my interests?',
     icon: 'messages',
-    tag: 'Explore',
+    tag: 'Co-ops',
   },
 ];
 

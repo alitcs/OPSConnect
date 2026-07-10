@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
-import type { ChatMessage as ChatMessageType } from '../types';
+import type { ChatMessage as ChatMessageType, EdgeMode } from '../types';
+import { EDGE_MODES } from '../types';
 import { api } from '../api/client';
 import { useToast } from '../context/ToastContext';
 import ChatMessage from './ChatMessage';
@@ -9,13 +10,17 @@ import Icon, { type IconName } from './Icon';
 // Admin-only Copilot surface, the hero of the Insights page. It mirrors the home Copilot's
 // feel — streamed replies, inline person cards, follow-up chips — but talks to a
 // coordinator-gated endpoint with individual engagement data (who's most/least connected,
-// how a specific person is settling in, how the co-ops and teams are doing).
+// how a specific person is settling in, how the co-ops and teams are doing). It is also a
+// superset of the member Copilot (skills, projects, org structure…) and can answer
+// relationship questions and re-shape the network view.
 
 const SUGGESTIONS: { text: string; icon: IconName; tag: string }[] = [
-  { text: 'Who are the most connected people?', icon: 'chart', tag: 'Network' },
-  { text: 'Who needs a nudge to connect?', icon: 'coffee', tag: 'Engagement' },
-  { text: 'How are the co-op students settling in?', icon: 'sparkle', tag: 'Onboarding' },
-  { text: 'Who bridges the most ministries?', icon: 'directory', tag: 'Silos' },
+  { text: 'How are Priya Sharma and Marcus Chen connected?', icon: 'directory', tag: 'Relationships' },
+  { text: 'Who should Marcus Chen meet?', icon: 'coffee', tag: 'Relationships' },
+  { text: 'Which skills rely on just one person?', icon: 'shield', tag: 'Risk' },
+  { text: 'Which active projects have staffing gaps?', icon: 'ticket', tag: 'Delivery' },
+  { text: 'Who bridges the most ministries?', icon: 'chart', tag: 'Silos' },
+  { text: 'Show the network by shared skills', icon: 'sparkle', tag: 'Network' },
 ];
 
 const prefersReducedMotion =
@@ -39,10 +44,39 @@ function parseFindPerson(raw: string): string | null {
   return name.length ? name : null;
 }
 
+// Detect a request to re-shape the network view ("show the graph by shared skills") and map
+// it to a connection lens, so the assistant can drive the graph filter conversationally.
+function parseSetMode(raw: string): EdgeMode | null {
+  const q = raw.toLowerCase().trim();
+  const looksLikeViewChange =
+    /(show|switch|change|colou?r|view|set|display|filter|map|group|re-?colou?r).*(graph|network|nodes?|connections?|view|lens)|connections? by|network by|group by|colou?r by|lens/.test(
+      q,
+    );
+  if (!looksLikeViewChange) return null;
+  if (/\bteam/.test(q)) return 'team';
+  if (/ministr/.test(q)) return 'ministry';
+  if (/division|branch/.test(q)) return 'division';
+  if (/cluster/.test(q)) return 'cluster';
+  if (/skill/.test(q)) return 'skills';
+  if (/interest/.test(q)) return 'interests';
+  if (/coffee|already connected/.test(q)) return 'coffee';
+  if (/project/.test(q)) return 'project';
+  if (/report|manager|org chart/.test(q)) return 'reporting';
+  if (/floor|location|desk|proximity/.test(q)) return 'location';
+  if (/mentor/.test(q)) return 'mentorship';
+  if (/cohort|school/.test(q)) return 'cohort';
+  if (/combined|default|everything|overall/.test(q)) return 'combined';
+  return null;
+}
+
 export default function InsightsAssistant({
   onFindPerson,
+  mode = 'combined',
+  onSetMode,
 }: {
   onFindPerson?: (name: string) => void;
+  mode?: EdgeMode;
+  onSetMode?: (mode: EdgeMode) => void;
 }) {
   const { notify } = useToast();
   const [messages, setMessages] = useState<ChatMessageType[]>([]);
@@ -110,9 +144,24 @@ export default function InsightsAssistant({
       return;
     }
 
+    // "Show the network by <lens>" → re-shape the graph filter conversationally.
+    const nextMode = onSetMode ? parseSetMode(text) : null;
+    if (nextMode) {
+      onSetMode!(nextMode);
+      const info = EDGE_MODES.find((m) => m.id === nextMode);
+      presentAssistant({
+        id: `assist-${Date.now()}`,
+        conversationId: 'admin-analytics',
+        role: 'assistant',
+        text: `Switched the network above to the “${info?.label ?? nextMode}” lens — now an edge means ${info?.description ?? 'a shared connection'}. Ask me anything about relationships in this view.`,
+        createdAt: new Date().toISOString(),
+      });
+      return;
+    }
+
     setSending(true);
     try {
-      const res = await api.sendAdminChat(text);
+      const res = await api.sendAdminChat(text, mode);
       setSending(false);
       presentAssistant(res.message);
     } catch {

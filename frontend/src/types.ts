@@ -68,12 +68,73 @@ export interface SurfacedPerson {
   matchStrength?: 'high' | 'medium';
 }
 
+// --- Project / ticket intelligence ---
+//
+// A general, tool-agnostic view of work in flight across the OPS. Different teams use
+// different ticketing systems (Atlassian Jira, Azure DevOps, Trello, ServiceNow…), so this
+// shape is deliberately neutral — `source` just records where the item came from. The AI
+// reads a project's required skills and maps internal people to it.
+
+export type ProjectStatus =
+  | 'Backlog'
+  | 'To Do'
+  | 'In Progress'
+  | 'In Review'
+  | 'Blocked'
+  | 'Done';
+
+export type ProjectPriority = 'Low' | 'Medium' | 'High' | 'Critical';
+
+/** A single dated checkpoint on a project's timeline. */
+export interface ProjectMilestone {
+  label: string;
+  date: string;
+  done: boolean;
+}
+
+/** A project or ticket pulled from a team's ticketing tool. */
+export interface ProjectTicket {
+  id: string;
+  title: string;
+  /** The ticketing tool this item came from (Jira, Azure DevOps, Trello…). */
+  source: string;
+  /** Item type as it appears in the source tool (Project, Epic, Story, Bug, Task). */
+  type: string;
+  status: ProjectStatus;
+  priority: ProjectPriority;
+  team: string;
+  ministry: string;
+  summary: string;
+  /** Capabilities the work calls for — the AI maps these to internal people. */
+  requiredSkills: string[];
+  startDate: string;
+  dueDate: string;
+  /** Completion 0–100. */
+  progress: number;
+  milestones: ProjectMilestone[];
+}
+
+/** A project surfaced in chat, with the internal people whose skills map to its needs. */
+export interface SurfacedProject {
+  project: ProjectTicket;
+  /** Why this project matched the query. */
+  rationale?: string;
+  /** People whose skills cover the project's required capabilities. */
+  suggestedPeople: SurfacedPerson[];
+  /** Required skills with internal capability found. */
+  coveredSkills: string[];
+  /** Required skills with no internal match surfaced (a staffing gap). */
+  gapSkills: string[];
+}
+
 export interface ChatMessage {
   id: string;
   conversationId: string;
   role: 'user' | 'assistant';
   text: string;
   people?: SurfacedPerson[];
+  /** Projects/tickets surfaced with suggested staffing. */
+  projects?: SurfacedProject[];
   /** Suggested next questions rendered as tappable chips under an assistant reply. */
   followUps?: string[];
   createdAt: string;
@@ -212,11 +273,16 @@ export interface AdminInsights {
   avgConnections: number;
   crossTeamPct: number;
   crossMinistryPct: number;
+  isolatedActive: number;
+  connectedRate: number;
+  medianConnections: number;
+  coffeeThisMonth: number;
   teams: TeamInsight[];
   bridges: BridgeInsight[];
 
   // Knowledge & expertise
   distinctSkills: number;
+  singlePointSkills: number;
   topSkills: SkillInsight[];
   scarceSkills: SkillInsight[];
 
@@ -224,10 +290,15 @@ export interface AdminInsights {
   coopCount: number;
   coopConnectionRate: number;
   orgConnectionRate: number;
+  coopsConnected: number;
+  coopConnectedPct: number;
   mentorsAvailable: number;
+  menteesPerMentor: number;
 
   // ROI
   estHoursSaved: number;
+  estCostSaved: number;
+  adoptionDelta: number;
 }
 
 /** A single person in the org-wide connection graph. */
@@ -250,6 +321,8 @@ export interface ConnectionGraphLink {
   target: number;
   /** How many interactions back this edge — drives edge intensity. */
   weight: number;
+  /** What kind of relationship this edge represents (for colour-coding in Combined view). */
+  kind?: string;
 }
 
 /** Full org connection graph for the admin network view. */
@@ -257,4 +330,55 @@ export interface ConnectionGraph {
   nodes: ConnectionGraphNode[];
   links: ConnectionGraphLink[];
   ministries: string[];
+  /** Which relationship lens produced these edges. */
+  mode: EdgeMode;
+  /** Total number of edges in the current view. */
+  edgeCount: number;
+  /** Average connections per connected node in the current view. */
+  avgConnections: number;
+  /** How many people have at least one connection in the current view. */
+  connectedCount: number;
 }
+
+/**
+ * The relationship lens that defines what an edge between two people means. Switching the
+ * lens re-derives the whole network from a different signal (org structure, skills, activity…).
+ */
+export type EdgeMode =
+  | 'combined'
+  | 'coffee'
+  | 'team'
+  | 'division'
+  | 'ministry'
+  | 'cluster'
+  | 'project'
+  | 'skills'
+  | 'interests'
+  | 'reporting'
+  | 'location'
+  | 'mentorship'
+  | 'cohort';
+
+export interface EdgeModeInfo {
+  id: EdgeMode;
+  label: string;
+  /** Short caption explaining what an edge means in this lens. */
+  description: string;
+}
+
+/** All selectable connection lenses, in display order. */
+export const EDGE_MODES: EdgeModeInfo[] = [
+  { id: 'combined', label: 'Combined', description: 'coffee chats, teammates, and cross-team bridges' },
+  { id: 'coffee', label: 'Already connected', description: 'people who have logged a coffee chat together' },
+  { id: 'team', label: 'Same team', description: 'people on the same team' },
+  { id: 'division', label: 'Same division', description: 'people in the same division or branch' },
+  { id: 'ministry', label: 'Same ministry', description: 'people in the same ministry' },
+  { id: 'cluster', label: 'Same I&IT cluster', description: 'people served by the same technology cluster' },
+  { id: 'project', label: 'Same project', description: 'people whose skills staff the same project' },
+  { id: 'skills', label: 'Shared skills', description: 'people who list the same skill' },
+  { id: 'interests', label: 'Shared interests', description: 'people who share an interest' },
+  { id: 'reporting', label: 'Reporting line', description: 'managers linked to their direct reports' },
+  { id: 'location', label: 'Same location', description: 'people on the same building floor' },
+  { id: 'mentorship', label: 'Mentorship match', description: 'mentors linked to potential mentees' },
+  { id: 'cohort', label: 'Co-op cohort', description: 'co-op students from the same school and term' },
+];
