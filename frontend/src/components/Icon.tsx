@@ -36,8 +36,11 @@ export type IconName =
   | 'bell'
   | 'copy'
   | 'thumbsUp'
-  | 'thumbsDown';
-
+  | 'thumbsDown'
+  | 'ticket'
+  | 'clock'
+  | 'flag'
+  | 'layers';
 const PATHS: Record<IconName, JSX.Element> = {
   logo: (
     <>
@@ -243,6 +246,31 @@ const PATHS: Record<IconName, JSX.Element> = {
     <>
       <path d="M17 14V2" />
       <path d="M9 18.12 10 14H4.17a2 2 0 0 1-1.92-2.56l2.33-8A2 2 0 0 1 6.5 2H20a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2h-2.76a2 2 0 0 0-1.79 1.11L12 22a3.13 3.13 0 0 1-3-3.88Z" />
+    </>
+  ),
+  ticket: (
+    <>
+      <path d="M3 8a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2 2 2 0 0 0 0 4 2 2 0 0 1-2 2H5a2 2 0 0 1-2-2 2 2 0 0 0 0-4Z" />
+      <path d="M13 6v12" />
+    </>
+  ),
+  clock: (
+    <>
+      <circle cx="12" cy="12" r="9" />
+      <path d="M12 7v5l3 2" />
+    </>
+  ),
+  flag: (
+    <>
+      <path d="M4 15V3h13l-1.5 4L17 11H4" />
+      <path d="M4 22v-7" />
+    </>
+  ),
+  layers: (
+    <>
+      <path d="M12 2 3 7l9 5 9-5-9-5Z" />
+      <path d="m3 12 9 5 9-5" />
+      <path d="m3 17 9 5 9-5" />
     </>
   ),
 };

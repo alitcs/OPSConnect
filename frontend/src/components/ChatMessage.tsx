@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import type { ChatMessage as ChatMessageType } from '../types';
 import MiniProfileCard from './MiniProfileCard';
+import ProjectCard from './ProjectCard';
 import Icon from './Icon';
 
 export default function ChatMessage({
@@ -14,6 +15,7 @@ export default function ChatMessage({
 }) {
   const isUser = message.role === 'user';
   const people = message.people ?? [];
+  const projects = message.projects ?? [];
   const followUps = message.followUps ?? [];
   const [copied, setCopied] = useState(false);
   const [vote, setVote] = useState<'up' | 'down' | null>(null);
@@ -59,6 +61,18 @@ export default function ChatMessage({
                 {p.capability && <div className="message-person__cap">{p.capability}</div>}
                 <MiniProfileCard person={p.user} rationale={p.rationale} matchStrength={p.matchStrength} />
               </div>
+            ))}
+          </div>
+        )}
+
+        {!isStreaming && projects.length > 0 && (
+          <div className="message-projects">
+            {projects.map((sp, i) => (
+              <ProjectCard
+                key={sp.project.id}
+                surfaced={sp}
+                style={{ animationDelay: `${i * 90}ms` }}
+              />
             ))}
           </div>
         )}

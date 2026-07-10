@@ -14,6 +14,7 @@ import type {
   Conversation,
   DailyNudge,
   DirectMessage,
+  EdgeMode,
   DirectoryFilterOptions,
   FloorMapData,
   MessageThreadSummary,
@@ -86,7 +87,8 @@ export const api = {
 
   // --- Admin insights ---
   getAdminInsights: () => run<AdminInsights>(() => backend.getAdminInsights(me())),
-  getConnectionGraph: () => run<ConnectionGraph>(() => backend.getConnectionGraph(me())),
+  getConnectionGraph: (mode?: EdgeMode) =>
+    run<ConnectionGraph>(() => backend.getConnectionGraph(me(), mode)),
 
   // --- Chat ---
   sendChat: (message: string, conversationId?: string) =>
@@ -103,8 +105,8 @@ export const api = {
   deleteConversation: (id: string) => run<void>(() => backend.deleteConversation(me(), id)),
 
   // --- Admin analytics assistant (individual engagement, coordinators only) ---
-  sendAdminChat: (message: string) =>
-    run<{ message: ChatMessage }>(() => backend.sendAdminChat(me(), message)),
+  sendAdminChat: (message: string, mode?: EdgeMode) =>
+    run<{ message: ChatMessage }>(() => backend.sendAdminChat(me(), message, mode)),
 
   // --- Messaging ---
   listThreads: () => run<MessageThreadSummary[]>(() => backend.listThreads(me())),

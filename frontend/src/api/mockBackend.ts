@@ -9,6 +9,8 @@
 
 import seedUsers from '../data/users.json';
 import seedConversations from '../data/conversations.json';
+import { projects } from '../data/projects';
+import { EDGE_MODES } from '../types';
 import type {
   ActivityMetrics,
   AdminInsights,
@@ -20,10 +22,13 @@ import type {
   DailyNudge,
   DirectMessage,
   DirectoryFilterOptions,
+  EdgeMode,
   FloorMapData,
   MessageThreadSummary,
   ProximitySummary,
   SurfacedPerson,
+  SurfacedProject,
+  ProjectTicket,
   TeamInsight,
   User,
   UserSummary,
@@ -691,6 +696,39 @@ function adminInsights(viewerId: number): AdminInsights {
   // ROI — a defensible estimate: each connection stands in for a successful "find the right
   // person" that saved ~15 minutes of hunting through email/Teams/SharePoint.
   const estHoursSaved = Math.round((totalConnections * 15) / 60);
+  // Loaded hourly cost of an OPS staff member (~$110k salary + overhead ÷ ~1,900 hrs).
+  const estCostSaved = estHoursSaved * 55;
+  const adoptionDelta = adoptionTrend.length
+    ? adoptionTrend[adoptionTrend.length - 1].value - adoptionTrend[0].value
+    : 0;
+
+  // Network health — reframe "connections" into an actionable "who is actually connecting"
+  // signal, and flag the active members who are still isolated (0 links).
+  const activeList = users.filter((u) => u.isActiveUser);
+  const isolatedActive = activeList.filter((u) => (degree.get(u.id) ?? 0) === 0).length;
+  const connectedRate = activeUsers
+    ? Math.round(((activeUsers - isolatedActive) / activeUsers) * 100)
+    : 0;
+  const sortedDegrees = activeList.map((u) => degree.get(u.id) ?? 0).sort((a, b) => a - b);
+  const medianConnections = sortedDegrees.length
+    ? sortedDegrees.length % 2
+      ? sortedDegrees[(sortedDegrees.length - 1) / 2]
+      : Math.round(
+          (sortedDegrees[sortedDegrees.length / 2 - 1] + sortedDegrees[sortedDegrees.length / 2]) / 2,
+        )
+    : 0;
+  const thisMonth = NOW_ISO.slice(0, 7);
+  const coffeeThisMonth = coffeeChats.filter((c) => c.at.slice(0, 7) === thisMonth).length;
+
+  // Knowledge continuity — how many skills rest on a single person (a bus-factor risk).
+  const singlePointSkills = skillEntries.filter((s) => s.count === 1).length;
+
+  // Onboarding — how well co-ops have plugged into the network, and mentor supply vs demand.
+  const coopsConnected = coops.filter((u) => (degree.get(u.id) ?? 0) > 0).length;
+  const coopConnectedPct = coops.length ? Math.round((coopsConnected / coops.length) * 100) : 0;
+  const menteesPerMentor = mentorsAvailable
+    ? Math.round((coops.length / mentorsAvailable) * 10) / 10
+    : coops.length;
 
   return {
     totalEmployees,
@@ -703,16 +741,26 @@ function adminInsights(viewerId: number): AdminInsights {
     avgConnections,
     crossTeamPct,
     crossMinistryPct,
+    isolatedActive,
+    connectedRate,
+    medianConnections,
+    coffeeThisMonth,
     teams,
     bridges,
     distinctSkills,
+    singlePointSkills,
     topSkills,
     scarceSkills,
     coopCount: coops.length,
     coopConnectionRate,
     orgConnectionRate,
+    coopsConnected,
+    coopConnectedPct,
     mentorsAvailable,
+    menteesPerMentor,
     estHoursSaved,
+    estCostSaved,
+    adoptionDelta,
   };
 }
 
@@ -730,6 +778,7 @@ interface OrgEdge {
   a: number;
   b: number;
   weight: number;
+  kind: EdgeKind;
 }
 interface OrgNetwork {
   edges: OrgEdge[];
@@ -737,19 +786,82 @@ interface OrgNetwork {
   adjacency: Map<number, Set<number>>;
 }
 
-// The one source of truth for "who is connected to whom" — powers both the 3D graph and
-// the aggregate insights so the two can never disagree.
-function buildOrgNetwork(): OrgNetwork {
+// The relationship type an edge represents — used to colour-code edges in the Combined lens.
+type EdgeKind =
+  | 'coffee'
+  | 'team'
+  | 'division'
+  | 'ministry'
+  | 'cluster'
+  | 'project'
+  | 'skills'
+  | 'interests'
+  | 'reporting'
+  | 'location'
+  | 'mentorship'
+  | 'cohort'
+  | 'bridge';
+
+interface TypedEdge {
+  a: number;
+  b: number;
+  weight: number;
+  kind: EdgeKind;
+}
+
+// Group people by a single key (e.g. team, ministry). People with a null key are skipped.
+function groupBy(keyFn: (u: User) => string | null | undefined): Map<string, number[]> {
+  const g = new Map<string, number[]>();
+  for (const u of users) {
+    const k = keyFn(u);
+    if (!k) continue;
+    const arr = g.get(k) ?? [];
+    arr.push(u.id);
+    g.set(k, arr);
+  }
+  return g;
+}
+
+// Group people by each of several keys (e.g. every skill or interest they list).
+function multiGroupBy(valuesFn: (u: User) => string[]): Map<string, number[]> {
+  const g = new Map<string, number[]>();
+  for (const u of users) {
+    for (const raw of valuesFn(u)) {
+      const k = raw.trim().toLowerCase();
+      if (!k) continue;
+      const arr = g.get(k) ?? [];
+      arr.push(u.id);
+      g.set(k, arr);
+    }
+  }
+  return g;
+}
+
+// Connect each member of a group to the next `span` members. This yields a connected,
+// readable cluster with bounded degree instead of an O(n²) clique that would swamp the graph.
+function chainGroups(groups: Map<string, number[]>, kind: EdgeKind, span: number): TypedEdge[] {
+  const edges: TypedEdge[] = [];
+  for (const members of groups.values()) {
+    if (members.length < 2) continue;
+    const sorted = [...members].sort((a, b) => a - b);
+    for (let i = 0; i < sorted.length; i++) {
+      for (let j = 1; j <= span && i + j < sorted.length; j++) {
+        edges.push({ a: sorted[i], b: sorted[i + j], weight: 1, kind });
+      }
+    }
+  }
+  return edges;
+}
+
+// The original clustered network (coffee + intra-team + cross-team bridges + hub connectors),
+// now typed so its edges can be colour-coded. This is the Combined lens and the canonical
+// network behind the aggregate insights, so those numbers stay stable.
+function combinedEdges(): TypedEdge[] {
   const rand = mulberry32(0x0ec0ffee);
-  const edgeWeights = new Map<string, number>();
-  const key = (a: number, b: number) => (a < b ? `${a}-${b}` : `${b}-${a}`);
-  const addEdge = (a: number, b: number, weight = 1) => {
-    if (a === b) return;
-    edgeWeights.set(key(a, b), (edgeWeights.get(key(a, b)) ?? 0) + weight);
-  };
+  const edges: TypedEdge[] = [];
 
   // 1) Real coffee-chat activity counts as a strong connection.
-  for (const chat of coffeeChats) addEdge(chat.userId, chat.withUserId, 2);
+  for (const chat of coffeeChats) edges.push({ a: chat.userId, b: chat.withUserId, weight: 2, kind: 'coffee' });
 
   // 2) A sparse, readable slice of intra-team connectivity.
   const teamGroups = new Map<string, number[]>();
@@ -761,7 +873,7 @@ function buildOrgNetwork(): OrgNetwork {
   for (const members of teamGroups.values()) {
     for (let i = 0; i < members.length; i++) {
       for (let j = i + 1; j < members.length; j++) {
-        if (rand() < 0.18) addEdge(members[i], members[j], 1);
+        if (rand() < 0.18) edges.push({ a: members[i], b: members[j], weight: 1, kind: 'team' });
       }
     }
   }
@@ -773,7 +885,7 @@ function buildOrgNetwork(): OrgNetwork {
     for (let b = 0; b < bridges; b++) {
       const other = allIds[Math.floor(rand() * allIds.length)];
       const otherUser = getUserById(other);
-      if (otherUser && otherUser.team !== u.team) addEdge(u.id, other, 1);
+      if (otherUser && otherUser.team !== u.team) edges.push({ a: u.id, b: other, weight: 1, kind: 'bridge' });
     }
   }
 
@@ -782,34 +894,147 @@ function buildOrgNetwork(): OrgNetwork {
   for (const hub of connectors) {
     const reach = 3 + Math.floor(rand() * 3);
     for (let r = 0; r < reach; r++) {
-      addEdge(hub, allIds[Math.floor(rand() * allIds.length)], 1);
+      edges.push({ a: hub, b: allIds[Math.floor(rand() * allIds.length)], weight: 1, kind: 'bridge' });
     }
+  }
+  return edges;
+}
+
+// Raw (pre-dedupe) edges for a given relationship lens.
+function edgesForMode(mode: EdgeMode): TypedEdge[] {
+  switch (mode) {
+    case 'team':
+      return chainGroups(groupBy((u) => u.team), 'team', 4);
+    case 'division':
+      return chainGroups(groupBy((u) => u.division), 'division', 3);
+    case 'ministry':
+      return chainGroups(groupBy((u) => u.ministry), 'ministry', 3);
+    case 'cluster':
+      return chainGroups(groupBy((u) => u.cluster), 'cluster', 3);
+    case 'location':
+      return chainGroups(
+        groupBy((u) => (u.floor != null ? `${u.location}#${u.floor}` : null)),
+        'location',
+        4,
+      );
+    case 'cohort':
+      return chainGroups(
+        groupBy((u) => (u.coopInfo ? `${u.coopInfo.school}#${u.coopInfo.term}` : null)),
+        'cohort',
+        5,
+      );
+    case 'skills':
+      return chainGroups(multiGroupBy((u) => u.skills), 'skills', 2);
+    case 'interests':
+      return chainGroups(multiGroupBy((u) => u.interests), 'interests', 2);
+    case 'coffee':
+      return coffeeChats
+        .filter((c) => c.userId !== c.withUserId)
+        .map((c) => ({ a: c.userId, b: c.withUserId, weight: 2, kind: 'coffee' as const }));
+    case 'reporting': {
+      const edges: TypedEdge[] = [];
+      for (const u of users) {
+        if (u.managerId != null && getUserById(u.managerId)) {
+          edges.push({ a: u.id, b: u.managerId, weight: 2, kind: 'reporting' });
+        }
+      }
+      return edges;
+    }
+    case 'project': {
+      const edges: TypedEdge[] = [];
+      for (const p of projects) {
+        const team = surfaceProject(p, users).suggestedPeople.map((sp) => sp.user.id);
+        for (let i = 0; i < team.length; i++) {
+          for (let j = i + 1; j < team.length; j++) {
+            edges.push({ a: team[i], b: team[j], weight: 1, kind: 'project' });
+          }
+        }
+      }
+      return edges;
+    }
+    case 'mentorship': {
+      const edges: TypedEdge[] = [];
+      for (const mentor of users) {
+        if (!mentor.mentoringAreas.length) continue;
+        let added = 0;
+        for (const learner of users) {
+          if (added >= 4) break;
+          if (learner.id === mentor.id) continue;
+          const matches = mentor.mentoringAreas.some((area) => {
+            const a = norm(area);
+            return (
+              learner.skills.some((s) => norm(s).includes(a) || a.includes(norm(s))) ||
+              learner.aspirations.some((s) => norm(s).includes(a) || a.includes(norm(s))) ||
+              learner.interests.some((s) => norm(s).includes(a))
+            );
+          });
+          if (matches) {
+            edges.push({ a: mentor.id, b: learner.id, weight: 1, kind: 'mentorship' });
+            added++;
+          }
+        }
+      }
+      return edges;
+    }
+    case 'combined':
+    default:
+      return combinedEdges();
+  }
+}
+
+// Networks are deterministic, so memoize per lens — the graph and the assistant may both
+// ask for the same lens repeatedly within a session.
+const networkCache = new Map<EdgeMode, OrgNetwork>();
+
+// The one source of truth for "who is connected to whom" under a given relationship lens —
+// powers the 3D graph, the aggregate insights, and the assistant's relationship reasoning.
+function buildNetwork(mode: EdgeMode): OrgNetwork {
+  const cached = networkCache.get(mode);
+  if (cached) return cached;
+
+  const key = (a: number, b: number) => (a < b ? `${a}-${b}` : `${b}-${a}`);
+  const merged = new Map<string, OrgEdge>();
+  for (const e of edgesForMode(mode)) {
+    if (e.a === e.b) continue;
+    const a = Math.min(e.a, e.b);
+    const b = Math.max(e.a, e.b);
+    const k = key(a, b);
+    const existing = merged.get(k);
+    if (existing) existing.weight += e.weight;
+    else merged.set(k, { a, b, weight: e.weight, kind: e.kind });
   }
 
   const degree = new Map<number, number>();
   const adjacency = new Map<number, Set<number>>();
-  const edges: OrgEdge[] = Array.from(edgeWeights.entries()).map(([k, weight]) => {
-    const [a, b] = k.split('-').map(Number);
-    degree.set(a, (degree.get(a) ?? 0) + 1);
-    degree.set(b, (degree.get(b) ?? 0) + 1);
-    if (!adjacency.has(a)) adjacency.set(a, new Set());
-    if (!adjacency.has(b)) adjacency.set(b, new Set());
-    adjacency.get(a)!.add(b);
-    adjacency.get(b)!.add(a);
-    return { a, b, weight };
-  });
-
-  return { edges, degree, adjacency };
+  const edges: OrgEdge[] = [];
+  for (const e of merged.values()) {
+    degree.set(e.a, (degree.get(e.a) ?? 0) + 1);
+    degree.set(e.b, (degree.get(e.b) ?? 0) + 1);
+    if (!adjacency.has(e.a)) adjacency.set(e.a, new Set());
+    if (!adjacency.has(e.b)) adjacency.set(e.b, new Set());
+    adjacency.get(e.a)!.add(e.b);
+    adjacency.get(e.b)!.add(e.a);
+    edges.push(e);
+  }
+  const net: OrgNetwork = { edges, degree, adjacency };
+  networkCache.set(mode, net);
+  return net;
 }
 
-function connectionGraph(viewerId: number): ConnectionGraph {
+// The canonical network used by the aggregate insights and per-person engagement stats.
+function buildOrgNetwork(): OrgNetwork {
+  return buildNetwork('combined');
+}
+
+function connectionGraph(viewerId: number, mode: EdgeMode = 'combined'): ConnectionGraph {
   const viewer = requireUser(viewerId);
   if (!viewer.isAdmin) {
     throw new ApiError(403, 'The network view is available to program coordinators only.');
   }
 
-  const { edges, degree } = buildOrgNetwork();
-  const links = edges.map((e) => ({ source: e.a, target: e.b, weight: e.weight }));
+  const safeMode: EdgeMode = EDGE_MODES.some((m) => m.id === mode) ? mode : 'combined';
+  const { edges, degree } = buildNetwork(safeMode);
+  const links = edges.map((e) => ({ source: e.a, target: e.b, weight: e.weight, kind: e.kind }));
 
   const nodes = users.map((u) => ({
     id: u.id,
@@ -825,7 +1050,19 @@ function connectionGraph(viewerId: number): ConnectionGraph {
 
   const ministries = Array.from(new Set(users.map((u) => u.ministry))).sort();
 
-  return { nodes, links, ministries };
+  const degreeSum = [...degree.values()].reduce((s, d) => s + d, 0);
+  const connectedCount = nodes.filter((n) => n.degree > 0).length;
+  const avgConnections = connectedCount ? Math.round((degreeSum / connectedCount) * 10) / 10 : 0;
+
+  return {
+    nodes,
+    links,
+    ministries,
+    mode: safeMode,
+    edgeCount: edges.length,
+    avgConnections,
+    connectedCount,
+  };
 }
 
 // --- Mock AI -------------------------------------------------------------
@@ -833,6 +1070,7 @@ function connectionGraph(viewerId: number): ConnectionGraph {
 interface AIReply {
   text: string;
   people: SurfacedPerson[];
+  projects?: SurfacedProject[];
   followUps?: string[];
 }
 
@@ -907,7 +1145,462 @@ const SKILL_KEYWORDS = [
   'environmental',
 ];
 
+// Robust skill matching: instead of a fixed keyword list, build a vocabulary from every skill
+// that actually appears in the directory and on projects. This means any listed skill is
+// searchable — not just a hand-picked set. Common synonyms/abbreviations map onto canonical
+// skill names so "ml", "k8s", "a11y", etc. still resolve.
+const SKILL_SYNONYMS: Record<string, string> = {
+  ml: 'machine learning',
+  ai: 'machine learning',
+  js: 'javascript',
+  k8s: 'kubernetes',
+  a11y: 'accessibility',
+  dataviz: 'data visualization',
+  'data viz': 'data visualization',
+  infosec: 'cybersecurity',
+  'cyber security': 'cybersecurity',
+  'front end': 'frontend',
+  'front-end': 'frontend',
+  'back end': 'backend',
+  'back-end': 'backend',
+};
+
+const SKILL_VOCAB: string[] = (() => {
+  const set = new Set<string>(SKILL_KEYWORDS);
+  for (const u of users) u.skills.forEach((s) => set.add(norm(s)));
+  for (const p of projects) p.requiredSkills.forEach((s) => set.add(norm(s)));
+  // Longest phrases first so "data visualization" wins over the substring "data".
+  return Array.from(set).sort((a, b) => b.length - a.length);
+})();
+
+// Canonical skills mentioned in a query, de-duplicated and free of shorter substrings.
+function skillsInQuery(query: string): string[] {
+  const q = ` ${query} `;
+  const found: string[] = [];
+  for (const [syn, canon] of Object.entries(SKILL_SYNONYMS)) {
+    if (q.includes(syn) && !found.includes(canon)) found.push(canon);
+  }
+  for (const skill of SKILL_VOCAB) {
+    if (!q.includes(skill)) continue;
+    if (found.some((f) => f === skill || f.includes(skill))) continue;
+    found.push(skill);
+  }
+  return found;
+}
+
+function firstSkillInQuery(query: string): string | undefined {
+  return skillsInQuery(query)[0];
+}
+
+const uniqueList = (values: string[]): string[] =>
+  Array.from(new Set(values.filter(Boolean))).sort((a, b) => a.localeCompare(b));
+
+// People by name — supports disambiguation when several employees share a first name.
+// Prefers an exact full-name hit; otherwise falls back to first/last-name token matches.
+function findPeopleByName(query: string, list: User[]): User[] {
+  const q = norm(query);
+  const full = list.filter((u) => q.includes(norm(u.name)));
+  if (full.length) return full;
+  const words = new Set(q.split(/[^a-z]+/).filter((w) => w.length > 2));
+  const byToken = list.filter((u) =>
+    norm(u.name)
+      .split(/\s+/)
+      .some((part) => part.length > 2 && words.has(part)),
+  );
+  // Canonical hand-authored seed users (lower ids) first for a stable, sensible default.
+  return byToken.sort((a, b) => Number(b.isActiveUser) - Number(a.isActiveUser) || a.id - b.id);
+}
+
+// Ministry short forms used across the OPS. Only resolve to a ministry that exists in the data.
+const MINISTRY_ALIASES: Record<string, string> = {
+  tbs: 'treasury board secretariat',
+  mgcs: 'ministry of government and consumer services',
+  mto: 'ministry of transportation',
+  mccss: 'ministry of children, community and social services',
+  mmah: 'ministry of municipal affairs and housing',
+  mra: 'ministry of red tape reduction',
+  cab: 'cabinet office',
+};
+
+type OrgKind = 'ministry' | 'division' | 'branch' | 'team';
+
+// Detect an org unit (ministry / division / branch / team) named in a query, grounded in data.
+function detectOrgUnit(query: string): { kind: OrgKind; name: string } | null {
+  const q = ` ${norm(query)} `;
+  const ministries = uniqueList(users.map((u) => u.ministry));
+  for (const [alias, full] of Object.entries(MINISTRY_ALIASES)) {
+    if (new RegExp(`\\b${alias}\\b`).test(q)) {
+      const m = ministries.find((x) => norm(x).includes(full) || full.includes(norm(x)));
+      if (m) return { kind: 'ministry', name: m };
+    }
+  }
+  const findIn = (kind: OrgKind, values: string[]) => {
+    const hit = values.find((x) => x.length > 3 && q.includes(norm(x)));
+    return hit ? { kind, name: hit } : null;
+  };
+  return (
+    findIn('ministry', ministries) ??
+    findIn('division', uniqueList(users.map((u) => u.division))) ??
+    findIn('branch', uniqueList(users.map((u) => u.branch))) ??
+    findIn('team', uniqueList(users.map((u) => u.team)))
+  );
+}
+
+// A fixed "today" anchored to the mock dataset (projects are seeded around mid-2026), so
+// "overdue" / "due soon" stay meaningful regardless of the real wall-clock date.
+const DEMO_NOW = new Date('2026-07-10T12:00:00');
+const DAY_MS = 24 * 60 * 60 * 1000;
+
+// Priority ordering so the active-portfolio view leads with the most urgent work.
+const PRIORITY_RANK: Record<string, number> = { Critical: 3, High: 2, Medium: 1, Low: 0 };
+
+function fmtDate(iso: string): string {
+  return new Date(iso).toLocaleDateString('en-CA', {
+    month: 'short',
+    day: 'numeric',
+    year: 'numeric',
+  });
+}
+
+// Map a project's required skills to internal people — one best-fit person per skill,
+// preferring someone open to help today. Records which skills are covered vs. a staffing gap.
+function surfaceProject(
+  project: ProjectTicket,
+  list: User[],
+  rationale?: string,
+): SurfacedProject {
+  const seen = new Set<number>();
+  const suggestedPeople: SurfacedPerson[] = [];
+  const coveredSkills: string[] = [];
+  const gapSkills: string[] = [];
+  for (const skill of project.requiredSkills) {
+    const candidate = list
+      .filter((u) => hasSkill(u, skill) && !seen.has(u.id))
+      .sort((a, b) => Number(b.availableForCoffee) - Number(a.availableForCoffee))[0];
+    if (!candidate) {
+      gapSkills.push(skill);
+      continue;
+    }
+    seen.add(candidate.id);
+    coveredSkills.push(skill);
+    const matched = candidate.skills.filter((s) => norm(s).includes(norm(skill)));
+    const skillTxt = matched.length ? ` (${matched.slice(0, 2).join(', ')})` : '';
+    const avail = candidate.availableForCoffee ? ' Open to help today.' : '';
+    suggestedPeople.push(
+      surface(
+        candidate,
+        `${candidate.title} on the ${candidate.team} team${skillTxt}.${avail}`,
+        skill,
+        strengthFor(candidate, [skill]),
+      ),
+    );
+  }
+  return { project, rationale, suggestedPeople, coveredSkills, gapSkills };
+}
+
 const intents: Intent[] = [
+  {
+    name: 'capabilities',
+    match: (query) => {
+      if (
+        !/(what can you do|what do you do|how (do|can) you help|what can i ask|your capabilities|what are you able|show me examples|what should i ask|how does this (app|tool|chat|assistant) work|help me get started|^\s*help\s*$)/.test(
+          query,
+        )
+      ) {
+        return null;
+      }
+      return {
+        text: "I'm your OPS connections assistant. I can help you:\n\n• Find people by skill — “Who knows Tableau?”\n• Staff a project — “I'm launching an analytics dashboard, who can help?”\n• Look up a project or ticket — “Who could work on HDP-482?”\n• See what's active, due soon, or blocked across the OPS\n• Understand the OPS org structure — ministries, divisions, and teams\n• Find who reports to whom, or who's on a team\n• Find people open to help near you today\n\nTry one of the suggestions below to get started.",
+        people: [],
+        followUps: [
+          'Who can help with a Python and Azure project?',
+          'How is the OPS structured?',
+          'What projects are due soon?',
+          "Who's open to help right now?",
+        ],
+      };
+    },
+  },
+  {
+    name: 'project-intelligence',
+    match: (query, list) => {
+      const idMatch = query.match(/\b([a-z]{2,5})-(\d{1,5})\b/i);
+      const mentionsTickets =
+        /\b(ticket|tickets|jira|kanban|sprint|backlog|epic|devops board|azure devops)\b/.test(
+          query,
+        );
+      // Browsing existing, tracked projects — not describing a brand-new project to staff.
+      const browsingProjects =
+        /\bprojects?\b/.test(query) &&
+        /(being worked|worked on|active|current|ongoing|underway|in progress|in-flight|in flight|happening|list|show me|what|which|status|deadline|timeline|due|going on|on the go)/.test(
+          query,
+        );
+      // A new-project staffing ask ("I'm starting a project that needs…") belongs to
+      // project-staffing, which surfaces people directly — don't hijack it here.
+      const isNewProjectStaffing =
+        /(i'?m |i am |we'?re |we are |i want to|i need to|launching|starting a|kick ?off|assemble|build a team|put together)/.test(
+          query,
+        );
+      // Status / deadline lenses over the tracked portfolio.
+      const wantsOverdue = /(overdue|past due|behind schedule|missed (the )?deadline|slipping)/.test(query);
+      const wantsDueSoon =
+        /(due (soon|this|next|in)|closing (soon|out)|upcoming deadline|deadline(s)? (coming|approaching|near)|coming up|wrapping up|due date)/.test(
+          query,
+        );
+      const wantsBlocked = /(blocked|stuck|at risk|stalled|held up)/.test(query);
+      const wantsCritical = /(critical|highest priority|high[- ]priority|most urgent|urgent(ly)?|top priority)/.test(query);
+      const wantsFilter = wantsOverdue || wantsDueSoon || wantsBlocked || wantsCritical;
+      if (!idMatch && !mentionsTickets && !wantsFilter && (!browsingProjects || isNewProjectStaffing)) {
+        return null;
+      }
+
+      // 1) Specific ticket by ID, e.g. "HDP-482" or "show me FIN-77".
+      if (idMatch) {
+        const id = idMatch[0].toUpperCase();
+        const project = projects.find((p) => p.id.toUpperCase() === id);
+        if (project) {
+          const surfaced = surfaceProject(project, list, 'Direct match on ticket ID.');
+          return {
+            text: `Here's ${project.id} — ${project.title}. It's a ${project.priority.toLowerCase()}-priority ${project.type.toLowerCase()} for ${project.team} (${project.ministry}), currently ${project.status.toLowerCase()} and due ${fmtDate(
+              project.dueDate,
+            )}. Based on the skills it needs, here's who could work on it:`,
+            people: [],
+            projects: [surfaced],
+          };
+        }
+      }
+
+      // 2) Status / deadline lens — surface the matching slice of the portfolio.
+      if (wantsFilter) {
+        const open = projects.filter((p) => p.status !== 'Done');
+        let filtered = open;
+        let lens = '';
+        if (wantsOverdue) {
+          filtered = open.filter((p) => new Date(p.dueDate) < DEMO_NOW);
+          lens = 'past their due date and not yet done';
+        } else if (wantsBlocked) {
+          filtered = open.filter((p) => p.status === 'Blocked');
+          lens = 'currently blocked';
+        } else if (wantsDueSoon) {
+          filtered = open.filter((p) => {
+            const days = (new Date(p.dueDate).getTime() - DEMO_NOW.getTime()) / DAY_MS;
+            return days >= 0 && days <= 30;
+          });
+          lens = 'due within the next 30 days';
+        } else {
+          filtered = open.filter((p) => p.priority === 'Critical' || p.priority === 'High');
+          lens = 'high or critical priority';
+        }
+        filtered = filtered
+          .sort((a, b) => new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime())
+          .slice(0, 4);
+        if (filtered.length) {
+          return {
+            text: `Here ${filtered.length === 1 ? 'is 1 project' : `are ${filtered.length} projects`} ${lens}, soonest deadline first:`,
+            people: [],
+            projects: filtered.map((p) =>
+              surfaceProject(p, list, `${p.status} · ${p.priority} priority · due ${fmtDate(p.dueDate)}`),
+            ),
+            followUps: ['What else is active right now?', "Who's open to help right now?"],
+          };
+        }
+        return {
+          text: `Good news — nothing is ${lens} right now.`,
+          people: [],
+        };
+      }
+
+      // 3) Projects that call for a specific skill.
+      const skill = firstSkillInQuery(query);
+      if (skill && /(need|require|skill|who can|staff|work on)/.test(query)) {
+        const matches = projects.filter((p) =>
+          p.requiredSkills.some((s) => norm(s).includes(norm(skill))),
+        );
+        if (matches.length) {
+          return {
+            text: `Projects across the OPS that call for ${skill}. Each card shows the people whose skills map to the work:`,
+            people: [],
+            projects: matches.slice(0, 3).map((p) => surfaceProject(p, list, `Requires ${skill}.`)),
+          };
+        }
+      }
+
+      // 3) General "what's being worked on" — the active portfolio, most urgent first.
+      const active = projects
+        .filter((p) => p.status !== 'Done')
+        .sort((a, b) => PRIORITY_RANK[b.priority] - PRIORITY_RANK[a.priority])
+        .slice(0, 3);
+      return {
+        text: 'Here are projects currently in flight across the OPS, drawn from each team\u2019s ticketing tool. Ask about any ticket by ID to see who could staff it:',
+        people: [],
+        projects: active.map((p) => surfaceProject(p, list)),
+        followUps: ['Which projects need Python?', 'Who can work on HDP-482?'],
+      };
+    },
+  },
+  {
+    name: 'org-structure',
+    match: (query) => {
+      if (
+        !/(org(ani[sz]ation)?[ -]?(structure|chart|hierarchy)|how is (the )?ops (structured|organi[sz]ed|set up|laid out)|structure of (the )?ops|how does (the )?ops (work|fit together)|ops hierarchy|ministries and divisions|how many ministries|what ministries|ops org|how is ops)/.test(
+          query,
+        )
+      ) {
+        return null;
+      }
+      const ministries = uniqueList(users.map((u) => u.ministry));
+      const divisions = uniqueList(users.map((u) => u.division));
+      const teams = uniqueList(users.map((u) => u.team));
+      const text = `The Ontario Public Service (OPS) is the ~66,000-person workforce that runs the day-to-day machinery of the Ontario government — distinct from the elected side (MPPs, the Premier, and Cabinet).\n\nInside the OPS the hierarchy flows:\n\nMinistries (~21) → Divisions → Branches → Units / Teams\n\nCutting across that vertical structure are I&IT Clusters (shared technology services for groups of ministries), plus Agencies (e.g. TVO, WSIB, Legal Aid Ontario) and the Broader Public Sector (hospitals, school boards) that connect in but sit organizationally apart.\n\nIn this directory I can see ${ministries.length} ministries, ${divisions.length} divisions, and ${teams.length} teams — for example ${ministries
+        .slice(0, 4)
+        .join(', ')}. Each ministry runs its own branches and processes, so people and knowledge end up siloed — which is exactly the gap I'm here to help you cross.`;
+      return {
+        text,
+        people: [],
+        followUps: [
+          'Who works in the Ministry of Health?',
+          'What teams sit in Treasury Board Secretariat?',
+          'Who can help with a data project?',
+        ],
+      };
+    },
+  },
+  {
+    name: 'people-overview',
+    match: (query, list) => {
+      if (
+        !/(overview of (the )?(people|team|workforce|org|directory)|people (overview|context|summary|snapshot)|tell me about (the )?(people|team|workforce|everyone|directory)|who works here|overall people|snapshot of (the )?(people|team|org)|how many people|whole (team|directory))/.test(
+          query,
+        )
+      ) {
+        return null;
+      }
+      const total = list.length;
+      const coops = list.filter((u) => u.coopInfo !== null).length;
+      const ministryCount = uniqueList(list.map((u) => u.ministry)).length;
+      const openToHelp = list.filter((u) => u.availableForCoffee).length;
+      const skillCount = new Map<string, number>();
+      list.forEach((u) => u.skills.forEach((s) => skillCount.set(s, (skillCount.get(s) ?? 0) + 1)));
+      const topSkills = Array.from(skillCount.entries())
+        .sort((a, b) => b[1] - a[1])
+        .slice(0, 5)
+        .map(([s]) => s);
+      return {
+        text: `This directory holds ${total} people across ${ministryCount} ministries. ${coops} are co-op students, and ${openToHelp} are open to help today. The most common skills on file are ${topSkills.join(
+          ', ',
+        )}. Ask about a specific skill, team, ministry, or project to go deeper.`,
+        people: [],
+        followUps: [
+          'How is the OPS structured?',
+          'Who works in the Ministry of Health?',
+          "Who's open to help right now?",
+        ],
+      };
+    },
+  },
+  {
+    name: 'org-roster',
+    match: (query, list) => {
+      const unit = detectOrgUnit(query);
+      if (!unit) return null;
+      if (
+        !/(who|people|roster|staff|works?|working|in the|part of|members|team|division|branch|employees|sits? in|based in)/.test(
+          query,
+        )
+      ) {
+        return null;
+      }
+      const inUnit = list.filter((u) => norm(u[unit.kind]) === norm(unit.name));
+      if (!inUnit.length) return null;
+
+      // Structural view: "what teams / divisions / branches are in <ministry>?"
+      const asksStructure = /(what|which|list|show|how many).*(teams|divisions|branches)/.test(query);
+      if (asksStructure && unit.kind === 'ministry') {
+        const level: OrgKind = /division/.test(query)
+          ? 'division'
+          : /branch/.test(query)
+            ? 'branch'
+            : 'team';
+        const sub = uniqueList(inUnit.map((u) => u[level]));
+        return {
+          text: `${unit.name} has ${sub.length} ${level}${sub.length === 1 ? '' : 's'} in the directory:\n\n${sub
+            .map((s) => `• ${s}`)
+            .join('\n')}`,
+          people: [],
+          followUps: [`Who works in ${unit.name}?`, 'How is the OPS structured?'],
+        };
+      }
+
+      // People view: surface a few members plus the team breakdown.
+      const teamsInUnit = uniqueList(inUnit.map((u) => u.team));
+      const people = inUnit
+        .slice(0, 5)
+        .map((u) => surface(u, `${u.title} — ${u.team}${u.coopInfo ? ' · co-op student' : ''}.`));
+      const breakdown =
+        unit.kind === 'ministry' && teamsInUnit.length > 1
+          ? ` It spans ${teamsInUnit.length} teams, including ${teamsInUnit.slice(0, 3).join(', ')}.`
+          : '';
+      return {
+        text: `There ${inUnit.length === 1 ? 'is 1 person' : `are ${inUnit.length} people`} in ${unit.name} in this directory.${breakdown} A few of them:`,
+        people,
+        followUps: [`What teams sit in ${unit.name}?`, "Who's open to help right now?"],
+      };
+    },
+  },
+  {
+    name: 'reporting-lines',
+    match: (query, list) => {
+      if (
+        !/(reports? to|direct reports?|reportees|who manages|manager of|who'?s (the )?manager|who is (the )?manager|report to|works? for|teammates|works with|colleagues|who'?s on .*team|on their team|on his team|on her team)/.test(
+          query,
+        )
+      ) {
+        return null;
+      }
+      const person = findPeopleByName(query, list)[0];
+      if (!person) return null;
+      const label = (u: User) => `${u.title} — ${u.team}, ${u.ministry}.`;
+
+      // Downward: who reports to this person.
+      if (/(who reports? to|direct reports?|reportees|reports? of|who works under)/.test(query)) {
+        const reports = person.directReports
+          .map((id) => getUserById(id))
+          .filter((u): u is User => Boolean(u));
+        if (!reports.length) {
+          return { text: `${person.name} has no direct reports listed in the directory.`, people: [] };
+        }
+        return {
+          text: `${reports.length} ${reports.length === 1 ? 'person reports' : 'people report'} to ${person.name} (${person.title}):`,
+          people: reports.map((u) => surface(u, label(u))),
+        };
+      }
+
+      // Upward: this person's manager.
+      if (/(who does .* report to|report to whom|manager|manages|works? for)/.test(query)) {
+        if (person.managerId == null) {
+          return { text: `${person.name} doesn't have a manager listed in the directory.`, people: [] };
+        }
+        const mgr = getUserById(person.managerId);
+        if (!mgr) return { text: `${person.name}'s manager isn't in the directory.`, people: [] };
+        return {
+          text: `${person.name}'s manager is ${mgr.name} — ${mgr.title} on the ${mgr.team} team.`,
+          people: [surface(mgr, label(mgr))],
+        };
+      }
+
+      // Sideways: teammates.
+      const mates = person.teammates
+        .map((id) => getUserById(id))
+        .filter((u): u is User => Boolean(u));
+      if (!mates.length) {
+        return { text: `${person.name} has no teammates listed in the directory.`, people: [] };
+      }
+      return {
+        text: `${person.name} works alongside ${mates.length} ${mates.length === 1 ? 'teammate' : 'teammates'} on the ${person.team} team:`,
+        people: mates.slice(0, 6).map((u) => surface(u, label(u))),
+      };
+    },
+  },
   {
     name: 'proximity-availability',
     match: (query, _list, me) => {
@@ -949,14 +1642,75 @@ const intents: Intent[] = [
     },
   },
   {
+    name: 'certification-lookup',
+    match: (query, list) => {
+      if (
+        !/(certif|certified|credential|pmp|cissp|\bcka\b|itil|scrum master|aws certified|azure (solutions|security)|tableau desktop|wcag|comptia)/.test(
+          query,
+        )
+      ) {
+        return null;
+      }
+      const certTokens = [
+        'pmp',
+        'cissp',
+        'cka',
+        'kubernetes',
+        'itil',
+        'scrum',
+        'aws',
+        'azure',
+        'tableau',
+        'wcag',
+        'accessibility',
+        'security',
+        'comptia',
+        'network',
+      ];
+      const token = certTokens.find((t) => query.includes(t));
+      let matched = list.filter((u) => u.certifications.length > 0);
+      if (token) {
+        matched = matched.filter((u) => u.certifications.some((c) => norm(c).includes(token)));
+      }
+      if (!matched.length) {
+        return {
+          text: token
+            ? `No one in the directory lists a ${token.toUpperCase()} certification yet.`
+            : 'No certifications are listed in the directory yet.',
+          people: [],
+        };
+      }
+      const people = matched
+        .slice(0, 5)
+        .map((u) => surface(u, `${u.title} on the ${u.team} team — holds ${u.certifications.join(', ')}.`));
+      return {
+        text: token
+          ? `People certified in ${token.toUpperCase()} across the OPS:`
+          : 'People with professional certifications across the OPS:',
+        people,
+      };
+    },
+  },
+  {
     name: 'person-lookup',
     match: (query, list) => {
-      const match = list.find((u) => {
-        const first = norm(u.name.split(' ')[0]);
-        return query.includes(first) && query.split(' ').length <= 8;
-      });
-      if (!match) return null;
-      if (!/(tell me about|who is|background|about)\b/.test(query)) return null;
+      if (!/(tell me about|who is|background|about|profile of|info on|details on)\b/.test(query)) {
+        return null;
+      }
+      const matches = findPeopleByName(query, list).filter(
+        () => query.split(' ').length <= 10,
+      );
+      if (!matches.length) return null;
+      // Same-name disambiguation — let the user pick when several people could match.
+      if (matches.length > 1) {
+        return {
+          text: `I found ${matches.length} people who could match that name — which one did you mean?`,
+          people: matches
+            .slice(0, 5)
+            .map((u) => surface(u, `${u.title} — ${u.team}, ${u.ministry}.`)),
+        };
+      }
+      const match = matches[0];
       const skills = match.skills.length
         ? ` Their listed skills include ${match.skills.slice(0, 4).join(', ')}.`
         : '';
@@ -964,6 +1718,46 @@ const intents: Intent[] = [
         text: `${match.name} is a ${match.title} on the ${match.team} team (${match.branch}, ${match.ministry}), based at ${match.location}.${skills}`,
         people: [surface(match, `${match.title} — ${match.branch}, ${match.ministry}.`)],
       };
+    },
+  },
+  {
+    name: 'shared-interests',
+    match: (query, list, me) => {
+      if (
+        !/(share.*interest|shares my interest|common interest|similar interest|same interest|who likes|people who like|who'?s into|hobbies|interested in the same|things in common)/.test(
+          query,
+        )
+      ) {
+        return null;
+      }
+      const allInterests = uniqueList(users.flatMap((u) => u.interests));
+      const named = allInterests.find((i) => i.length > 2 && query.includes(norm(i)));
+      if (named) {
+        const people = list
+          .filter((u) => u.id !== me.id && u.interests.some((i) => norm(i) === norm(named)))
+          .slice(0, 5)
+          .map((u) => surface(u, `${u.title} on the ${u.team} team — also into ${named}.`));
+        if (!people.length) {
+          return { text: `No one else lists ${named} as an interest yet.`, people: [] };
+        }
+        return { text: `People who share your interest in ${named}:`, people };
+      }
+      const ranked = list
+        .filter((u) => u.id !== me.id)
+        .map((u) => ({ u, shared: sharedInterestsBetween(me, u) }))
+        .filter((x) => x.shared.length > 0)
+        .sort((a, b) => b.shared.length - a.shared.length)
+        .slice(0, 4);
+      if (!ranked.length) {
+        return {
+          text: "I couldn't find anyone sharing your listed interests. Add a few interests to your profile and I'll find better matches.",
+          people: [],
+        };
+      }
+      const people = ranked.map(({ u, shared }) =>
+        surface(u, `${u.title} on the ${u.team} team — you both like ${shared.slice(0, 2).join(' and ')}.`),
+      );
+      return { text: 'People across the OPS who share your interests:', people };
     },
   },
   {
@@ -1009,7 +1803,7 @@ const intents: Intent[] = [
     name: 'shadow-mentor',
     match: (query, list) => {
       if (!/(shadow|learn from|mentor)/.test(query)) return null;
-      const keyword = SKILL_KEYWORDS.find((k) => query.includes(k)) ?? 'devops';
+      const keyword = firstSkillInQuery(query) ?? 'devops';
       const people = list
         .filter((u) => hasSkill(u, keyword) && u.mentoringAreas.length > 0)
         .slice(0, 3)
@@ -1031,6 +1825,50 @@ const intents: Intent[] = [
     },
   },
   {
+    name: 'coop-onboarding',
+    match: (query, list, me) => {
+      if (
+        !/(i'?m (a )?(new )?co-?op|new co-?op|new here|just (started|joined|got here)|onboard|first (day|week)|getting started|who should i (meet|talk to|know|connect)|new to (the|my|our) team|settling in|new to ops|new employee)/.test(
+          query,
+        )
+      ) {
+        return null;
+      }
+      const seen = new Set<number>([me.id]);
+      const picks: SurfacedPerson[] = [];
+      const add = (u: User | undefined, why: string) => {
+        if (u && !seen.has(u.id)) {
+          seen.add(u.id);
+          picks.push(surface(u, why));
+        }
+      };
+      if (me.managerId != null) add(getUserById(me.managerId), 'Your manager — a good first check-in.');
+      me.teammates.slice(0, 3).forEach((id) => add(getUserById(id), `On your ${me.team} team — worth meeting early.`));
+      for (const u of list) {
+        if (picks.length >= 5) break;
+        if (seen.has(u.id) || !u.availableForCoffee) continue;
+        const shared = sharedInterestsBetween(me, u).slice(0, 2);
+        add(
+          u,
+          shared.length
+            ? `Open to help today · you both like ${shared.join(' and ')}.`
+            : 'Open to help today — a friendly first coffee.',
+        );
+      }
+      if (!picks.length) {
+        return {
+          text: "Welcome aboard! Set yourself as open to help on the Connect board and add a few interests to your profile — I'll suggest people to meet once there's a bit more to go on.",
+          people: [],
+        };
+      }
+      return {
+        text: `Welcome aboard! Here are a few people to meet in your first week on the ${me.team} team (${me.ministry}):`,
+        people: picks,
+        followUps: ['Who on my team is open to help today?', 'Who shares my interests?'],
+      };
+    },
+  },
+  {
     name: 'project-staffing',
     match: (query, list) => {
       if (
@@ -1041,7 +1879,7 @@ const intents: Intent[] = [
         return null;
       }
       // Read the project: which capabilities does it call for?
-      const needed = SKILL_KEYWORDS.filter((k) => query.includes(k));
+      const needed = skillsInQuery(query);
       const search = needed.length ? needed : ['data analytics', 'data visualization'];
       const seen = new Set<number>();
       const people: SurfacedPerson[] = [];
@@ -1087,7 +1925,7 @@ const intents: Intent[] = [
     name: 'team-discovery',
     match: (query, list) => {
       if (!/what teams|which teams|teams work/.test(query)) return null;
-      const keyword = SKILL_KEYWORDS.find((k) => query.includes(k)) ?? 'data';
+      const keyword = firstSkillInQuery(query) ?? 'data';
       const teamList = Array.from(
         new Set(
           list.filter((u) => hasSkill(u, keyword)).map((u) => `${u.team} (${u.ministry})`),
@@ -1109,7 +1947,7 @@ const intents: Intent[] = [
       if (/co-?op/.test(query)) {
         const coops = list.filter((u) => u.coopInfo !== null);
         let scoped = coops;
-        const team = SKILL_KEYWORDS.find((k) => query.includes(k));
+        const team = firstSkillInQuery(query);
         if (/infrastructure/.test(query)) {
           scoped = coops.filter(
             (u) =>
@@ -1136,7 +1974,7 @@ const intents: Intent[] = [
   {
     name: 'skill-discovery',
     match: (query, list) => {
-      const keywords = SKILL_KEYWORDS.filter((k) => query.includes(k));
+      const keywords = skillsInQuery(query);
       if (!keywords.length) return null;
       const seen = new Set<number>();
       const people: SurfacedPerson[] = [];
@@ -1191,6 +2029,8 @@ function addMutualContext(people: SurfacedPerson[], me: User): SurfacedPerson[] 
 // Contextual next-step chips shown under an assistant reply, derived from the matched intent.
 function followUpsFor(name: string): string[] | undefined {
   switch (name) {
+    case 'project-intelligence':
+      return ['What other projects are active?', "Who's open to help right now?"];
     case 'proximity-availability':
       return ['Show everyone open to help today', 'Who shares my interests?'];
     case 'cybersecurity-field':
@@ -1203,9 +2043,31 @@ function followUpsFor(name: string): string[] | undefined {
       return ["Who's on their team?", 'Find others with similar skills'];
     case 'team-discovery':
       return ['Who leads these teams?', "Who's open to help right now?"];
+    case 'certification-lookup':
+      return ['Who can help staff a project?', "Who's open to help right now?"];
+    case 'shared-interests':
+      return ["Who's open to help right now?", 'Who works near me?'];
+    case 'reporting-lines':
+      return ['What teams sit in this ministry?', 'How is the OPS structured?'];
+    case 'org-roster':
+      return ['How is the OPS structured?', "Who's open to help right now?"];
     default:
       return undefined;
   }
+}
+
+// Run the intent pipeline and post-process a match (mutual context + follow-up chips).
+// Returns null when nothing matched, so callers can layer their own fallbacks on top.
+function runIntents(query: string, me: User): AIReply | null {
+  for (const intent of intents) {
+    const reply = intent.match(query, users, me);
+    if (reply) {
+      const people = addMutualContext(reply.people, me);
+      const followUps = reply.followUps ?? followUpsFor(intent.name);
+      return { ...reply, people, followUps };
+    }
+  }
+  return null;
 }
 
 function generateReply(rawQuery: string, me: User): AIReply {
@@ -1216,14 +2078,8 @@ function generateReply(rawQuery: string, me: User): AIReply {
       people: [],
     };
   }
-  for (const intent of intents) {
-    const reply = intent.match(query, users, me);
-    if (reply) {
-      const people = addMutualContext(reply.people, me);
-      const followUps = reply.followUps ?? followUpsFor(intent.name);
-      return { ...reply, people, followUps };
-    }
-  }
+  const matched = runIntents(query, me);
+  if (matched) return matched;
   if (ADJACENT.some((a) => query.includes(a))) {
     return {
       text: 'There are a few good spots near 777 Bay Street — the food court at College Park and the cafés along Bay Street are popular with the team. Happy to help with people and skills questions too!',
@@ -1323,7 +2179,472 @@ function topBy(
     .slice(0, count);
 }
 
-function generateAdminReply(rawQuery: string, me: User): AIReply {
+// --- Relationship reasoning helpers (admin) ------------------------------
+
+// A compact person card for admin replies.
+function adminSurface(u: User, extra?: string): SurfacedPerson {
+  return surface(u, extra ?? `${u.title} — ${u.team}, ${u.ministry}.`);
+}
+
+// People named in a query, full-name matches first, de-duplicated.
+function peopleInQuery(query: string): User[] {
+  const q = ` ${norm(query)} `;
+  const scored: { u: User; full: boolean }[] = [];
+  for (const u of users) {
+    const name = norm(u.name);
+    if (q.includes(name)) {
+      scored.push({ u, full: true });
+      continue;
+    }
+    const parts = name.split(/\s+/).filter((p) => p.length > 2);
+    if (parts.some((p) => new RegExp(`\\b${p}\\b`).test(q))) scored.push({ u, full: false });
+  }
+  scored.sort((a, b) => Number(b.full) - Number(a.full) || a.u.id - b.u.id);
+  const seen = new Set<number>();
+  const out: User[] = [];
+  for (const s of scored) {
+    if (!seen.has(s.u.id)) {
+      seen.add(s.u.id);
+      out.push(s.u);
+    }
+  }
+  return out;
+}
+
+// Breadth-first shortest path between two people in a given adjacency map.
+function shortestPath(
+  aId: number,
+  bId: number,
+  adjacency: Map<number, Set<number>>,
+): number[] | null {
+  if (aId === bId) return [aId];
+  const prev = new Map<number, number>();
+  const visited = new Set<number>([aId]);
+  const queue: number[] = [aId];
+  while (queue.length) {
+    const cur = queue.shift()!;
+    for (const nb of adjacency.get(cur) ?? []) {
+      if (visited.has(nb)) continue;
+      visited.add(nb);
+      prev.set(nb, cur);
+      if (nb === bId) {
+        const path = [bId];
+        let p = bId;
+        while (prev.has(p)) {
+          p = prev.get(p)!;
+          path.unshift(p);
+        }
+        return path;
+      }
+      queue.push(nb);
+    }
+  }
+  return null;
+}
+
+function describePath(path: number[]): string {
+  const names = path.map((id) => getUserById(id)?.name ?? '—');
+  return `The chain runs ${names.join(' → ')}.`;
+}
+
+// Everything two people visibly have in common, as human-readable lines.
+function commonGround(a: User, b: User): string[] {
+  const out: string[] = [];
+  if (a.team === b.team) out.push(`Both on the ${a.team} team`);
+  else if (a.division === b.division) out.push(`Both in the ${a.division}`);
+  if (a.ministry === b.ministry) out.push(`Both in ${a.ministry}`);
+  if (a.cluster && a.cluster === b.cluster) out.push(`Both served by the ${a.cluster}`);
+  if (a.location === b.location) out.push(`Both based at ${a.location}`);
+  const inter = (x: string[], y: string[]) => {
+    const setY = new Set(y.map(norm));
+    return x.filter((v) => setY.has(norm(v)));
+  };
+  const skills = inter(a.skills, b.skills);
+  if (skills.length) out.push(`Shared skills: ${skills.join(', ')}`);
+  const interests = inter(a.interests, b.interests);
+  if (interests.length) out.push(`Shared interests: ${interests.join(', ')}`);
+  const certs = inter(a.certifications, b.certifications);
+  if (certs.length) out.push(`Shared certifications: ${certs.join(', ')}`);
+  if (a.managerId === b.id) out.push(`${b.name} manages ${a.name}`);
+  else if (b.managerId === a.id) out.push(`${a.name} manages ${b.name}`);
+  else if (a.managerId != null && a.managerId === b.managerId) out.push('Report to the same manager');
+  const sharedProjects = projects.filter((p) => {
+    const ids = surfaceProject(p, users).suggestedPeople.map((sp) => sp.user.id);
+    return ids.includes(a.id) && ids.includes(b.id);
+  });
+  if (sharedProjects.length) out.push(`Both map to ${sharedProjects.map((p) => p.id).join(', ')}`);
+  return out;
+}
+
+// Suggest people a person would benefit from meeting: strong attribute overlap, not yet linked.
+function recommendConnections(person: User, mode: EdgeMode): SurfacedPerson[] {
+  const { adjacency } = buildNetwork(mode);
+  const neighbors = adjacency.get(person.id) ?? new Set<number>();
+  const skillSet = new Set(person.skills.map(norm));
+  const interestSet = new Set(person.interests.map(norm));
+  const scored = users
+    .filter((u) => u.id !== person.id && !neighbors.has(u.id))
+    .map((u) => {
+      const sharedSkills = u.skills.filter((s) => skillSet.has(norm(s)));
+      const sharedInterests = u.interests.filter((i) => interestSet.has(norm(i)));
+      let score = sharedSkills.length * 2 + sharedInterests.length;
+      if (u.division === person.division && u.team !== person.team) score += 1;
+      if (u.ministry === person.ministry) score += 1;
+      if (u.mentoringAreas.length && person.coopInfo) score += 2;
+      return { u, score, sharedSkills, sharedInterests };
+    })
+    .filter((x) => x.score > 0)
+    .sort((a, b) => b.score - a.score)
+    .slice(0, 4);
+  return scored.map(({ u, sharedSkills, sharedInterests }) => {
+    const bits: string[] = [];
+    if (sharedSkills.length) bits.push(`shares ${sharedSkills.slice(0, 2).join(', ')}`);
+    if (sharedInterests.length) bits.push(`both into ${sharedInterests.slice(0, 2).join(', ')}`);
+    if (u.mentoringAreas.length && person.coopInfo)
+      bits.push(`open to mentoring on ${u.mentoringAreas.slice(0, 2).join(', ')}`);
+    if (u.ministry === person.ministry && !bits.length) bits.push('same ministry');
+    return surface(u, `${u.title} on the ${u.team} team — ${bits.join(' · ') || 'strong overlap'}.`);
+  });
+}
+
+// Skills held by only one active person — knowledge single-points-of-failure.
+function busFactorReply(): AIReply {
+  const holders = new Map<string, User[]>();
+  for (const u of users) {
+    if (!u.isActiveUser) continue;
+    const seen = new Set<string>();
+    for (const raw of u.skills) {
+      const k = norm(raw);
+      if (seen.has(k)) continue;
+      seen.add(k);
+      const arr = holders.get(raw.trim()) ?? [];
+      arr.push(u);
+      holders.set(raw.trim(), arr);
+    }
+  }
+  const solo = [...holders.entries()]
+    .filter(([, us]) => us.length === 1)
+    .sort((a, b) => a[0].localeCompare(b[0]));
+  if (!solo.length) {
+    return {
+      text: 'Good news — every listed skill has at least two active people who can cover it. No single points of failure right now.',
+      people: [],
+    };
+  }
+  const lines = solo.slice(0, 8).map(([skill, us]) => `• ${skill} — only ${us[0].name}`);
+  const people = solo
+    .slice(0, 5)
+    .map(([skill, us]) =>
+      surface(us[0], `Sole active holder of ${skill} — a knowledge single-point-of-failure.`, skill, 'high'),
+    );
+  return {
+    text: `${solo.length} skill${solo.length === 1 ? '' : 's'} rely on a single active person — worth building backup for:\n\n${lines.join('\n')}`,
+    people,
+    followUps: ['Who could mentor to spread these skills?', 'Which projects have staffing gaps?'],
+  };
+}
+
+// Active projects whose required skills aren't fully covered internally.
+function staffingGapReply(): AIReply {
+  const open = projects.filter((p) => p.status !== 'Done');
+  const surfaced = open.map((p) => surfaceProject(p, users)).filter((sp) => sp.gapSkills.length > 0);
+  if (!surfaced.length) {
+    return {
+      text: 'Every active project has internal coverage for all of its required skills right now — no staffing gaps.',
+      people: [],
+    };
+  }
+  const lines = surfaced.map(
+    (sp) => `• ${sp.project.id} ${sp.project.title} — missing ${sp.gapSkills.join(', ')}`,
+  );
+  return {
+    text: `${surfaced.length} active project${surfaced.length === 1 ? '' : 's'} ${surfaced.length === 1 ? 'has' : 'have'} a staffing gap — required skills with no internal match:\n\n${lines.join('\n')}`,
+    people: [],
+    projects: surfaced,
+    followUps: ['Which skills rely on just one person?', 'Who can help staff these?'],
+  };
+}
+
+function adoptionTrendReply(me: User): AIReply {
+  const ins = adminInsights(me.id);
+  const trend = ins.adoptionTrend;
+  const first = trend[0];
+  const last = trend[trend.length - 1];
+  const delta = last.value - first.value;
+  const pct = first.value ? Math.round((delta / first.value) * 100) : 0;
+  const series = trend.map((t) => `${t.month} ${t.value}`).join(' · ');
+  return {
+    text: `Adoption is ${delta >= 0 ? 'up' : 'down'} ${Math.abs(pct)}% over six months — from ${first.value} active in ${first.month} to ${last.value} in ${last.month} (${ins.activationRate}% of the directory). Monthly active: ${series}.`,
+    people: [],
+    followUps: ['Who needs a nudge to connect?', 'How are the co-ops settling in?'],
+  };
+}
+
+function draftOutreachReply(): AIReply {
+  const stats = computeActivity();
+  const isolated = [...stats.values()]
+    .filter((s) => s.user.isActiveUser)
+    .sort((a, b) => a.connections - b.connections)
+    .slice(0, 3)
+    .map((s) => s.user.name.split(' ')[0]);
+  const names = isolated.join(', ');
+  const text = `Here's a warm, low-pressure nudge you can adapt and send on Teams to your least-connected members${names ? ` (e.g. ${names})` : ''}:\n\n“Hi — I noticed you're just getting started on ConnectOPS. There's a friendly group of people across the OPS marked ‘open to help’ this week, and it's a great low-key way to meet someone outside your immediate team. Want me to suggest a couple of people who share your interests or skills? No pressure — happy to make an intro whenever you're ready.”\n\nWant me to tailor it for the co-op cohort specifically?`;
+  return {
+    text,
+    people: [],
+    followUps: ['How are the co-ops settling in?', 'Who needs a nudge to connect?'],
+  };
+}
+
+// Map a relationship-lens keyword in the query to an edge mode (for mode-aware answers).
+function detectModeInQuery(query: string): EdgeMode | null {
+  if (/shared skills?|same skills?|by skills?/.test(query)) return 'skills';
+  if (/shared interests?|same interests?|by interests?/.test(query)) return 'interests';
+  if (/same team|by team|teammates?/.test(query)) return 'team';
+  if (/same ministry|by ministry/.test(query)) return 'ministry';
+  if (/same division|same branch|by division/.test(query)) return 'division';
+  if (/same cluster|i&it cluster|by cluster/.test(query)) return 'cluster';
+  if (/coffee|already connected|have connected/.test(query)) return 'coffee';
+  if (/same project|by project|project team/.test(query)) return 'project';
+  if (/reporting|org chart/.test(query)) return 'reporting';
+  if (/same floor|same location|proximity/.test(query)) return 'location';
+  if (/mentor/.test(query)) return 'mentorship';
+  if (/cohort|same school|same term/.test(query)) return 'cohort';
+  return null;
+}
+
+// "Who's most connected [by <lens>]" — degree ranking within the requested/active lens.
+function mostConnectedByMode(query: string, mode: EdgeMode): AIReply {
+  const detected = detectModeInQuery(query) ?? mode;
+  const info = EDGE_MODES.find((m) => m.id === detected) ?? EDGE_MODES[0];
+  const { degree } = buildNetwork(detected);
+  const ranked = users
+    .map((u) => ({ u, d: degree.get(u.id) ?? 0 }))
+    .filter((x) => x.d > 0)
+    .sort((a, b) => b.d - a.d || a.u.name.localeCompare(b.u.name))
+    .slice(0, 5);
+  if (!ranked.length) {
+    return { text: `No connections exist in the ${info.label.toLowerCase()} view.`, people: [] };
+  }
+  return {
+    text: `Most connected by ${info.label.toLowerCase()} (${info.description}) — the strongest hubs in that lens:`,
+    people: ranked.map((x) =>
+      surface(
+        x.u,
+        `${x.u.title} on the ${x.u.team} team — ${n1(x.d, 'connection', 'connections')} in this view.`,
+        `${x.d} connections`,
+        'high',
+      ),
+    ),
+    followUps: ['Who bridges the most ministries?', 'Who needs a nudge to connect?'],
+  };
+}
+
+// Relationship + advanced analytics intents unique to the admin assistant. Returns null to
+// let the standard analytics pipeline (and then the main-bot capabilities) take over.
+function adminRelationshipReply(query: string, me: User, mode: EdgeMode): AIReply | null {
+  const modeInfo = EDGE_MODES.find((m) => m.id === mode) ?? EDGE_MODES[0];
+  const two = peopleInQuery(query).slice(0, 2);
+  const isDirectCheck =
+    /(know each other|know one another|do (they|.*and.*) know|have (they|.*) (met|connected|talked)|are (they|.*) connected|did (they|.*) connect|ever (met|connected))/.test(
+      query,
+    );
+
+  // 1) Relationship path / direct check between two named people.
+  if (
+    two.length >= 2 &&
+    (isDirectCheck ||
+      /(how (are|is|do|does)|connected|connection between|path between|linked|related|degrees? of separation|reach)/.test(
+        query,
+      ))
+  ) {
+    const [a, b] = two;
+    const { adjacency } = buildNetwork(mode);
+    const direct = adjacency.get(a.id)?.has(b.id) ?? false;
+    const coffee = coffeeChats.some(
+      (c) =>
+        (c.userId === a.id && c.withUserId === b.id) ||
+        (c.userId === b.id && c.withUserId === a.id),
+    );
+    const path = shortestPath(a.id, b.id, adjacency);
+    const lens = modeInfo.label.toLowerCase();
+
+    if (isDirectCheck) {
+      if (direct) {
+        return {
+          text: `Yes — ${a.name} and ${b.name} are directly connected in the ${lens} view${coffee ? ", and they've logged a coffee chat together" : ''}.`,
+          people: [adminSurface(a), adminSurface(b)],
+        };
+      }
+      if (path) {
+        return {
+          text: `Not directly — but they're linked through ${path.length - 2} ${path.length - 2 === 1 ? 'person' : 'people'} in the ${lens} view. ${describePath(path)}`,
+          people: path.map((id) => adminSurface(getUserById(id)!)),
+        };
+      }
+      return {
+        text: `No — ${a.name} and ${b.name} aren't connected in the ${lens} view. A good introduction to make.`,
+        people: [adminSurface(a), adminSurface(b)],
+      };
+    }
+
+    if (!path) {
+      return {
+        text: `${a.name} and ${b.name} have no connecting path in the “${modeInfo.label}” view — they sit in separate clusters. Try switching the connection lens (e.g. shared skills) to reveal a link.`,
+        people: [adminSurface(a), adminSurface(b)],
+      };
+    }
+    if (path.length === 2) {
+      return {
+        text: `${a.name} and ${b.name} are directly connected in the ${lens} view${coffee ? " — they've had a coffee chat" : ''}.`,
+        people: path.map((id) => adminSurface(getUserById(id)!)),
+      };
+    }
+    return {
+      text: `${a.name} and ${b.name} are ${path.length - 1} hops apart in the ${lens} view. ${describePath(path)}`,
+      people: path.map((id) => adminSurface(getUserById(id)!)),
+    };
+  }
+
+  // 2) Common ground between two named people.
+  if (two.length >= 2 && /(in common|have in common|common ground|similar|share|both)/.test(query)) {
+    const [a, b] = two;
+    const shared = commonGround(a, b);
+    if (!shared.length) {
+      return {
+        text: `${a.name} and ${b.name} don't share an obvious team, ministry, skill, or interest on file — connecting them would bridge two different parts of the org.`,
+        people: [adminSurface(a), adminSurface(b)],
+      };
+    }
+    return {
+      text: `${a.name} and ${b.name} have common ground:\n\n${shared.map((s) => `• ${s}`).join('\n')}`,
+      people: [adminSurface(a), adminSurface(b)],
+    };
+  }
+
+  // 3) Warm intro / broker.
+  if (
+    /(introduce|warm intro|who could (connect|introduce)|who knows both|mutual (connection|contact)|get me to|reach someone|broker|common connection)/.test(
+      query,
+    )
+  ) {
+    const { adjacency } = buildNetwork(mode);
+    if (two.length >= 2) {
+      const [a, b] = two;
+      const mutual = [...(adjacency.get(a.id) ?? [])].filter((id) => adjacency.get(b.id)?.has(id));
+      if (mutual.length) {
+        return {
+          text: `${n1(mutual.length, 'person', 'people')} could make a warm introduction between ${a.name} and ${b.name} — connected to both:`,
+          people: mutual.slice(0, 5).map((id) => adminSurface(getUserById(id)!)),
+        };
+      }
+      return {
+        text: `No one is currently connected to both ${a.name} and ${b.name}, so there's no warm-intro path yet — a direct introduction would create the first bridge.`,
+        people: [adminSurface(a), adminSurface(b)],
+      };
+    }
+    if (two.length === 1) {
+      const person = two[0];
+      const unit = detectOrgUnit(query);
+      if (unit) {
+        const nbrs = adjacency.get(person.id) ?? new Set<number>();
+        const brokers = [...nbrs]
+          .map((id) => getUserById(id)!)
+          .filter((u) => norm(u[unit.kind]) === norm(unit.name));
+        if (brokers.length) {
+          return {
+            text: `${person.name} already has ${n1(brokers.length, 'connection', 'connections')} in ${unit.name} who could open doors there:`,
+            people: brokers.slice(0, 5).map((u) => adminSurface(u)),
+          };
+        }
+        const secondary = new Set<number>();
+        for (const id of nbrs) {
+          for (const id2 of adjacency.get(id) ?? []) {
+            const u = getUserById(id2);
+            if (u && norm(u[unit.kind]) === norm(unit.name)) secondary.add(id2);
+          }
+        }
+        if (secondary.size) {
+          return {
+            text: `${person.name} isn't directly connected into ${unit.name}, but these people there are two hops away — reachable through a mutual contact:`,
+            people: [...secondary].slice(0, 5).map((id) => adminSurface(getUserById(id)!)),
+          };
+        }
+        return {
+          text: `${person.name} has no connection path into ${unit.name} yet — a deliberate introduction would be the first bridge.`,
+          people: [],
+        };
+      }
+    }
+  }
+
+  // 4) Connection recommendations.
+  if (
+    /(who should .* meet|recommend (connections|people|someone)|suggest (people|connections|someone)|who would .* benefit|expand .* network|who to connect|good connections for|who might .* click)/.test(
+      query,
+    )
+  ) {
+    const person = two[0] ?? me;
+    const recs = recommendConnections(person, mode);
+    if (!recs.length) {
+      return {
+        text: `${person.name} is already connected across the relevant teams — no obvious gaps to fill right now.`,
+        people: [],
+      };
+    }
+    return {
+      text: `People ${person.name} would likely benefit from meeting — strong overlap, not yet connected:`,
+      people: recs,
+      followUps: ['Who could introduce them?', 'Who shares their skills?'],
+    };
+  }
+
+  // 5) Bus factor / single point of failure.
+  if (
+    /(single point|bus factor|only person|one person|rely on (one|a single)|key person|sole|risk if .* (left|leaves)|scarce skill|rare skill|scarcity|only one)/.test(
+      query,
+    )
+  ) {
+    return busFactorReply();
+  }
+
+  // 6) Staffing-gap radar.
+  if (
+    /(staffing gap|staff.* gap|gaps? (in|across|on)|which projects .* (short|missing|need|gap|understaff)|understaffed|hard to staff|can'?t staff|coverage gap)/.test(
+      query,
+    )
+  ) {
+    return staffingGapReply();
+  }
+
+  // 7) Adoption / engagement trend.
+  if (/(adoption|trend|over time|growing|month over month|momentum|sign-?ups?|uptake|trajectory)/.test(query)) {
+    return adoptionTrendReply(me);
+  }
+
+  // 8) Draft outreach.
+  if (
+    /((draft|write|compose|help me).*(nudge|message|email|note|outreach|invite|reminder))|nudge (message|note|them)/.test(
+      query,
+    )
+  ) {
+    return draftOutreachReply();
+  }
+
+  // 9) Mode-aware "most connected by <lens>".
+  if (
+    /(most connected|top connect|well connected|best connected|biggest hub|most central|strongest hub|most links)/.test(
+      query,
+    ) &&
+    detectModeInQuery(query)
+  ) {
+    return mostConnectedByMode(query, mode);
+  }
+
+  return null;
+}
+
+function generateAdminReply(rawQuery: string, me: User, mode: EdgeMode = 'combined'): AIReply {
   const query = norm(rawQuery).trim();
   const stats = computeActivity();
   const all = [...stats.values()];
@@ -1332,10 +2653,14 @@ function generateAdminReply(rawQuery: string, me: User): AIReply {
   // Light guardrail — stay on the analytics topic.
   if (OFF_TOPIC.some((t) => query.includes(t)) && !ADJACENT.some((a) => query.includes(a))) {
     return {
-      text: "I'm the program analytics assistant — I can tell you how people are engaging: who's most or least connected, how a specific person is settling in, or how the co-ops and teams are doing.",
+      text: "I'm the program analytics assistant — I can tell you how people are engaging: who's most or least connected, how a specific person is settling in, how two people are connected, or how the co-ops and teams are doing.",
       people: [],
     };
   }
+
+  // Relationship reasoning + advanced analytics unique to the admin assistant.
+  const relationship = adminRelationshipReply(query, me, mode);
+  if (relationship) return relationship;
 
   // --- Person lookup: "How engaged is Priya?" / "Tell me about Marcus's activity" ---
   const words = new Set(query.split(/[^a-z]+/).filter(Boolean));
@@ -1577,6 +2902,11 @@ function generateAdminReply(rawQuery: string, me: User): AIReply {
     };
   }
 
+  // Main-bot capabilities (skills, projects, org structure, rosters, certs, reporting lines…)
+  // so the admin assistant is a superset of the member Copilot.
+  const main = runIntents(query, me);
+  if (main) return main;
+
   // Fallback → a useful snapshot with guidance.
   return overview();
 }
@@ -1753,8 +3083,8 @@ export const backend = {
     return adminInsights(userId);
   },
 
-  getConnectionGraph(userId: number): ConnectionGraph {
-    return connectionGraph(userId);
+  getConnectionGraph(userId: number, mode?: EdgeMode): ConnectionGraph {
+    return connectionGraph(userId, mode);
   },
 
   // --- Chat ---
@@ -1842,6 +3172,7 @@ export const backend = {
       role: 'assistant',
       text: reply.text,
       people: reply.people,
+      projects: reply.projects,
       followUps: reply.followUps,
       createdAt: now(),
     };
@@ -1855,7 +3186,7 @@ export const backend = {
   //
   // Stateless by design: replies aren't persisted as conversations, so this admin-only
   // analytics surface never mixes into a member's personal Copilot history.
-  sendAdminChat(userId: number, message: string): { message: ChatMessage } {
+  sendAdminChat(userId: number, message: string, mode?: EdgeMode): { message: ChatMessage } {
     const me = requireUser(userId);
     if (!me.isAdmin) {
       throw new ApiError(403, 'Program analytics are available to coordinators only.');
@@ -1863,13 +3194,14 @@ export const backend = {
     const text = message?.trim();
     if (!text) throw new ApiError(400, 'message is required');
 
-    const reply = generateAdminReply(text, me);
+    const reply = generateAdminReply(text, me, mode ?? 'combined');
     const assistantMessage: ChatMessage = {
       id: `admin-${uuid()}`,
       conversationId: 'admin-analytics',
       role: 'assistant',
       text: reply.text,
       people: reply.people,
+      projects: reply.projects,
       followUps: reply.followUps,
       createdAt: new Date().toISOString(),
     };
