@@ -3627,6 +3627,7 @@ select {
 }
 
 .copilot-hero__bar {
+  position: relative;
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -3680,6 +3681,164 @@ select {
   background: var(--surface-2);
   border-radius: 999px;
   padding: 4px 9px;
+}
+
+/* Saved-chat tools + history dropdown in the admin Copilot rail header */
+.copilot-hero__tools {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+}
+.copilot-hero__tool {
+  position: relative;
+  width: 28px;
+  height: 28px;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--text-secondary);
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+  transition: background 0.15s var(--ease), color 0.15s var(--ease), border-color 0.15s var(--ease);
+}
+.copilot-hero__tool:hover {
+  background: var(--surface-2);
+  color: var(--text);
+}
+.copilot-hero__tool.is-active {
+  border-color: var(--accent);
+  color: var(--accent);
+  background: var(--accent-ring);
+}
+.copilot-hero__tool-count {
+  position: absolute;
+  top: -5px;
+  right: -5px;
+  min-width: 15px;
+  height: 15px;
+  padding: 0 3px;
+  border-radius: 999px;
+  background: var(--accent);
+  color: #fff;
+  font-size: 9px;
+  font-weight: 700;
+  line-height: 15px;
+  text-align: center;
+}
+.copilot-hero__history {
+  position: absolute;
+  top: calc(100% - 4px);
+  right: 0;
+  z-index: 40;
+  width: min(300px, 88vw);
+  max-height: 340px;
+  display: flex;
+  flex-direction: column;
+  background: var(--surface);
+  border: 1px solid var(--border-strong);
+  border-radius: 12px;
+  box-shadow: var(--shadow-lg, 0 12px 32px rgba(0, 0, 0, 0.28));
+  overflow: hidden;
+}
+.copilot-hero__history-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 12px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  color: var(--text-secondary);
+  border-bottom: 1px solid var(--border);
+}
+.copilot-hero__history-head button {
+  border: none;
+  background: transparent;
+  color: var(--text-tertiary);
+  cursor: pointer;
+  display: grid;
+  place-items: center;
+  padding: 2px;
+  border-radius: 6px;
+}
+.copilot-hero__history-head button:hover {
+  color: var(--text);
+  background: var(--surface-2);
+}
+.copilot-hero__history-empty {
+  padding: 16px 12px;
+  margin: 0;
+  font-size: 12px;
+  color: var(--text-tertiary);
+}
+.copilot-hero__history-list {
+  overflow-y: auto;
+  padding: 6px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.ins-conv {
+  display: flex;
+  align-items: center;
+  border-radius: 8px;
+  transition: background 0.14s var(--ease);
+}
+.ins-conv:hover {
+  background: var(--surface-2);
+}
+.ins-conv.is-active {
+  background: var(--accent-ring);
+}
+.ins-conv__open {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  border: none;
+  background: transparent;
+  color: var(--text);
+  cursor: pointer;
+  padding: 8px 8px 8px 10px;
+  font-size: 12.5px;
+  text-align: left;
+}
+.ins-conv__open svg {
+  flex-shrink: 0;
+  color: var(--text-tertiary);
+}
+.ins-conv.is-active .ins-conv__open,
+.ins-conv.is-active .ins-conv__open svg {
+  color: var(--accent);
+}
+.ins-conv__title {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.ins-conv__del {
+  flex-shrink: 0;
+  border: none;
+  background: transparent;
+  color: var(--text-tertiary);
+  cursor: pointer;
+  display: grid;
+  place-items: center;
+  padding: 6px 8px;
+  opacity: 0;
+  border-radius: 6px;
+  transition: opacity 0.14s var(--ease), color 0.14s var(--ease);
+}
+.ins-conv:hover .ins-conv__del,
+.ins-conv.is-active .ins-conv__del {
+  opacity: 1;
+}
+.ins-conv__del:hover {
+  color: var(--danger, #d9534f);
 }
 
 .copilot-hero__thread {
