@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import type { ChatMessage as ChatMessageType } from '../types';
+import type { ChatMessage as ChatMessageType, UserSummary } from '../types';
 import MiniProfileCard from './MiniProfileCard';
 import ProjectCard from './ProjectCard';
 import Icon from './Icon';
@@ -8,10 +8,13 @@ export default function ChatMessage({
   message,
   isStreaming = false,
   onFollowUp,
+  onPersonClick,
 }: {
   message: ChatMessageType;
   isStreaming?: boolean;
   onFollowUp?: (text: string) => void;
+  /** When set, tapping a person card runs this instead of opening the preview card. */
+  onPersonClick?: (person: UserSummary) => void;
 }) {
   const isUser = message.role === 'user';
   const people = message.people ?? [];
@@ -59,7 +62,12 @@ export default function ChatMessage({
                 style={{ animationDelay: `${i * 90}ms` }}
               >
                 {p.capability && <div className="message-person__cap">{p.capability}</div>}
-                <MiniProfileCard person={p.user} rationale={p.rationale} matchStrength={p.matchStrength} />
+                <MiniProfileCard
+                  person={p.user}
+                  rationale={p.rationale}
+                  matchStrength={p.matchStrength}
+                  onPersonClick={onPersonClick}
+                />
               </div>
             ))}
           </div>
@@ -72,6 +80,7 @@ export default function ChatMessage({
                 key={sp.project.id}
                 surfaced={sp}
                 style={{ animationDelay: `${i * 90}ms` }}
+                onPersonClick={onPersonClick}
               />
             ))}
           </div>

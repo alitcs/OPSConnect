@@ -7,16 +7,18 @@ import { api } from '../api/client';
 import { useTheme } from '../context/ThemeContext';
 import Icon from './Icon';
 
-// Colourful but flat (non-glowing) palette so ministries read as distinct clusters.
+// Vivid, well-separated categorical hues so ministries read as distinct clusters at a
+// glance. Kept bright and saturated so nodes stay legible against the dark/light scene
+// (WebGL Lambert lighting darkens the base colour, so we start brighter than the CSS UI).
 const MINISTRY_COLORS = [
-  '#5b8fd6', // blue
-  '#4fae8f', // teal-green
-  '#e08a4c', // amber-orange
-  '#a173d6', // violet
-  '#d96a9a', // rose
-  '#d9b23e', // gold
-  '#5aa9c9', // sky
-  '#c56b5a', // terracotta
+  '#4d9fff', // bright blue
+  '#2fd9a6', // bright teal-green
+  '#ff9f43', // bright orange
+  '#b57bff', // bright violet
+  '#ff6fae', // bright rose-pink
+  '#ffd23f', // bright gold
+  '#3fc7e0', // cyan
+  '#ff7a5c', // coral
 ];
 
 // The 3D scene has its own colours (set on the WebGL canvas, not via CSS), so it needs an
@@ -31,48 +33,48 @@ interface GraphPalette {
 }
 
 const DARK_PALETTE: GraphPalette = {
-  bg: '#0c0e13',
-  dim: '#333844',
-  link: 'rgba(158, 172, 198, 0.28)',
-  linkHot: 'rgba(214, 224, 240, 0.9)',
-  linkMuted: 'rgba(110, 120, 140, 0.06)',
+  bg: '#080a0f',
+  dim: '#2b3040',
+  link: 'rgba(176, 190, 218, 0.45)',
+  linkHot: 'rgba(232, 242, 255, 0.98)',
+  linkMuted: 'rgba(110, 120, 140, 0.05)',
   edges: {
-    coffee: 'rgba(224, 138, 76, 0.55)',
-    team: 'rgba(79, 174, 143, 0.45)',
-    division: 'rgba(90, 169, 201, 0.45)',
-    ministry: 'rgba(91, 143, 214, 0.4)',
-    cluster: 'rgba(161, 115, 214, 0.45)',
-    project: 'rgba(217, 178, 62, 0.5)',
-    skills: 'rgba(217, 106, 154, 0.45)',
-    interests: 'rgba(197, 107, 90, 0.45)',
-    reporting: 'rgba(214, 224, 240, 0.5)',
-    location: 'rgba(120, 200, 180, 0.4)',
-    mentorship: 'rgba(120, 160, 240, 0.5)',
-    cohort: 'rgba(240, 190, 90, 0.45)',
-    bridge: 'rgba(158, 172, 198, 0.22)',
+    coffee: 'rgba(255, 158, 92, 0.75)',
+    team: 'rgba(70, 210, 170, 0.65)',
+    division: 'rgba(90, 195, 230, 0.65)',
+    ministry: 'rgba(90, 160, 245, 0.6)',
+    cluster: 'rgba(185, 130, 245, 0.65)',
+    project: 'rgba(245, 205, 80, 0.7)',
+    skills: 'rgba(245, 120, 175, 0.65)',
+    interests: 'rgba(240, 120, 100, 0.65)',
+    reporting: 'rgba(224, 234, 250, 0.7)',
+    location: 'rgba(90, 225, 200, 0.6)',
+    mentorship: 'rgba(120, 170, 255, 0.7)',
+    cohort: 'rgba(250, 205, 100, 0.65)',
+    bridge: 'rgba(170, 184, 210, 0.3)',
   },
 };
 
 const LIGHT_PALETTE: GraphPalette = {
-  bg: '#eef1f6',
-  dim: '#c2c7d0',
-  link: 'rgba(60, 72, 100, 0.30)',
-  linkHot: 'rgba(20, 30, 60, 0.85)',
-  linkMuted: 'rgba(120, 130, 150, 0.10)',
+  bg: '#f4f6fb',
+  dim: '#b6bdcb',
+  link: 'rgba(48, 62, 96, 0.42)',
+  linkHot: 'rgba(8, 18, 44, 0.92)',
+  linkMuted: 'rgba(120, 130, 150, 0.09)',
   edges: {
-    coffee: 'rgba(196, 108, 40, 0.7)',
-    team: 'rgba(30, 140, 120, 0.6)',
-    division: 'rgba(50, 110, 180, 0.55)',
-    ministry: 'rgba(46, 92, 170, 0.5)',
-    cluster: 'rgba(130, 82, 190, 0.6)',
-    project: 'rgba(170, 130, 20, 0.65)',
-    skills: 'rgba(190, 70, 130, 0.6)',
-    interests: 'rgba(175, 75, 55, 0.6)',
-    reporting: 'rgba(40, 50, 80, 0.6)',
-    location: 'rgba(30, 140, 120, 0.55)',
-    mentorship: 'rgba(46, 92, 200, 0.65)',
-    cohort: 'rgba(180, 130, 30, 0.6)',
-    bridge: 'rgba(90, 100, 120, 0.22)',
+    coffee: 'rgba(210, 105, 25, 0.85)',
+    team: 'rgba(15, 155, 130, 0.75)',
+    division: 'rgba(35, 115, 195, 0.7)',
+    ministry: 'rgba(30, 90, 190, 0.7)',
+    cluster: 'rgba(120, 65, 200, 0.75)',
+    project: 'rgba(175, 130, 10, 0.8)',
+    skills: 'rgba(200, 55, 130, 0.75)',
+    interests: 'rgba(190, 60, 40, 0.75)',
+    reporting: 'rgba(25, 38, 70, 0.75)',
+    location: 'rgba(15, 150, 125, 0.7)',
+    mentorship: 'rgba(30, 85, 210, 0.8)',
+    cohort: 'rgba(185, 130, 20, 0.75)',
+    bridge: 'rgba(80, 92, 115, 0.3)',
   },
 };
 
@@ -110,8 +112,11 @@ function nodeId(end: number | GraphNode): number {
 }
 
 interface ConnectionGraphProps {
-  /** External request to focus/highlight a person by name (e.g. from the assistant). */
-  focusRequest?: { query: string; nonce: number } | null;
+  /**
+   * External request to focus/highlight a person — by exact id (a person-card tap) when
+   * available, otherwise by name (an assistant "find <person>" request).
+   */
+  focusRequest?: { query: string; id?: number; nonce: number } | null;
   /** The active relationship lens that defines what an edge means. */
   mode?: EdgeMode;
   /** Called when the coordinator picks a different lens from the selector. */
@@ -280,13 +285,18 @@ export default function ConnectionGraph({
   useEffect(() => {
     if (!focusRequest || !graph) return;
     const q = focusRequest.query.trim().toLowerCase();
-    if (!q) return;
     const nodes = data.nodes as GraphNode[];
+    // A card tap carries the person's id, so match that exactly before falling back to name.
+    const byId =
+      focusRequest.id != null ? nodes.find((n) => n.id === focusRequest.id) : undefined;
     const match =
-      nodes.find((n) => n.name.toLowerCase() === q) ??
-      nodes.find((n) => n.name.toLowerCase().split(/\s+/).includes(q)) ??
-      nodes.find((n) => n.name.toLowerCase().startsWith(q)) ??
-      nodes.find((n) => n.name.toLowerCase().includes(q));
+      byId ??
+      (q
+        ? nodes.find((n) => n.name.toLowerCase() === q) ??
+          nodes.find((n) => n.name.toLowerCase().split(/\s+/).includes(q)) ??
+          nodes.find((n) => n.name.toLowerCase().startsWith(q)) ??
+          nodes.find((n) => n.name.toLowerCase().includes(q))
+        : undefined);
     if (match) focusNode(match);
     // Re-run only when a new request arrives (nonce changes).
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -322,7 +332,7 @@ export default function ConnectionGraph({
       activeSet &&
       activeSet.has(nodeId(link.source)) &&
       activeSet.has(nodeId(link.target));
-    return hot ? 1 : 0.5;
+    return hot ? 1.4 : 0.7;
   };
 
   return (
@@ -332,7 +342,8 @@ export default function ConnectionGraph({
           <h2 className="graph-panel__title">Connection network</h2>
           <p className="graph-panel__sub">
             Each node is a person; an edge means {currentMode.description}. Drag to orbit,
-            scroll to zoom, click a node to open their profile.
+            scroll to zoom, click a node to focus it — or ask Copilot to “find someone” and tap
+            the person cards it returns to light them up here.
           </p>
         </div>
         <div className="graph-panel__controls">
@@ -384,15 +395,15 @@ export default function ConnectionGraph({
             nodeRelSize={NODE_REL_SIZE}
             nodeVal={(node) => getNodeVal(node as GraphNode)}
             nodeColor={(node) => getNodeColor(node as GraphNode)}
-            nodeOpacity={0.9}
-            nodeResolution={8}
+            nodeOpacity={0.96}
+            nodeResolution={14}
             nodeLabel={(node) => {
               const n = node as GraphNode;
               return `<div class="graph-tip"><strong>${n.name}</strong><span>${n.title}</span><span>${n.team}</span></div>`;
             }}
             linkColor={(link) => getLinkColor(link as GraphLink)}
             linkWidth={(link) => getLinkWidth(link as GraphLink)}
-            linkOpacity={0.5}
+            linkOpacity={0.62}
             onNodeClick={(node) => handleNodeClick(node as GraphNode)}
             onBackgroundClick={() => setSelected(null)}
             enableNodeDrag={false}

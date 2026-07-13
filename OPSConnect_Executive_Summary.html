@@ -1,0 +1,356 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<title>OPSConnect - Executive Summary</title>
+<style>
+  @page { size: Letter; margin: 0; }
+  * { box-sizing: border-box; }
+  html, body {
+    margin: 0; padding: 0;
+    font-family: "Segoe UI", "Open Sans", Arial, sans-serif;
+    color: #1a1a1a; font-size: 10pt; line-height: 1.4;
+    -webkit-print-color-adjust: exact; print-color-adjust: exact;
+  }
+  :root { --ink:#1a1a1a; --muted:#585f68; --line:#c7ccd4; --blue:#06c; --hdr:#edeff3; --soft:#f5f7f9; --frame:#b3b9c2; }
+
+  /* One physical page = one .sheet; content lives inside .inner (guaranteed within margins) */
+  .sheet { width: 216mm; min-height: 277mm; padding: 8mm; page-break-after: always; }
+  .sheet.last { page-break-after: auto; }
+  .inner {
+    position: relative;
+    border: 1px solid var(--frame);
+    min-height: 261mm;
+    padding: 14mm 13mm 16mm;
+  }
+  .rh { position: absolute; top: 6mm; left: 13mm; right: 13mm; text-align: right;
+        font-size: 8.3pt; color: #4a4f57; letter-spacing: 0.01em; }
+  .rf { position: absolute; bottom: 6.5mm; left: 13mm; right: 13mm;
+        display: flex; justify-content: space-between; align-items: flex-end;
+        font-size: 7.8pt; color: #6b7078; }
+  .rf .pg { color: var(--blue); font-weight: 600; }
+
+  h2 { font-size: 11.6pt; font-weight: 700; color: #10233a; margin: 15px 0 7px;
+       padding-bottom: 4px; border-bottom: 1.4px solid var(--line); }
+  h2:first-child { margin-top: 0; }
+  h2 .n { color: var(--blue); }
+  h3 { font-size: 10.3pt; color: #10233a; margin: 10px 0 3px; }
+  p { margin: 0 0 7px; }
+  ul { margin: 3px 0 7px; padding-left: 16px; }
+  li { margin-bottom: 3px; }
+  strong { color: #10233a; }
+  em { color: var(--muted); font-style: italic; }
+
+  table.grid { width: 100%; border-collapse: collapse; margin: 5px 0 9px; font-size: 9.1pt; }
+  table.grid th { background: var(--hdr); color: #10233a; text-align: left; font-weight: 700;
+                  padding: 5px 8px; font-size: 8.8pt; border: 1px solid var(--line); }
+  table.grid td { border: 1px solid var(--line); padding: 5px 8px; vertical-align: top; }
+  table.grid td.r, table.grid th.r { text-align: right; white-space: nowrap; }
+  .total-row td { background: var(--soft); font-weight: 700; color: #10233a; }
+
+  .glance { border: 1px solid var(--line); border-left: 4px solid var(--blue); background: var(--soft);
+            border-radius: 3px; padding: 9px 12px; margin: 0 0 8px; }
+  .glance table { width: 100%; border-collapse: collapse; }
+  .glance td { padding: 3px 0; vertical-align: top; font-size: 9.2pt; }
+  .glance td.k { width: 108px; font-weight: 700; color: #10233a; font-size: 8.7pt; padding-right: 10px; }
+
+  .callout { border: 1px solid #cfe0d6; border-left: 4px solid #1d7a4d; background: #edf6f0;
+             border-radius: 3px; padding: 8px 12px; margin: 8px 0; font-size: 9.3pt; }
+  .note { border: 1px solid #e2d3bd; border-left: 4px solid #a9660f; background: #fbf4ea;
+          border-radius: 3px; padding: 8px 12px; margin: 8px 0; font-size: 9.1pt; }
+
+  /* Cover */
+  .cover-inner { display: flex; flex-direction: column; }
+  .cover-accent { height: 4px; background: var(--blue); width: 46mm; margin-bottom: 4mm; }
+  .sp1 { flex: 1 1 auto; min-height: 26mm; }
+  .sp2 { flex: 1.4 1 auto; min-height: 30mm; }
+  .ctitle { text-align: center; }
+  .ctitle h1 { font-size: 31pt; font-weight: 800; margin: 0; letter-spacing: -0.01em; color: #10233a; }
+  .ctitle .sub { font-size: 19pt; font-weight: 700; margin-top: 3px; color: #10233a; }
+  .ctitle .desc { font-size: 10.3pt; color: var(--muted); margin: 12px auto 0; max-width: 122mm; line-height: 1.5; }
+  .cblock { display: flex; align-items: flex-end; justify-content: space-between; gap: 18px; margin-top: 6mm; }
+  .wordmark { display: flex; align-items: center; gap: 11px; }
+  .wordmark .word { font-size: 26pt; font-weight: 800; letter-spacing: -0.02em; color: #111; }
+  .meta { border-collapse: collapse; font-size: 8.9pt; min-width: 86mm; }
+  .meta td { border: 1px solid #9aa0a8; padding: 5px 9px; vertical-align: top; }
+  .meta td.k { font-weight: 700; width: 30mm; background: var(--soft); }
+  .statement { margin-top: 6mm; border-top: 1px solid #9aa0a8; border-bottom: 1px solid #9aa0a8;
+               background: var(--soft); padding: 9px 12px; font-size: 9pt; line-height: 1.5; }
+</style>
+</head>
+<body>
+
+<!-- ============ PAGE 1 : COVER ============ -->
+<section class="sheet">
+  <div class="inner cover-inner">
+    <div class="rh">OPSConnect - Ops Got Talent</div>
+    <div class="cover-accent"></div>
+    <div class="sp1"></div>
+    <div class="ctitle">
+      <h1>OPSConnect</h1>
+      <div class="sub">Executive Summary</div>
+      <div class="desc">A secure, permission-based discovery and routing layer over approved OPS data sources, powered by Microsoft Copilot. It helps staff find the right person, skill, project or ticket context, and next step in seconds.</div>
+    </div>
+    <div class="sp2"></div>
+    <div class="cblock">
+      <div class="wordmark">
+        <svg width="58" height="54" viewBox="0 0 60 56" aria-label="Government of Ontario">
+          <g fill="#111" transform="translate(30,30)">
+            <path id="pt" d="M0 -2 C -8 -9 -8 -20 0 -24 C 8 -20 8 -9 0 -2 Z"/>
+            <use href="#pt" transform="rotate(120)"/>
+            <use href="#pt" transform="rotate(240)"/>
+            <circle cx="0" cy="0" r="2.6" fill="#111"/>
+          </g>
+        </svg>
+        <span class="word">Ontario</span>
+      </div>
+      <table class="meta">
+        <tr><td class="k">Version</td><td>1.0</td></tr>
+        <tr><td class="k">Version Date</td><td>July 10, 2026</td></tr>
+        <tr><td class="k">Track</td><td>1. Onboarding and Time-to-Productivity <em>(also advances Knowledge Retrieval and Request-Routing)</em></td></tr>
+        <tr><td class="k">Prepared By</td><td>Jackie Liang<br/>Richard Duc Anh Nguyen<br/>Manraj Rakhraj<br/>Ali Hamoudi</td></tr>
+      </table>
+    </div>
+    <div class="statement">
+      <strong>Executive Summary Statement:</strong> OPSConnect is a secure, permission-based workflow platform that uses ESMT, Forte, the Employee Directory, and Microsoft Copilot to help OPS staff identify the right support path, related ticket history, contact, expertise, and next step, turning hours of manual searching into seconds, while protecting restricted information.
+    </div>
+    <div class="rf"><span>Version 1.0&nbsp;&nbsp;|&nbsp;&nbsp;July 10, 2026</span><span class="pg">Page 1</span></div>
+  </div>
+</section>
+
+<!-- ============ PAGE 2 ============ -->
+<section class="sheet">
+  <div class="inner">
+    <div class="rh">OPSConnect - Ops Got Talent</div>
+
+    <div class="glance">
+      <table>
+        <tr><td class="k">The problem</td><td>Staff act on partial context (a ticket number, system, or problem) and lose time searching ESMT, Forte, email, Teams, and SharePoint to find the right owner, expert, or next step.</td></tr>
+        <tr><td class="k">The solution</td><td>One Teams-native assistant that searches approved sources, has Copilot summarize and recommend, and applies a permission layer so results respect role and data-owner rules.</td></tr>
+        <tr><td class="k">On-policy AI</td><td><strong>Microsoft Copilot is the only AI</strong>, used for summarization and recommendation. <strong>Access-control decisions are made by the permission layer, never by the AI model.</strong></td></tr>
+        <tr><td class="k">Manager value</td><td>A live connection network, a coordinator analytics page, and a manager chat that together let leaders see silos, isolated staff, and knowledge risk, and act early.</td></tr>
+        <tr><td class="k">3-year cost</td><td><strong>~$1.43M</strong> of the $1.5M budget (about $500k per year, front-loaded), with ~$150k contingency.</td></tr>
+        <tr><td class="k">Return</td><td><strong>~$4M or more per year</strong> in reclaimed staff time at conservative scale; <strong>payback under 6 months</strong>; <strong>over 2x ROI even at 25% of projections.</strong></td></tr>
+      </table>
+    </div>
+
+    <h2><span class="n">1.</span> Problem to Solve</h2>
+    <p>OPS staff often handle requests with only partial context: a ticket number, a system or application name, a deployment key, a problem description, or an affected user. The ownership, support, expertise, and historical information needed to act may exist, but it is spread across multiple internal systems and is not easy to discover together.</p>
+    <ul>
+      <li>Staff spend time searching ESMT, Forte, email, Teams, and SharePoint, or asking around informally.</li>
+      <li>Requests are delayed or misrouted when the correct owner, support team, expert, or next step is unclear.</li>
+      <li>Some information cannot be freely shared across teams because of privacy, security, and role-based restrictions.</li>
+    </ul>
+    <p><strong>Quantified impact:</strong> industry research (McKinsey) finds knowledge workers spend about 1.8 hours per day, close to 20% of the workweek, searching for information and tracking down colleagues. Across roughly 66,000 OPS staff, even a fraction of that time represents millions of dollars in recoverable capacity each year.</p>
+
+    <h2><span class="n">2.</span> Proposed Solution</h2>
+    <p>OPSConnect is a production-ready internal platform, delivered inside <strong>Microsoft Teams</strong> with a companion web experience, that acts as a <strong>secure workflow layer over approved OPS data sources</strong>. It does not replace ESMT, Forte, or existing systems. It helps staff use them more effectively.</p>
+    <ul>
+      <li>A user enters a problem, ticket number, system or application, deployment key, request type, or a plain-language question (for example, "who knows Tableau?", "who can staff HDP-482?", "I am a new co-op, who should I meet?").</li>
+      <li>The platform searches ESMT, Forte, the Employee Directory, and other approved sources.</li>
+      <li>Copilot summarizes relevant ticket history and expertise, then suggests a support path or the right people.</li>
+      <li>A permission layer controls whether the user sees a contact, owner, support queue, or a restricted-information message.</li>
+    </ul>
+    <p>The result: hours of searching become seconds, with the right answer, and the right access, the first time.</p>
+
+    <div class="rf"><span>Version 1.0&nbsp;&nbsp;|&nbsp;&nbsp;July 10, 2026</span><span class="pg">Page 2</span></div>
+  </div>
+</section>
+
+<!-- ============ PAGE 3 ============ -->
+<section class="sheet">
+  <div class="inner">
+    <div class="rh">OPSConnect - Ops Got Talent</div>
+
+    <h2><span class="n">3.</span> How It Works: the AI Workflow</h2>
+    <p>OPSConnect follows one disciplined principle: <strong>the AI routes and phrases, governed queries supply the facts, and the permission layer decides what may be shown.</strong> The model never stores data, invents facts, or makes access decisions.</p>
+    <ul>
+      <li><strong>Route.</strong> Copilot interprets the request and identifies the key items (ticket, system, skill, person, team).</li>
+      <li><strong>Retrieve.</strong> A purpose-built tool runs a read-only query against approved sources. Semantic search handles synonyms, so "k8s" resolves to "Kubernetes", when exact keywords fail.</li>
+      <li><strong>Filter.</strong> The permission layer applies role-based and data-owner rules before anything is shown.</li>
+      <li><strong>Phrase.</strong> Copilot composes a short, cited answer, and the app renders the result cards directly from the query, not from model text.</li>
+    </ul>
+    <p>This delivers three things leadership cares about: <strong>accuracy</strong> (no invented facts), <strong>compliance</strong> (Microsoft-only AI, kept in the OPS tenant, no training on OPS data, access decisions outside the model), and <strong>low cost</strong> (most requests are inexpensive governed lookups, not large AI calls).</p>
+
+    <h2><span class="n">4.</span> Current to Future Workflow</h2>
+    <table class="grid">
+      <tr><th>Current workflow</th><th>Future workflow with OPSConnect</th></tr>
+      <tr><td>Manual search across systems and informal channels.</td><td>Enter a ticket or problem, or ask in plain language, in one internal platform.</td></tr>
+      <tr><td>Ownership, expert, or support path may be unclear.</td><td>Platform recommends the team, contact path, related history, expertise, and next step.</td></tr>
+      <tr><td>Sensitive data can be over-shared or unavailable.</td><td>Permission-based results protect restricted information.</td></tr>
+      <tr><td>Follow-up depends on manual messages.</td><td>Feedback and an audit trail improve future routing accuracy.</td></tr>
+    </table>
+    <p><em>A full current-state and future-state process map accompanies this summary as a supporting exhibit.</em></p>
+
+    <h2><span class="n">5.</span> Capabilities Delivered</h2>
+    <table class="grid">
+      <tr><th>Capability</th><th>Value to the OPS</th></tr>
+      <tr><td>Ticket and support-path discovery (ESMT, Forte)</td><td>Right owner and next step; fewer misroutes and duplicate handoffs</td></tr>
+      <tr><td>Skill and expertise search</td><td>Faster problem-solving; less duplicated work</td></tr>
+      <tr><td>Project staffing and capability-gap detection</td><td>Right people on the right work; visible gaps</td></tr>
+      <tr><td>Org structure, roster, and reporting-line navigation</td><td>Cross-ministry wayfinding; reduced silos</td></tr>
+      <tr><td>Co-op and new-hire onboarding companion</td><td>Faster time-to-productivity (Track 1)</td></tr>
+    </table>
+
+    <div class="rf"><span>Version 1.0&nbsp;&nbsp;|&nbsp;&nbsp;July 10, 2026</span><span class="pg">Page 3</span></div>
+  </div>
+</section>
+
+<!-- ============ PAGE 4 : MANAGER VALUE ============ -->
+<section class="sheet">
+  <div class="inner">
+    <div class="rh">OPSConnect - Ops Got Talent</div>
+
+    <h2><span class="n">6.</span> Value for Managers and Coordinators</h2>
+    <p>Beyond individual lookups, OPSConnect gives team managers and program coordinators a live view of how their people connect, where knowledge sits, and where to act. Three tools work together to turn team management from reactive to proactive.</p>
+
+    <h3>6.1 The connection network (a living map of nodes)</h3>
+    <p>Every person is a node, and the links between them show how they connect. A manager can change what a link means, and the whole picture updates instantly:</p>
+    <table class="grid">
+      <tr><th>Connection lens</th><th>What it reveals</th></tr>
+      <tr><td>Logged connection (coffee chat)</td><td>Who has actually met and collaborated</td></tr>
+      <tr><td>Same team, division, or ministry</td><td>How tightly a group works together, and where it is fragmented</td></tr>
+      <tr><td>Shared skills</td><td>Hidden expertise clusters and who to pair on a problem</td></tr>
+      <tr><td>Same project</td><td>Real working groups across reporting lines</td></tr>
+      <tr><td>Reporting line</td><td>The formal structure, side by side with the informal one</td></tr>
+    </table>
+    <p>At a glance a manager can see who is <strong>isolated or newly arrived and not yet connected</strong>, who <strong>bridges the most ministries</strong> (the informal connectors worth retaining), where a <strong>skill depends on a single person</strong> (a continuity and knowledge risk), and how well a team actually collaborates.</p>
+
+    <h3>6.2 The coordinator analytics page</h3>
+    <p>A leadership view that reads in thirty seconds: adoption and active users, cross-team and cross-ministry collaboration, most and least connected teams, knowledge concentration and gaps, and onboarding health for new co-ops. It doubles as a change-management scorecard, so leaders can measure whether silos are shrinking and newcomers are integrating over time.</p>
+
+    <h3>6.3 The manager chat (plain-language analytics)</h3>
+    <p>Managers ask questions in ordinary language and get grounded answers, with no dashboards to learn:</p>
+    <ul>
+      <li>"Who on my team is isolated or needs a nudge to connect?"</li>
+      <li>"How are Priya and Marcus connected?" and "Who could introduce me to someone in the Ministry of Health?"</li>
+      <li>"Who should our new co-op meet first?"</li>
+      <li>"Which of our active projects have staffing gaps, and who can fill them?"</li>
+      <li>"Which skills does our team rely on only one person for?"</li>
+      <li>"Draft a short note to reconnect two people."</li>
+    </ul>
+    <p>Together these give every manager the insight of a dedicated network analyst: balancing workloads, breaking silos, reducing knowledge risk, accelerating onboarding, and building deliberate cross-team bridges.</p>
+
+    <div class="rf"><span>Version 1.0&nbsp;&nbsp;|&nbsp;&nbsp;July 10, 2026</span><span class="pg">Page 4</span></div>
+  </div>
+</section>
+
+<!-- ============ PAGE 5 ============ -->
+<section class="sheet">
+  <div class="inner">
+    <div class="rh">OPSConnect - Ops Got Talent</div>
+
+    <h2><span class="n">7.</span> Infrastructure and Data Approach</h2>
+    <p>OPSConnect uses a hybrid internal OPS hosting model connected to approved GDC and data-centre infrastructure. The frontend never queries ESMT or Forte directly. All access flows through secure API, integration, and permission layers.</p>
+    <table class="grid">
+      <tr><th>Component</th><th>Purpose</th></tr>
+      <tr><td>Frontend web app (in Teams)</td><td>Intake for a ticket, problem, or question; routing results; profile and availability.</td></tr>
+      <tr><td>API and integration layer</td><td>Connects the frontend to ESMT, Forte, the Employee Directory, and Copilot (read-only).</td></tr>
+      <tr><td>Permission layer</td><td>Applies role-based and data-owner rules before any result is displayed.</td></tr>
+      <tr><td>Application database</td><td>Preferences, availability, feedback, audit logs, permission mappings, and limited cache only.</td></tr>
+      <tr><td>Monitoring and logging</td><td>Tracks access, health, errors, security events, and routing performance.</td></tr>
+    </table>
+    <div class="note"><strong>Variable cost, other ticketing systems:</strong> ESMT and Forte are the primary approved sources, but some teams use different tools such as Jira and Confluence, Azure DevOps, or ServiceNow. Each additional system is a separate read-only connector (about $15k to $25k, one to two weeks) added case by case as teams onboard. This is a variable line, isolated so it never blocks core delivery.</div>
+
+    <h2><span class="n">8.</span> Security, Privacy, and AI Governance</h2>
+    <ul>
+      <li>Login through OPS account and ontario.ca identity with single sign-on and role-based access control.</li>
+      <li>No sensitive cross-team data exposure unless approved by a manager or data owner.</li>
+      <li>Audit logging for searches, viewed results, approvals, and administrative actions.</li>
+      <li>Encryption in transit and at rest, with retention rules for search history and audit records.</li>
+      <li>All data and inference remain in the OPS tenant (Canada). Copilot does not train on OPS data.</li>
+      <li><strong>Microsoft Copilot is used only as the approved AI layer for summarization and recommendation. Access-control decisions remain outside the AI model.</strong></li>
+      <li>Built to WCAG 2.2 AA. Accessibility and change management are addressed through simple UI design, user guidance, pilot feedback, and phased rollout.</li>
+    </ul>
+
+    <div class="rf"><span>Version 1.0&nbsp;&nbsp;|&nbsp;&nbsp;July 10, 2026</span><span class="pg">Page 5</span></div>
+  </div>
+</section>
+
+<!-- ============ PAGE 6 ============ -->
+<section class="sheet">
+  <div class="inner">
+    <div class="rh">OPSConnect - Ops Got Talent</div>
+
+    <h2><span class="n">9.</span> Implementation Roadmap</h2>
+    <table class="grid">
+      <tr><th>Phase</th><th>Timeline</th><th>Focus and deliverables</th></tr>
+      <tr><td>1. Discovery and Design</td><td>FY2026-27</td><td>Confirm data sources, permission model, integration method, and success metrics; complete PIA and TRA.</td></tr>
+      <tr><td>2. Foundation Build</td><td>FY2026-27</td><td>Environments, authentication, frontend, API layer, database, and logging; assistant live in Teams.</td></tr>
+      <tr><td>3. Data Integration</td><td>FY2027-28</td><td>Read-only connectors to ESMT, Forte, Employee Directory, and Copilot; connection network and coordinator analytics.</td></tr>
+      <tr><td>4. Pilot and Rollout</td><td>FY2027-29</td><td>Validate with selected OPS teams, improve accuracy, then expand adoption across ministries.</td></tr>
+    </table>
+
+    <h2><span class="n">10.</span> Cost Analysis and Financial Feasibility</h2>
+    <p>Costed bottom-up on fully-loaded OPS salaries (base times 1.40 for pension, benefits, and overhead) and deliberately staffed with permanent staff and co-op students rather than contractors. At Ontario I and IT Vendor-of-Record day rates, a contractor team would cost roughly 1.4 to 2 times more and would breach the $500k annual cap. The program fits by reusing OPS-approved infrastructure, identity services, the ESMT and Forte sources, and Microsoft Copilot, rather than building a separate system.</p>
+    <table class="grid">
+      <tr><th>Cost area</th><th class="r">3-year estimate</th><th>Notes</th></tr>
+      <tr><td>Development and implementation team (staff plus co-ops)</td><td class="r">$1,046k</td><td>Lean team of 2.8 down to 2.2 FTE; about 83% of base</td></tr>
+      <tr><td>Infrastructure, hosting, and monitoring</td><td class="r">$126k</td><td>Marginal consumption on existing platform</td></tr>
+      <tr><td>ESMT, Forte, Directory, and Copilot integration</td><td class="r">$52k</td><td>Read-only connectors and SDK (variable)</td></tr>
+      <tr><td>Security, privacy, and accessibility review</td><td class="r">$34k</td><td>PIA and TRA, WCAG 2.2 AA audit, penetration test</td></tr>
+      <tr><td>Training and change management</td><td class="r">$22k</td><td>In-Teams rollout, champions network</td></tr>
+      <tr><td>Contingency (about 12%)</td><td class="r">$150k</td><td>Integration surprises and scope growth</td></tr>
+      <tr class="total-row"><td>Total (3 years)</td><td class="r">$1,430k</td><td>About $500k per year, front-loaded (Y1 $500k, Y2 $470k, Y3 $310k); under the $1.5M ceiling</td></tr>
+    </table>
+
+    <div class="rf"><span>Version 1.0&nbsp;&nbsp;|&nbsp;&nbsp;July 10, 2026</span><span class="pg">Page 6</span></div>
+  </div>
+</section>
+
+<!-- ============ PAGE 7 ============ -->
+<section class="sheet">
+  <div class="inner">
+    <div class="rh">OPSConnect - Ops Got Talent</div>
+
+    <h2><span class="n">11.</span> Return on Investment</h2>
+    <p><strong>Conservative model.</strong> Reclaiming just 10 minutes per active user per week, a fraction of the 1.8 hours per day lost today:</p>
+    <ul>
+      <li>About 10,000 active users by FY2028-29 (roughly 15% of the OPS) gives about 77,000 hours per year reclaimed, or about $4.2M per year at a loaded rate near $55 per hour.</li>
+      <li>Onboarding acceleration: removing even 3 ramp-up days for about 2,000 new hires and co-ops per year adds roughly $2M per year.</li>
+      <li>Payback under 6 months at scale, and about 9 to 10 times annual return against the roughly $310k per year steady-state run cost.</li>
+      <li>Sensitivity: even at 25% of projected adoption and savings, the program still returns more than 2 times its total cost.</li>
+    </ul>
+    <div class="callout"><strong>In short:</strong> about $1.43M invested against a conservatively estimated $4M or more per year in reclaimed productivity, effectively self-funding within its first year at scale, plus qualitative gains in onboarding speed, fewer misrouted tickets, lower knowledge-loss risk, and stronger cross-ministry collaboration.</div>
+
+    <h2><span class="n">12.</span> Success Measures</h2>
+    <table class="grid">
+      <tr><th>Brief metric</th><th>OPSConnect KPI</th><th class="r">Target</th></tr>
+      <tr><td>Processing time</td><td>Time to find the correct team, contact, or answer</td><td class="r">Hours to under 60 sec</td></tr>
+      <tr><td>Task completion</td><td>Requests resolved without escalation or re-routing</td><td class="r">80% or more</td></tr>
+      <tr><td>Information accessibility</td><td>Active users; share of answers grounded and cited</td><td class="r">Rising; 100% grounded</td></tr>
+      <tr><td>Follow-through reliability</td><td>Routing-recommendation accuracy (user feedback)</td><td class="r">Improving</td></tr>
+      <tr><td>Onboarding (Track 1)</td><td>New-hire time to first 10 connections</td><td class="r">Down 50% or more</td></tr>
+      <tr><td>Governance</td><td>Compliance with privacy, audit, and permission rules</td><td class="r">100%</td></tr>
+    </table>
+
+    <div class="rf"><span>Version 1.0&nbsp;&nbsp;|&nbsp;&nbsp;July 10, 2026</span><span class="pg">Page 7</span></div>
+  </div>
+</section>
+
+<!-- ============ PAGE 8 ============ -->
+<section class="sheet last">
+  <div class="inner">
+    <div class="rh">OPSConnect - Ops Got Talent</div>
+
+    <h2><span class="n">13.</span> Risks and Mitigations</h2>
+    <table class="grid">
+      <tr><th>Risk</th><th>Mitigation</th></tr>
+      <tr><td>Low adoption</td><td>Delivered inside Teams (no new tool to learn); champions network; adoption metrics steer rollout</td></tr>
+      <tr><td>Restricted-data exposure</td><td>Permission layer and data-owner approval; aggregate, coordinator-gated analytics; full audit logging</td></tr>
+      <tr><td>Source and ticketing variety</td><td>Read-only connector SDK; variable, incremental funding for each new system</td></tr>
+      <tr><td>Budget overrun</td><td>Staff and co-op staffing; reuse of the approved platform; about 16% combined contingency and headroom</td></tr>
+      <tr><td>Small-team key-person risk</td><td>Co-op talent pipeline; documented, standards-based build</td></tr>
+    </table>
+
+    <h2><span class="n">14.</span> Conclusion</h2>
+    <p>OPSConnect provides a practical, on-policy way to improve OPS internal workflow. It turns partial ticket or problem information, or a plain-language question, into a secure recommendation for the right support path, expertise, related history, and next step. It uses existing OPS systems as the sources of truth while adding a governed discovery and routing layer on top, powered only by Microsoft Copilot.</p>
+    <p>For managers and coordinators, the connection network, the analytics page, and the manager chat give a clear, live picture of how teams collaborate, where knowledge is concentrated, and who needs support, so leaders can act before small gaps become real problems.</p>
+    <p>Already prototyped, staffed sustainably with OPS talent and co-op students, and funded within budget with meaningful contingency, OPSConnect converts one of the OPS's most common frictions from hours into seconds, for about $1.43M against a conservatively estimated $4M or more per year in reclaimed productivity. <strong>We recommend proceeding with the Phase 1 discovery, design, and pilot.</strong></p>
+
+    <div class="rf"><span>Version 1.0&nbsp;&nbsp;|&nbsp;&nbsp;July 10, 2026</span><span class="pg">Page 8</span></div>
+  </div>
+</section>
+
+</body>
+</html>

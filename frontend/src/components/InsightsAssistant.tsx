@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import type { ChatMessage as ChatMessageType, EdgeMode } from '../types';
+import type { ChatMessage as ChatMessageType, EdgeMode, UserSummary } from '../types';
 import { EDGE_MODES } from '../types';
 import { api } from '../api/client';
 import { useToast } from '../context/ToastContext';
@@ -71,10 +71,13 @@ function parseSetMode(raw: string): EdgeMode | null {
 
 export default function InsightsAssistant({
   onFindPerson,
+  onFocusPerson,
   mode = 'combined',
   onSetMode,
 }: {
   onFindPerson?: (name: string) => void;
+  /** Tap a person card in a reply to highlight that exact person on the network above. */
+  onFocusPerson?: (person: UserSummary) => void;
   mode?: EdgeMode;
   onSetMode?: (mode: EdgeMode) => void;
 }) {
@@ -236,6 +239,7 @@ export default function InsightsAssistant({
                 message={m}
                 isStreaming={m.id === streamingId}
                 onFollowUp={send}
+                onPersonClick={onFocusPerson}
               />
             ))}
             {sending && (
