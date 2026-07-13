@@ -1,5 +1,5 @@
 import type { CSSProperties } from 'react';
-import type { SurfacedProject } from '../types';
+import type { SurfacedProject, UserSummary } from '../types';
 import MiniProfileCard from './MiniProfileCard';
 import Icon from './Icon';
 
@@ -19,9 +19,12 @@ function fmtDate(iso: string): string {
 export default function ProjectCard({
   surfaced,
   style,
+  onPersonClick,
 }: {
   surfaced: SurfacedProject;
   style?: CSSProperties;
+  /** When set, tapping a suggested person highlights them on the network instead of previewing. */
+  onPersonClick?: (person: UserSummary) => void;
 }) {
   const { project, suggestedPeople, coveredSkills, gapSkills } = surfaced;
   const covered = new Set(coveredSkills.map((s) => s.toLowerCase()));
@@ -110,6 +113,7 @@ export default function ProjectCard({
               person={p.user}
               rationale={p.rationale}
               matchStrength={p.matchStrength}
+              onPersonClick={onPersonClick}
             />
           ))}
         </div>

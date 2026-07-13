@@ -17,8 +17,13 @@ export default function AdminPage() {
   const [data, setData] = useState<AdminInsights | null>(null);
   const [loading, setLoading] = useState(true);
   const [denied, setDenied] = useState(false);
-  // A "find <person>" request from the assistant, consumed by the graph to focus a node.
-  const [focusRequest, setFocusRequest] = useState<{ query: string; nonce: number } | null>(null);
+  // A "find <person>" request from the assistant (by name) or a person-card tap (by id),
+  // consumed by the graph to focus that node.
+  const [focusRequest, setFocusRequest] = useState<{
+    query: string;
+    id?: number;
+    nonce: number;
+  } | null>(null);
   // The active connection lens — shared between the graph selector and the assistant so the
   // assistant's relationship answers match what's on screen (and it can switch the view).
   const [edgeMode, setEdgeMode] = useState<EdgeMode>('combined');
@@ -75,6 +80,9 @@ export default function AdminPage() {
                 mode={edgeMode}
                 onSetMode={setEdgeMode}
                 onFindPerson={(name) => setFocusRequest({ query: name, nonce: Date.now() })}
+                onFocusPerson={(person) =>
+                  setFocusRequest({ query: person.name, id: person.id, nonce: Date.now() })
+                }
               />
             </Suspense>
           )}

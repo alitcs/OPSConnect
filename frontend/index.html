@@ -2,7 +2,12 @@
 <html lang="en-CA">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <!-- maximum-scale=1 stops iOS Safari from auto-zooming when a small-font input gains
+         focus (the chat bar). iOS 10+ still allows manual pinch-zoom, so accessibility is kept. -->
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0, maximum-scale=1.0"
+    />
     <meta name="theme-color" content="#0f6cbd" />
     <meta
       name="description"

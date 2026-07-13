@@ -12,10 +12,13 @@ export default function MiniProfileCard({
   person,
   rationale,
   matchStrength,
+  onPersonClick,
 }: {
   person: UserSummary;
   rationale?: string;
   matchStrength?: 'high' | 'medium';
+  /** Optional override for the main tap — e.g. highlight the person on the network graph. */
+  onPersonClick?: (person: UserSummary) => void;
 }) {
   const { openPreview } = usePreviewCard();
   const { currentUser } = useAuth();
@@ -27,8 +30,12 @@ export default function MiniProfileCard({
       <button
         type="button"
         className="mini-card__main"
-        onClick={() => openPreview(person.id)}
-        aria-label={`View details for ${person.name}, ${person.title}`}
+        onClick={() => (onPersonClick ? onPersonClick(person) : openPreview(person.id))}
+        aria-label={
+          onPersonClick
+            ? `Highlight ${person.name} on the network`
+            : `View details for ${person.name}, ${person.title}`
+        }
       >
         <Avatar name={person.name} size={36} status={person.status} />
         <div className="mini-card__body">
