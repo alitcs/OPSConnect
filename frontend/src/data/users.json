@@ -1,7 +1,7 @@
 [
   {
     "id": 1,
-    "name": "Priya Sharma",
+    "name": "John Paul",
     "title": "Senior Data Analyst",
     "team": "Policy Research & Analytics",
     "branch": "Strategic Policy Division",
@@ -11,7 +11,7 @@
     "location": "777 Bay Street, Toronto",
     "workHours": "8:30 AM – 4:30 PM",
     "status": "Online",
-    "email": "priya.sharma@ontario.ca",
+    "email": "john.paul@ontario.ca",
     "phone": "416-555-0142",
     "managerId": 5,
     "directReports": [12, 18],
