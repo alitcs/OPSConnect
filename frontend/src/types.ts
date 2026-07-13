@@ -146,6 +146,9 @@ export interface Conversation {
   title: string;
   createdAt: string;
   updatedAt: string;
+  /** Which surface owns this thread. Admin (coordinator) chats are kept separate from a
+   *  member's personal Copilot history. Defaults to 'chat' when omitted. */
+  scope?: 'chat' | 'admin';
 }
 
 export interface DirectMessage {

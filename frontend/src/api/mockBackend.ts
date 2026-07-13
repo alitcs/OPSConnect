@@ -3090,7 +3090,7 @@ export const backend = {
   // --- Chat ---
   listConversations(userId: number): Conversation[] {
     return conversations
-      .filter((c) => c.userId === userId)
+      .filter((c) => c.userId === userId && c.scope !== 'admin')
       .sort((a, b) => b.updatedAt.localeCompare(a.updatedAt));
   },
 
@@ -3105,12 +3105,13 @@ export const backend = {
     return { conversation, messages };
   },
 
-  createConversation(userId: number, title?: string): Conversation {
+  createConversation(userId: number, title?: string, scope: 'chat' | 'admin' = 'chat'): Conversation {
     const now = new Date().toISOString();
     const conversation: Conversation = {
       id: `conv-${uuid()}`,
       userId,
       title: title || 'New chat',
+      scope,
       createdAt: now,
       updatedAt: now,
     };
@@ -3184,9 +3185,60 @@ export const backend = {
 
   // --- Admin analytics assistant (program coordinators only) ---
   //
-  // Stateless by design: replies aren't persisted as conversations, so this admin-only
-  // analytics surface never mixes into a member's personal Copilot history.
-  sendAdminChat(userId: number, message: string, mode?: EdgeMode): { message: ChatMessage } {
+  // Admin threads are persisted like member chats but tagged scope: 'admin' so they stay
+  // out of a member's personal Copilot history and only surface on the Insights page.
+  listAdminConversations(userId: number): Conversation[] {
+    const me = requireUser(userId);
+    if (!me.isAdmin) {
+      throw new ApiError(403, 'Program analytics are available to coordinators only.');
+    }
+    return conversations
+      .filter((c) => c.userId === userId && c.scope === 'admin')
+      .sort((a, b) => b.updatedAt.localeCompare(a.updatedAt));
+  },
+
+  getAdminConversation(
+    userId: number,
+    id: string,
+  ): { conversation: Conversation; messages: ChatMessage[] } {
+    const me = requireUser(userId);
+    if (!me.isAdmin) {
+      throw new ApiError(403, 'Program analytics are available to coordinators only.');
+    }
+    const conversation = conversations.find((c) => c.id === id);
+    if (!conversation || conversation.userId !== userId || conversation.scope !== 'admin') {
+      throw new ApiError(404, 'Conversation not found');
+    }
+    const messages = chatMessages
+      .filter((m) => m.conversationId === id)
+      .sort((a, b) => a.createdAt.localeCompare(b.createdAt));
+    return { conversation, messages };
+  },
+
+  deleteAdminConversation(userId: number, id: string): void {
+    const me = requireUser(userId);
+    if (!me.isAdmin) {
+      throw new ApiError(403, 'Program analytics are available to coordinators only.');
+    }
+    const conversation = conversations.find((c) => c.id === id);
+    if (!conversation || conversation.userId !== userId || conversation.scope !== 'admin') {
+      throw new ApiError(404, 'Conversation not found');
+    }
+    const index = conversations.findIndex((c) => c.id === id);
+    conversations.splice(index, 1);
+    for (let i = chatMessages.length - 1; i >= 0; i--) {
+      if (chatMessages[i].conversationId === id) chatMessages.splice(i, 1);
+    }
+  },
+
+  // Persists the exchange under an admin-scoped conversation so coordinators can revisit
+  // past analytics questions. Pass conversationId to continue a saved thread.
+  sendAdminChat(
+    userId: number,
+    message: string,
+    mode?: EdgeMode,
+    conversationId?: string,
+  ): { conversationId: string; message: ChatMessage } {
     const me = requireUser(userId);
     if (!me.isAdmin) {
       throw new ApiError(403, 'Program analytics are available to coordinators only.');
@@ -3194,18 +3246,48 @@ export const backend = {
     const text = message?.trim();
     if (!text) throw new ApiError(400, 'message is required');
 
+    let convId = conversationId;
+    if (convId) {
+      const existing = conversations.find((c) => c.id === convId);
+      if (!existing || existing.userId !== userId || existing.scope !== 'admin') {
+        throw new ApiError(404, 'Conversation not found');
+      }
+    } else {
+      const title = text.length > 40 ? `${text.slice(0, 40)}…` : text;
+      convId = this.createConversation(userId, title, 'admin').id;
+    }
+
+    const now = () => new Date().toISOString();
+    const touch = (id: string) => {
+      const c = conversations.find((x) => x.id === id);
+      if (c) c.updatedAt = new Date().toISOString();
+    };
+
+    const userMessage: ChatMessage = {
+      id: `admin-${uuid()}`,
+      conversationId: convId,
+      role: 'user',
+      text,
+      createdAt: now(),
+    };
+    chatMessages.push(userMessage);
+    touch(convId);
+
     const reply = generateAdminReply(text, me, mode ?? 'combined');
     const assistantMessage: ChatMessage = {
       id: `admin-${uuid()}`,
-      conversationId: 'admin-analytics',
+      conversationId: convId,
       role: 'assistant',
       text: reply.text,
       people: reply.people,
       projects: reply.projects,
       followUps: reply.followUps,
-      createdAt: new Date().toISOString(),
+      createdAt: now(),
     };
-    return { message: assistantMessage };
+    chatMessages.push(assistantMessage);
+    touch(convId);
+
+    return { conversationId: convId, message: assistantMessage };
   },
 
   // --- Messaging ---

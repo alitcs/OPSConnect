@@ -105,8 +105,18 @@ export const api = {
   deleteConversation: (id: string) => run<void>(() => backend.deleteConversation(me(), id)),
 
   // --- Admin analytics assistant (individual engagement, coordinators only) ---
-  sendAdminChat: (message: string, mode?: EdgeMode) =>
-    run<{ message: ChatMessage }>(() => backend.sendAdminChat(me(), message, mode)),
+  sendAdminChat: (message: string, mode?: EdgeMode, conversationId?: string) =>
+    run<{ conversationId: string; message: ChatMessage }>(() =>
+      backend.sendAdminChat(me(), message, mode, conversationId),
+    ),
+  listAdminConversations: () =>
+    run<Conversation[]>(() => backend.listAdminConversations(me())),
+  getAdminConversation: (id: string) =>
+    run<{ conversation: Conversation; messages: ChatMessage[] }>(() =>
+      backend.getAdminConversation(me(), id),
+    ),
+  deleteAdminConversation: (id: string) =>
+    run<void>(() => backend.deleteAdminConversation(me(), id)),
 
   // --- Messaging ---
   listThreads: () => run<MessageThreadSummary[]>(() => backend.listThreads(me())),

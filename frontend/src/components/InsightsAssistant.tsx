@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import type { ChatMessage as ChatMessageType, EdgeMode, UserSummary } from '../types';
+import type { ChatMessage as ChatMessageType, Conversation, EdgeMode, UserSummary } from '../types';
 import { EDGE_MODES } from '../types';
 import { api } from '../api/client';
 import { useToast } from '../context/ToastContext';
@@ -85,8 +85,73 @@ export default function InsightsAssistant({
   const [messages, setMessages] = useState<ChatMessageType[]>([]);
   const [sending, setSending] = useState(false);
   const [streamingId, setStreamingId] = useState<string | null>(null);
+  // Saved admin chats (coordinator-scoped history) surfaced in the header history panel.
+  const [conversations, setConversations] = useState<Conversation[]>([]);
+  const [activeId, setActiveId] = useState<string | null>(null);
+  const [historyOpen, setHistoryOpen] = useState(false);
+  const [loadingThread, setLoadingThread] = useState(false);
   const threadRef = useRef<HTMLDivElement>(null);
+  const barRef = useRef<HTMLDivElement>(null);
   const streamTimer = useRef<number | null>(null);
+
+  const loadConversations = () =>
+    api.listAdminConversations().then(setConversations).catch(() => setConversations([]));
+
+  useEffect(() => {
+    loadConversations();
+  }, []);
+
+  // Close the history panel when clicking outside the header bar.
+  useEffect(() => {
+    if (!historyOpen) return;
+    const onDown = (e: MouseEvent) => {
+      if (barRef.current && !barRef.current.contains(e.target as Node)) setHistoryOpen(false);
+    };
+    document.addEventListener('mousedown', onDown);
+    return () => document.removeEventListener('mousedown', onDown);
+  }, [historyOpen]);
+
+  const stopStream = () => {
+    if (streamTimer.current) {
+      window.clearInterval(streamTimer.current);
+      streamTimer.current = null;
+    }
+    setStreamingId(null);
+  };
+
+  const selectConversation = async (id: string) => {
+    setHistoryOpen(false);
+    if (id === activeId) return;
+    stopStream();
+    setActiveId(id);
+    setLoadingThread(true);
+    try {
+      const { messages: msgs } = await api.getAdminConversation(id);
+      setMessages(msgs);
+    } catch {
+      notify('Could not open that conversation.', 'error');
+      setMessages([]);
+    } finally {
+      setLoadingThread(false);
+    }
+  };
+
+  const newChat = () => {
+    setHistoryOpen(false);
+    stopStream();
+    setActiveId(null);
+    setMessages([]);
+  };
+
+  const removeConversation = async (id: string) => {
+    try {
+      await api.deleteAdminConversation(id);
+      if (id === activeId) newChat();
+      loadConversations();
+    } catch {
+      notify('Could not delete that conversation.', 'error');
+    }
+  };
 
   useEffect(() => {
     return () => {
@@ -164,7 +229,9 @@ export default function InsightsAssistant({
 
     setSending(true);
     try {
-      const res = await api.sendAdminChat(text, mode);
+      const res = await api.sendAdminChat(text, mode, activeId ?? undefined);
+      if (!activeId) setActiveId(res.conversationId);
+      loadConversations();
       setSending(false);
       presentAssistant(res.message);
     } catch {
@@ -177,7 +244,7 @@ export default function InsightsAssistant({
 
   return (
     <section className="copilot-hero ins-anim">
-      <div className="copilot-hero__bar">
+      <div className="copilot-hero__bar" ref={barRef}>
         <span className="copilot-hero__brand">
           <span className="copilot-hero__mark">
             <Icon name="sparkle" size={18} />
@@ -187,10 +254,78 @@ export default function InsightsAssistant({
             <span className="copilot-hero__title">Ask Copilot</span>
           </span>
         </span>
-        <span className="copilot-hero__badge">
-          <Icon name="shield" size={12} />
-          Admin
-        </span>
+        <div className="copilot-hero__tools">
+          <button
+            type="button"
+            className="copilot-hero__tool"
+            onClick={newChat}
+            title="New chat"
+            aria-label="Start a new chat"
+          >
+            <Icon name="plus" size={16} />
+          </button>
+          <button
+            type="button"
+            className={`copilot-hero__tool ${historyOpen ? 'is-active' : ''}`}
+            onClick={() => setHistoryOpen((v) => !v)}
+            title="Saved chats"
+            aria-label="Saved chats"
+            aria-expanded={historyOpen}
+          >
+            <Icon name="clock" size={16} />
+            {conversations.length > 0 && (
+              <span className="copilot-hero__tool-count">{conversations.length}</span>
+            )}
+          </button>
+          <span className="copilot-hero__badge">
+            <Icon name="shield" size={12} />
+            Admin
+          </span>
+        </div>
+
+        {historyOpen && (
+          <div className="copilot-hero__history" role="menu">
+            <div className="copilot-hero__history-head">
+              <span>Saved chats</span>
+              <button
+                type="button"
+                onClick={() => setHistoryOpen(false)}
+                aria-label="Close saved chats"
+              >
+                <Icon name="x" size={14} />
+              </button>
+            </div>
+            {conversations.length === 0 ? (
+              <p className="copilot-hero__history-empty">No saved chats yet.</p>
+            ) : (
+              <div className="copilot-hero__history-list">
+                {conversations.map((c) => (
+                  <div
+                    key={c.id}
+                    className={`ins-conv ${activeId === c.id ? 'is-active' : ''}`}
+                  >
+                    <button
+                      type="button"
+                      className="ins-conv__open"
+                      onClick={() => selectConversation(c.id)}
+                    >
+                      <Icon name="chat" size={14} />
+                      <span className="ins-conv__title">{c.title}</span>
+                    </button>
+                    <button
+                      type="button"
+                      className="ins-conv__del"
+                      onClick={() => removeConversation(c.id)}
+                      aria-label={`Delete ${c.title}`}
+                    >
+                      <Icon name="trash" size={13} />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
       </div>
 
       <div
@@ -200,7 +335,11 @@ export default function InsightsAssistant({
         aria-live="polite"
         aria-busy={sending}
       >
-        {!hasMessages ? (
+        {loadingThread ? (
+          <div className="copilot-hero__empty">
+            <p>Loading conversation…</p>
+          </div>
+        ) : !hasMessages ? (
           <div className="copilot-hero__empty">
             <h2>What would you like to know?</h2>
             <p>Ask how people are engaging across the OPS network.</p>
