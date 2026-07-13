@@ -35,7 +35,7 @@ export const DEMO_ACCOUNTS: Array<{
     email: 'admin@ontario.ca',
     password: 'admin',
     label: 'Program coordinator (admin)',
-    mapsToEmail: 'priya.sharma@ontario.ca',
+    mapsToEmail: 'john.paul@ontario.ca',
   },
 ];
 
