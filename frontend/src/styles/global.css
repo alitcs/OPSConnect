@@ -232,6 +232,112 @@ select {
   to { transform: rotate(360deg); }
 }
 
+/* --- Startup splash (Teams-style) -------------------------------------- */
+
+.splash {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  display: grid;
+  place-items: center;
+  background: var(--bg);
+  opacity: 1;
+  transition: opacity 0.6s var(--ease);
+  /* keep it above everything, including modals, while it plays */
+  will-change: opacity;
+}
+
+.splash--leaving {
+  opacity: 0;
+  pointer-events: none;
+}
+
+.splash__stage {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 20px;
+  transform: translateY(-2%);
+}
+
+.splash__mark {
+  color: var(--accent);
+  overflow: visible;
+  filter: drop-shadow(0 6px 20px var(--accent-ring));
+  animation: splash-mark-in 0.9s var(--ease) both;
+}
+
+@keyframes splash-mark-in {
+  from { transform: scale(0.86); opacity: 0; }
+  60%  { opacity: 1; }
+  to   { transform: scale(1); opacity: 1; }
+}
+
+/* Connecting lines draw themselves in */
+.splash__link {
+  stroke-dasharray: 9;
+  stroke-dashoffset: 9;
+  opacity: 0;
+  animation: splash-draw 0.55s var(--ease) forwards;
+}
+.splash__link--1 { animation-delay: 0.15s; }
+.splash__link--2 { animation-delay: 0.35s; }
+
+@keyframes splash-draw {
+  from { stroke-dashoffset: 9; opacity: 0; }
+  15%  { opacity: 1; }
+  to   { stroke-dashoffset: 0; opacity: 1; }
+}
+
+/* Nodes pop in with a soft settle */
+.splash__node {
+  fill: var(--accent);
+  stroke: none;
+  transform-box: fill-box;
+  transform-origin: center;
+  opacity: 0;
+  animation: splash-pop 0.5s var(--ease) both;
+}
+.splash__node--1 { animation-delay: 0.55s; }
+.splash__node--2 { animation-delay: 0.7s; }
+.splash__node--3 { animation-delay: 0.85s; }
+
+@keyframes splash-pop {
+  0%   { transform: scale(0); opacity: 0; }
+  70%  { transform: scale(1.18); opacity: 1; }
+  100% { transform: scale(1); opacity: 1; }
+}
+
+.splash__wordmark {
+  font-size: 1.55rem;
+  font-weight: 650;
+  letter-spacing: -0.01em;
+  color: var(--text);
+  opacity: 0;
+  animation: splash-word-in 0.7s var(--ease) 1s both;
+}
+
+.splash__word--2 {
+  color: var(--accent);
+}
+
+@keyframes splash-word-in {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .splash__mark,
+  .splash__link,
+  .splash__node,
+  .splash__wordmark {
+    animation-duration: 0.35s;
+    animation-delay: 0s;
+  }
+  .splash__link { stroke-dashoffset: 0; opacity: 1; }
+}
+
+
 /* --- Sidebar (primary nav) — slim icon rail ---------------------------- */
 
 .sidebar {

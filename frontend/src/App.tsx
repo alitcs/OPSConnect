@@ -1,5 +1,7 @@
+import { useState } from 'react';
 import { Navigate, Route, Routes } from 'react-router-dom';
 import TopNav from './components/TopNav';
+import SplashScreen from './components/SplashScreen';
 import { PreviewCardProvider } from './context/PreviewCardContext';
 import { useAuth } from './context/AuthContext';
 import ChatPage from './pages/Chat';
@@ -14,10 +16,14 @@ import LoginPage from './pages/Login';
 
 export default function App() {
   const { currentUser, isAuthenticated, loading } = useAuth();
+  const [splashDone, setSplashDone] = useState(false);
+
+  const splash = !splashDone ? <SplashScreen onDone={() => setSplashDone(true)} /> : null;
 
   if (loading && !currentUser) {
     return (
       <div className="app-loading">
+        {splash}
         <div className="spinner" />
       </div>
     );
@@ -26,15 +32,19 @@ export default function App() {
   // Unauthenticated: only the login screen is available.
   if (!isAuthenticated) {
     return (
-      <Routes>
-        <Route path="/login" element={<LoginPage />} />
-        <Route path="*" element={<Navigate to="/login" replace />} />
-      </Routes>
+      <>
+        {splash}
+        <Routes>
+          <Route path="/login" element={<LoginPage />} />
+          <Route path="*" element={<Navigate to="/login" replace />} />
+        </Routes>
+      </>
     );
   }
 
   return (
     <PreviewCardProvider>
+      {splash}
       <a href="#main-content" className="skip-link">
         Skip to main content
       </a>
