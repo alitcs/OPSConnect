@@ -457,6 +457,24 @@ our biggest credibility win. Do it live if time allows. ~50 seconds.
 
 ---
 
+## One approach, not the only one
+
+Building something like this can be done many ways — different tools, team sizes, and rollout paths can all work. **We costed out one sensible, budget-conscious version of it.**
+
+- The figures are **planning guidelines**, not final quotes.
+- Many costs can only be pinned down after talking to the teams who own the details — **data owners, security, infrastructure, and the ESMT / Forte teams.**
+- That is exactly what **Phase 1 (Discovery)** is for: confirm the specifics, then firm up the numbers.
+
+<div class="callout">
+
+So these are not numbers pulled from thin air — they are a **grounded starting point** we would refine with the right people before anything is committed.
+
+</div>
+
+<!-- Reinforces honesty and shows we understand real OPS delivery: the details get confirmed with the owning teams during Discovery. Ties back to Phase 1. ~35 seconds. -->
+
+---
+
 ## What it gives back
 
 <div class="two">
