@@ -223,7 +223,7 @@ A single, secure **standalone applicaiton** you sign into with your OPS account.
 
 - You **ask in plain language** — "who knows Tableau?", "who can staff this project?", "who owns HDP-482?"
 - It **searches the approved OPS systems** for you — ESMT, Forte, the Employee Directory.
-- It **recommends** the right person, team, related history, and next step.
+- It **recommends** the right person, team using related history and suggests next steps.
 - It only shows what **you are allowed to see.**
 
 
@@ -234,7 +234,7 @@ Frame it as additive, not disruptive — that reassures a public-sector audience
 
 ---
 
-## From today, to OPSConnect <span class="req">Deliverable: Process map</span>
+## From today, to OPSConnect
 
 <div class="two">
 
