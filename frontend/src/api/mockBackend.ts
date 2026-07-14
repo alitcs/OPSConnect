@@ -293,29 +293,7 @@ const coffeeChats: CoffeeChat[] = (
   at: `${day}T15:00:00.000Z`,
 }));
 
-const chatMessages: ChatMessage[] = [
-  {
-    id: 'msg-seed-1',
-    conversationId: 'conv-seed-1',
-    role: 'user',
-    text: 'Who works in cybersecurity?',
-    createdAt: '2026-06-22T14:02:00.000Z',
-  },
-  {
-    id: 'msg-seed-2',
-    conversationId: 'conv-seed-1',
-    role: 'assistant',
-    text: 'Here are a few people working in cybersecurity across the OPS:',
-    people: [
-      {
-        user: toSummary(users.find((u) => u.id === 11)!),
-        rationale:
-          'Cloud Security Specialist on the Infrastructure & Cloud Operations team — holds CISSP and Azure Security certifications.',
-      },
-    ],
-    createdAt: '2026-06-22T14:03:00.000Z',
-  },
-];
+const chatMessages: ChatMessage[] = [];
 
 const directMessages: DirectMessage[] = [];
 const threads: MessageThread[] = [];
