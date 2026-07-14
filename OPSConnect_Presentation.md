@@ -107,7 +107,7 @@ section.lead .part { color:#7fb2ee; font-weight:800; letter-spacing:.14em; font-
 ## Find the right person, skill, and answer in **seconds, not hours.**
 
 **Ontario Public Service · Ops Got Talent — Summer 2026**
-Track 1 · Onboarding and Time-to-Productivity
+Track 3 · Knowledge Retrieval and Information Access
 
 Jackie Liang · Richard Duc Anh Nguyen · Manraj Rakhraj · Ali Hamoudi
 
@@ -191,7 +191,7 @@ Keep it human and relatable. Everyone in the room has lived this. ~45 seconds.
 ### Across the OPS
 Roughly **66,000 staff**.
 
-Even a small slice of that lost time is **millions of dollars in recoverable capacity every year** — plus slower onboarding and duplicated work.
+Even a small slice of that lost time is **millions of dollars in recoverable capacity every year** — plus duplicated work and misrouted requests.
 
 </div>
 
@@ -219,9 +219,9 @@ Land the number, then the scale. Don't rush. This is the "why it matters" moment
 
 ## What OPSConnect is
 
-A single, secure front door that lives **inside Microsoft Teams** (and the web).
+A single, secure **standalone applicaiton** you sign into with your OPS account.
 
-- You **ask in plain language** — "who knows Tableau?", "who can staff this project?", "I'm new, who should I meet?"
+- You **ask in plain language** — "who knows Tableau?", "who can staff this project?", "who owns HDP-482?"
 - It **searches the approved OPS systems** for you — ESMT, Forte, the Employee Directory.
 - It **recommends** the right person, team, related history, and next step.
 - It only shows what **you are allowed to see.**
@@ -271,7 +271,7 @@ This is the clearest proof we fixed the workflow itself. Point left, then right.
 Any employee can ask, in plain English, questions like:
 
 - *"Who can help on a Python, data visualization, and Azure project?"*
-- *"Who could work on HDP-482?"* (a real project in the app)
+- *"Who could work on HDP-482?"*
 - *"Tell me about Priya."*
 - *"What teams work on data analytics?"*
 - *"Who can I shadow for DevOps?"*
@@ -279,7 +279,7 @@ Any employee can ask, in plain English, questions like:
 
 <div class="note">
 
-The app already holds **7 projects across 5 different tools** — Jira, Azure DevOps, ServiceNow, Trello, and Confluence. **You do not need to know any of them.** You ask in plain English, and OPSConnect looks across all of them for you.
+The demo app already holds **7 projects across 5 different tools** — Jira, Azure DevOps, ServiceNow, Trello, and Confluence. **You do not need to know any of them.** You ask in plain English, and OPSConnect looks across all of them for you.
 
 </div>
 
@@ -324,26 +324,6 @@ It helps managers **get ahead of problems** instead of reacting to them.
 </div>
 
 <!-- ~40 seconds. This manager view is our biggest differentiator. -->
-
----
-
-## The onboarding win <span class="req">Track 1</span>
-
-A new co-op asks *"I'm a new co-op — who should I meet?"* and OPSConnect answers:
-
-- It surfaces **mentors** whose skills match (for example, *Angela Okafor* — Cloud, DevOps, Leadership).
-- It surfaces **cohort peers** (for example, *Marcus Chen* — Waterloo CS, Summer 2026).
-- A coordinator can track **onboarding health** — which co-ops are connecting, and which are still isolated.
-
-<div class="callout">
-
-**Our goal:** cut the time for a new hire to make their first **10 connections by at least half.** Faster belonging means faster productivity.
-
-</div>
-
-<!--
-Ties straight back to our chosen track. Angela and Marcus are real personas in the app. ~40 seconds.
--->
 
 ---
 
@@ -463,7 +443,7 @@ our biggest credibility win. Do it live if time allows. ~50 seconds.
 | Hosting and running it | $126k | Uses tools the OPS already has |
 | Connecting to OPS systems | $52k | Read-only: it can look, not change |
 | Privacy, security, accessibility reviews | $34k | The proper checks before launch |
-| Training and rollout | $22k | Lives in Teams, so little to learn |
+| Training and rollout | $22k | Simple, familiar web app — little to learn |
 | Safety buffer | $150k | For the surprises every project has |
 | **Total (3 years)** | **$1.43M** | **Under the $1.5M budget** |
 
@@ -493,7 +473,7 @@ our biggest credibility win. Do it live if time allows. ~50 seconds.
 <div>
 
 - On these rough numbers, it pays for itself in **well under a year.**
-- Faster onboarding likely adds more on top.
+- Fewer misrouted and duplicated requests add more on top.
 
 <div class="note">
 
@@ -514,11 +494,11 @@ These are **illustrative, order-of-magnitude figures, not promises.** The real v
 | Phase | When | What happens |
 |---|---|---|
 | 1 · Plan and design | FY2026-27 | Agree data sources and privacy rules; complete the required reviews |
-| 2 · Build the basics | FY2026-27 | Sign-in, the app, the plumbing; **goes live in Teams** |
+| 2 · Build the basics | FY2026-27 | Sign-in, the app, the plumbing; **goes live for staff** |
 | 3 · Connect the data | FY2027-28 | Safely link ESMT, Forte, the Directory; build the team map and dashboard |
 | 4 · Pilot and grow | FY2027-29 | Test with a few teams, improve, then roll out wider |
 
-**We will track:** time to find the right answer (target: **under 60 seconds**), requests solved without bouncing around (**8 in 10 or better**), and new-hire time to their first 10 connections (**at least 50% faster**).
+**We will track:** time to find the right answer (target: **under 60 seconds**), requests solved without bouncing around (**8 in 10 or better**), and answers backed by real, cited sources (**100%**).
 
 <!-- Doing the privacy reviews first signals we understand the OPS process. Point at the targets. ~40 seconds. -->
 
