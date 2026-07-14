@@ -4,16 +4,21 @@ paginate: true
 size: 16:9
 title: OPSConnect — OGT Summer 2026 Pitch
 author: Jackie Liang, Richard Duc Anh Nguyen, Manraj Rakhraj, Ali Hamoudi
-footer: 'OPSConnect · Ops Got Talent · demo → opsconnect.demo'
+footer: 'OPSConnect · Ops Got Talent · opsconnectt.netlify.app'
 ---
 
 <!--
 ============================================================
- SPEAKER NOTES LIVE IN HTML COMMENTS LIKE THIS ONE.
- In Marp preview, open Presenter View to read them.
- EXPORT:  npx @marp-team/marp-cli OPSConnect_Presentation.md --pdf
-          npx @marp-team/marp-cli OPSConnect_Presentation.md --pptx
-          npx @marp-team/marp-cli OPSConnect_Presentation.md --html
+ SPEAKER NOTES are in HTML comments like this. Open Presenter
+ View in Marp to read them while presenting.
+ EXPORT:
+   npx @marp-team/marp-cli OPSConnect_Presentation.md --pdf
+   npx @marp-team/marp-cli OPSConnect_Presentation.md --pptx
+ STRUCTURE: 4 clear parts, each with a divider slide.
+   Part 1  The Problem
+   Part 2  Our Solution
+   Part 3  How the AI Works  (simple, for everyone)
+   Part 4  Making It Real  (safe, affordable, planned)
 ============================================================
 -->
 
@@ -29,53 +34,69 @@ section {
   padding: 54px 64px; background: #ffffff;
 }
 h1 { color: var(--ink); font-size: 42px; font-weight: 800; letter-spacing: -0.01em; margin: 0 0 6px; }
-h2 { color: var(--ink); font-size: 30px; font-weight: 700; margin: 0 0 14px;
+h2 { color: var(--ink); font-size: 30px; font-weight: 700; margin: 0 0 16px;
      border-bottom: 3px solid var(--blue); padding-bottom: 8px; display: inline-block; }
 h3 { color: var(--ink); font-size: 22px; font-weight: 700; margin: 10px 0 4px; }
 strong { color: var(--ink); }
 a { color: var(--blue); }
 ul, ol { margin: 6px 0 6px 4px; }
-li { margin: 5px 0; }
+li { margin: 6px 0; }
 em { color: var(--blue-dk); font-style: italic; }
 table { border-collapse: collapse; font-size: 18px; width: 100%; margin-top: 6px; }
 th { background: var(--hdr); color: var(--ink); text-align: left; font-weight: 700; padding: 7px 10px; border: 1px solid var(--line); }
 td { padding: 7px 10px; border: 1px solid var(--line); vertical-align: top; }
-code { background: var(--soft); color: var(--blue-dk); padding: 1px 6px; border-radius: 4px; font-size: 0.9em; }
 footer { color: var(--muted); font-size: 12px; }
 section::after { color: var(--muted); font-size: 13px; }
 
-/* Accent chips + callouts */
-.tag { display:inline-block; background:var(--blue); color:#fff; font-size:13px; font-weight:700;
-       padding:2px 10px; border-radius:20px; margin-right:6px; letter-spacing:.02em; }
+.tag { display:inline-block; background:var(--blue); color:#fff; font-size:14px; font-weight:700;
+       padding:3px 12px; border-radius:20px; margin-right:6px; }
 .req { display:inline-block; background:var(--green-bg); color:var(--green); border:1px solid #bfe0cd;
-       font-size:13px; font-weight:700; padding:2px 9px; border-radius:5px; }
+       font-size:14px; font-weight:700; padding:3px 10px; border-radius:6px; margin-left:8px; }
 .callout { border:1px solid #cfe0d6; border-left:5px solid var(--green); background:var(--green-bg);
-           padding:12px 16px; border-radius:6px; margin-top:10px; }
+           padding:14px 18px; border-radius:8px; margin-top:14px; font-size:21px; }
 .note { border:1px solid #e2d3bd; border-left:5px solid var(--amber); background:var(--amber-bg);
-        padding:12px 16px; border-radius:6px; margin-top:10px; }
+        padding:14px 18px; border-radius:8px; margin-top:14px; }
 .big { font-size:30px; color:var(--ink); font-weight:800; }
-.mega { font-size:64px; color:var(--blue); font-weight:800; line-height:1; }
+.mega { font-size:70px; color:var(--blue); font-weight:800; line-height:1; }
 .sub { color:var(--muted); }
-.two { display:grid; grid-template-columns:1fr 1fr; gap:26px; }
-.script { background:var(--soft); border:1px solid var(--line); border-radius:8px; padding:14px 18px; font-size:19px; }
-.script b { color:var(--blue-dk); }
+.two { display:grid; grid-template-columns:1fr 1fr; gap:30px; }
+.script { background:var(--soft); border:1px solid var(--line); border-radius:10px; padding:16px 20px; font-size:20px; }
+.link { font-size:30px; font-weight:800; color:var(--blue); }
 
-/* Lead / section dividers */
+/* 4-step flow for the AI section */
+.flow { display:flex; gap:14px; margin-top:22px; }
+.step { flex:1; background:var(--soft); border:1px solid var(--line); border-radius:12px; padding:18px 14px; text-align:center; }
+.step .num { display:inline-grid; place-items:center; width:34px; height:34px; border-radius:50%;
+             background:var(--blue); color:#fff; font-weight:800; font-size:18px; margin-bottom:10px; }
+.step .st { font-weight:800; color:var(--ink); font-size:20px; margin-bottom:4px; }
+.step .sd { font-size:16px; color:var(--muted); line-height:1.35; }
+
+/* Routing diagrams */
+.journey { display:flex; align-items:stretch; gap:8px; margin:24px 0 4px; }
+.jbox { flex:1; border:2px solid var(--blue); border-radius:14px; background:#fff; padding:16px 12px; text-align:center; }
+.jbox .jn { font-size:13px; font-weight:800; color:var(--blue); letter-spacing:.08em; }
+.jbox .jt { font-size:21px; font-weight:800; color:var(--ink); margin:5px 0 4px; }
+.jbox .jd { font-size:15px; color:var(--muted); line-height:1.32; }
+.jarrow { align-self:center; color:var(--blue); font-size:34px; font-weight:800; line-height:1; }
+.sources { margin-top:16px; background:var(--soft); border:1px solid var(--line); border-radius:12px; padding:14px 18px; text-align:center; }
+.src-lbl { font-weight:700; color:var(--ink); margin-right:6px; }
+.chip2 { display:inline-block; background:#fff; border:1.5px solid var(--blue); color:var(--blue-dk); font-weight:700; font-size:17px; padding:4px 13px; border-radius:20px; margin:0 5px; }
+.lanes { display:grid; grid-template-columns:repeat(3,1fr); gap:18px; margin-top:22px; }
+.lane { border:1px solid var(--line); border-radius:14px; overflow:hidden; box-shadow:0 1px 3px rgba(16,35,58,.06); }
+.lane-h { background:var(--blue); color:#fff; font-weight:800; font-size:19px; padding:13px 14px; text-align:center; }
+.lane-b { padding:16px 18px; font-size:18px; color:var(--body); line-height:1.4; }
+
+/* Section divider (lead) slides */
 section.lead { background: linear-gradient(135deg, #10233a 0%, #0a3a66 60%, #0066cc 100%); color:#eef3f8; justify-content:center; }
 section.lead h1 { color:#ffffff; font-size:56px; }
 section.lead h2 { color:#cfe0f5; border:none; font-size:26px; font-weight:600; }
 section.lead p, section.lead li { color:#dbe6f2; }
 section.lead strong { color:#ffffff; }
-section.lead .rule { width:70px; height:5px; background:#4d9fff; border-radius:3px; margin:14px 0 20px; }
-
-/* Demo slides */
-section.demo { background: #f7fafd; border-top:10px solid var(--blue); }
-section.demo h2 { color:var(--blue-dk); }
-.demoflag { display:inline-block; background:var(--blue); color:#fff; font-weight:800; font-size:14px;
-            padding:3px 12px; border-radius:5px; letter-spacing:.06em; }
+section.lead .rule { width:74px; height:5px; background:#4d9fff; border-radius:3px; margin:16px 0 22px; }
+section.lead .part { color:#7fb2ee; font-weight:800; letter-spacing:.14em; font-size:20px; }
 </style>
 
-<!-- ============================ PART 0 / TITLE ============================ -->
+<!-- ==================== TITLE ==================== -->
 <!-- _class: lead -->
 <!-- _paginate: false -->
 
@@ -83,234 +104,213 @@ section.demo h2 { color:var(--blue-dk); }
 
 <div class="rule"></div>
 
-## Find the right person, skill, ticket context, and next step — in **seconds, not hours.**
+## Find the right person, skill, and answer in **seconds, not hours.**
 
 **Ontario Public Service · Ops Got Talent — Summer 2026**
-Track 1 · Onboarding & Time-to-Productivity *(also advances Knowledge Retrieval & Request-Routing)*
+Track 1 · Onboarding and Time-to-Productivity
 
 Jackie Liang · Richard Duc Anh Nguyen · Manraj Rakhraj · Ali Hamoudi
 
 <!--
-COLD OPEN: the video plays BEFORE this slide (chaos without the app → OPSConnect solving it).
-The instant the video ends, land on this slide and say the handoff line on the next slide.
-Do NOT read this slide. Let the video's energy carry into slide 2.
+Warm open. One sentence: "We built a working tool that helps any OPS employee find the right
+person, skill, or answer in seconds, and you can try it yourselves whenever you like." Move on.
 -->
 
 ---
 
-<!-- ============================ THE HANDOFF ============================ -->
+<!-- ==================== TRY IT LIVE ==================== -->
 <!-- _class: lead -->
 
-## You just watched the chaos. Now try the fix.
+## This is not a mock-up. It is live right now.
 
-# Open it on your phone — right now.
+# Try it yourself, anytime:
 
 <div class="rule"></div>
 
-### **opsconnect.demo**  ·  *(scan the code)*
+<div class="link">opsconnectt.netlify.app</div>
 
-**[ QR CODE HERE ]**
-
-Everything in the video is **live**. Follow along on your own device while we talk.
+Everything in this presentation is real. Open the link whenever you like and explore it at your own pace.
 
 <!--
-THE most important 15 seconds of the pitch. Say verbatim:
-"Everything you just saw is live right now. Here's the link — open it on your phone and follow along."
-Replace [ QR CODE HERE ] with a QR to the deployed demo (Netlify per netlify.toml).
-Getting judges hands-on is our single biggest advantage — do it before any slides.
+Plant the link early so judges can explore on their own time. Say: "It is live, here is the link,
+try it whenever you like." Then move on, no live walkthrough.
 -->
 
 ---
 
-<!-- ============================ PART 1 — STAKES ============================ -->
+<!-- ==================== PART 1 DIVIDER ==================== -->
+<!-- _class: lead -->
+<!-- _paginate: false -->
 
-## The Problem
+<div class="part">PART 1</div>
 
-OPS staff act on **partial context** — a ticket number, a system name, a deployment key, a vague problem — then lose time hunting across **ESMT, Forte, email, Teams, and SharePoint** to find the right owner, expert, or next step.
+# The Problem
 
-- Requests get **delayed or misrouted** when ownership is unclear.
-- Knowledge sits in **silos**; the same problems get re-solved.
-- Some info **can't be freely shared** — so today's workarounds are also a *privacy risk*.
+<div class="rule"></div>
+
+## Good people, good systems — but finding the right one takes too long.
+
+---
+
+## The everyday friction
+
+An employee starts with **partial context**: a ticket number, a system name, or a vague problem. To act on it, they have to find the right owner, expert, or next step.
+
+- They hunt across **ESMT, Forte, email, Teams, and SharePoint**, or ask around informally.
+- Requests get **delayed or misrouted** when it is unclear who owns what.
+- Every team uses a **different tool**, so just to ask one question you often have to learn *someone else's* system first.
+- Some information **cannot be freely shared**, so the workarounds people use today are also a **privacy risk**.
 
 <div class="note">
 
-<span class="mega">~1.8 hrs</span> lost per person **per day** searching & chasing colleagues (McKinsey) × ~66,000 OPS staff = **millions in recoverable capacity every year.**
+This is the exact problem the challenge describes: **scattered knowledge, inconsistent hand-offs, and limited visibility** into who owns what.
 
 </div>
 
 <!--
-Land the number, then the kicker: "And some of what they need, they're not even allowed to see —
-so the workarounds people use today are ALSO a privacy risk." This sets up the governance win later.
-Keep to ~60 seconds.
+Keep it human and relatable. Everyone in the room has lived this. ~45 seconds.
 -->
 
 ---
 
-## Before → After  <span class="req">Deliverable: Process map ✓</span>
+## What it costs today
+
+<div class="two">
+
+<div>
+
+<span class="mega">~1.8 hrs</span>
+
+**lost per person, every day**, searching for information and tracking down colleagues.
+<span class="sub">Source: McKinsey knowledge-worker research</span>
+
+</div>
+
+<div>
+
+### Across the OPS
+Roughly **66,000 staff**.
+
+Even a small slice of that lost time is **millions of dollars in recoverable capacity every year** — plus slower onboarding and duplicated work.
+
+</div>
+
+</div>
+
+<!--
+Land the number, then the scale. Don't rush. This is the "why it matters" moment. ~40 seconds.
+-->
+
+---
+
+<!-- ==================== PART 2 DIVIDER ==================== -->
+<!-- _class: lead -->
+<!-- _paginate: false -->
+
+<div class="part">PART 2</div>
+
+# Our Solution
+
+<div class="rule"></div>
+
+## OPSConnect: one place to ask, in plain language, and get a trusted answer.
+
+---
+
+## What OPSConnect is
+
+A single, secure front door that lives **inside Microsoft Teams** (and the web).
+
+- You **ask in plain language** — "who knows Tableau?", "who can staff this project?", "I'm new, who should I meet?"
+- It **searches the approved OPS systems** for you — ESMT, Forte, the Employee Directory.
+- It **recommends** the right person, team, related history, and next step.
+- It only shows what **you are allowed to see.**
+
+
+
+<!--
+Frame it as additive, not disruptive — that reassures a public-sector audience. ~40 seconds.
+-->
+
+---
+
+## From today, to OPSConnect <span class="req">Deliverable: Process map</span>
 
 <div class="two">
 
 <div>
 
 ### Today
-- Manual search across systems + informal asking
-- Ownership / expert / support path unclear
+- Manual search across many systems
+- Owner, expert, or path is unclear
 - Sensitive data over-shared **or** unavailable
-- Follow-up depends on manual messages
+- Follow-up relies on manual messages
 
 </div>
 
 <div>
 
 ### With OPSConnect
-- Ask in plain language in **one** place (Teams + web)
-- Platform recommends **team, contact, history, next step**
+- Ask once, in **one** place
+- Get the **team, contact, history, and next step**
 - **Permission-based** results protect restricted info
-- Feedback + audit trail improve routing over time
+- Feedback and an audit trail improve routing over time
 
 </div>
-
-</div>
-
-<div class="callout">
-
-**It does not replace ESMT or Forte** — it's a governed discovery & routing layer that helps staff use them faster.
 
 </div>
 
 <!--
-This one visual is the clearest proof we fixed the WORKFLOW (what the brief actually asks for).
-Point left, point right. ~45 seconds.
+This is the clearest proof we fixed the workflow itself. Point left, then right. ~40 seconds.
 -->
 
 ---
 
-## How It Works: one disciplined loop
+## What you can ask it
 
-<span class="tag">Route</span> <span class="tag">Retrieve</span> <span class="tag">Filter</span> <span class="tag">Phrase</span>
+Any employee can ask, in plain English, questions like:
 
-1. **Route** — Copilot interprets the request, identifies key items (ticket, system, skill, person, team).
-2. **Retrieve** — a governed, **read-only** query hits approved sources; semantic search maps *"k8s" → "Kubernetes."*
-3. **Filter** — the **permission layer** applies role & data-owner rules *before anything is shown.*
-4. **Phrase** — Copilot writes a short, cited answer; **result cards render from the query, not model text.**
-
-<div class="callout">
-
-**The principle judges remember:** *The AI routes and phrases. Governed queries supply the facts. The permission layer decides what may be shown.* The model never stores data, invents facts, or makes access decisions.
-
-</div>
-
-<!--
-Slow down on the callout. This single principle wins the compliance criterion AND frames the innovation.
-Deliver it as your thesis statement. ~45 seconds.
--->
-
----
-
-<!-- ============================ LIVE DEMO 1 ============================ -->
-<!-- _class: demo -->
-
-## <span class="demoflag">LIVE DEMO 1</span>  The personal Copilot
-
-**Switch to the live app. Run these three, in order:**
-
-<div class="script">
-
-1. Ask: *"I'm launching a project that needs **Python, data visualization, and Azure** — who can help?"*
-   → mini-profile cards cascade in **with rationale** ("Python on Infrastructure & Cloud Ops") + match-strength ✓
-
-2. Ask: *"Who could work on **HDP-482**?"*
-   → project card shows priority, due date, **covered skills vs. staffing gaps**
-
-3. Tap a person → **mini card → preview card → full profile.**
-
-</div>
-
-**Say:** *"You're all doing this too, right now, on your own device."*
-
-<span class="req">Knowledge retrieval ✓</span> <span class="req">Request-routing ✓</span> <span class="req">Working prototype ✓</span>
-
-<!--
-Have this queued and rehearsed. Real seed data: HDP-482 = Provincial Health Analytics Dashboard,
-Ministry of Health, 60% complete, needs Python/Tableau/SQL. If wifi is risky, have a screen recording fallback.
-This slide proves three judging axes at once. ~2 minutes — the heart of the pitch.
--->
-
----
-
-## What the assistant actually does — 9 skills
-
-| Intent | Example query |
-|---|---|
-| Person lookup | *"Tell me about Priya."* |
-| Project / ticket intelligence | *"Who could work on HDP-482?"* |
-| Project staffing + **gap detection** | *"Build a team for Python, Tableau, Azure."* |
-| Skill discovery | *"Who has Python and data-viz experience?"* |
-| Team discovery | *"What teams work on data analytics?"* |
-| Shadow-a-mentor | *"Who can I shadow for DevOps?"* |
-| Co-op onboarding | *"I'm a new co-op — who should I meet?"* |
-| Cybersecurity exploration | *"Who works in cybersecurity?"* |
-| Counting / org questions | *"How many co-ops are in Infrastructure?"* |
+- *"Who can help on a Python, data visualization, and Azure project?"*
+- *"Who could work on HDP-482?"* (a real project in the app)
+- *"Tell me about Priya."*
+- *"What teams work on data analytics?"*
+- *"Who can I shadow for DevOps?"*
+- *"Who works in cybersecurity?"*
 
 <div class="note">
 
-Demo data spans **7 live projects across 5 real ticketing systems** — Jira, Azure DevOps, ServiceNow, Trello, Confluence — the exact **fragmentation** the brief describes.
+The app already holds **7 projects across 5 different tools** — Jira, Azure DevOps, ServiceNow, Trello, and Confluence. **You do not need to know any of them.** You ask in plain English, and OPSConnect looks across all of them for you.
 
 </div>
 
 <!--
-Don't read every row. Sweep the table, land the callout: we mirror the brief's "fragmented tools" reality.
-~40 seconds.
+Shows the breadth of what it answers and mirrors the brief's "fragmented tools" reality. Judges can
+try any of these on the live link at their leisure. ~30 seconds.
 -->
 
 ---
 
-<!-- ============================ LIVE DEMO 2 ============================ -->
-<!-- _class: demo -->
+## The manager's view
 
-## <span class="demoflag">LIVE DEMO 2</span>  The manager's view
-
-**Switch persona to a coordinator. In the Admin workspace:**
-
-<div class="script">
-
-1. **3D connection network** — flip the **lens**: coffee chats → shared skills → same project → reporting line. The whole graph re-shapes live.
-2. **Ask Copilot (coordinator chat):**
-   *"Which skills rely on just one person?"* → knowledge-risk list
-   *"Who bridges the most ministries?"* → a node lights up on the graph
-
-</div>
-
-**Say:** *"Every manager gets a network analyst — spotting isolated new hires, single-person knowledge risk, and silos **before** they become problems."*
-
-<span class="req">Innovation ✓</span> <span class="req">Decision-making & accountability ✓</span>
-
-<!--
-This is the differentiator no other team will have. 13 lenses exist; show 3-4 max.
-Real questions the InsightsAssistant answers are wired up. ~1.5 minutes.
--->
-
----
-
-## The manager & coordinator advantage
+Managers and coordinators get a live picture of how their people connect and where to act:
 
 <div class="two">
 
 <div>
 
-### Three tools, one live picture
-- **Connection Network** — every person a node; switch the lens, the whole org re-maps.
-- **Coordinator Analytics** — adoption, cross-ministry reach, knowledge concentration; reads in **30 seconds.**
-- **Manager Chat** — plain-language questions, grounded answers, **no dashboards to learn.**
+### Three simple tools
+- **The team map** — see how everyone connects; change the view and it redraws.
+- **A quick dashboard** — adoption, cross-team links, and thin spots, readable in **30 seconds.**
+- **Just ask** — plain-language questions, straight answers. Nothing to learn.
 
 </div>
 
 <div>
 
-### What leaders see instantly
-- Who's **isolated** or newly arrived
-- Who **bridges the most ministries** (retain them)
-- Where a skill depends on **one person** (continuity risk)
+### What leaders see at a glance
+- Who is **isolated** or newly arrived
+- Who **bridges the most ministries** (worth keeping)
+- Where a skill rests on **one person** (a real risk)
 - Whether silos are **shrinking over time**
 
 </div>
@@ -319,184 +319,213 @@ Real questions the InsightsAssistant answers are wired up. ~1.5 minutes.
 
 <div class="callout">
 
-Turns team management from **reactive to proactive** — and doubles as a change-management scorecard.
+It helps managers **get ahead of problems** instead of reacting to them.
 
 </div>
 
-<!-- ~40 seconds. Reinforce the demo they just saw. -->
+<!-- ~40 seconds. This manager view is our biggest differentiator. -->
 
 ---
 
-## Onboarding — the Track 1 win
+## The onboarding win <span class="req">Track 1</span>
 
-**Demo line:** *"I'm a new co-op — who should I meet?"*
+A new co-op asks *"I'm a new co-op — who should I meet?"* and OPSConnect answers:
 
-- Surfaces **mentors** with matching skills (e.g., *Angela Okafor* mentors Cloud / DevOps / Leadership)
-- Surfaces **cohort peers** (e.g., *Marcus Chen*, Waterloo CS, Summer 2026)
-- Coordinator can watch **onboarding health** — which co-ops are connecting vs. isolated
+- It surfaces **mentors** whose skills match (for example, *Angela Okafor* — Cloud, DevOps, Leadership).
+- It surfaces **cohort peers** (for example, *Marcus Chen* — Waterloo CS, Summer 2026).
+- A coordinator can track **onboarding health** — which co-ops are connecting, and which are still isolated.
 
 <div class="callout">
 
-**Target:** new-hire time to first **10 connections down ≥ 50%.** Faster belonging → faster productivity.
+**Our goal:** cut the time for a new hire to make their first **10 connections by at least half.** Faster belonging means faster productivity.
 
 </div>
 
 <!--
-Ties the demo directly back to our chosen track. Angela Okafor + Marcus Chen are real seed personas.
-~40 seconds.
+Ties straight back to our chosen track. Angela and Marcus are real personas in the app. ~40 seconds.
 -->
 
 ---
 
-<!-- ============================ PART 4 — SAFE / AFFORDABLE / REAL ============================ -->
+<!-- ==================== PART 3 DIVIDER ==================== -->
+<!-- _class: lead -->
+<!-- _paginate: false -->
 
-## On-policy by design — *shown, not just claimed*  <span class="req">Privacy · Security · Accessibility ✓</span>
+<div class="part">PART 3</div>
+
+# How the AI Works
+
+<div class="rule"></div>
+
+## Simple to explain, and built to stay within the rules.
+
+---
+
+## How a question flows through OPSConnect
+
+It works like a **helpful front desk**: it understands what you asked, looks it up, checks you are allowed to see it, then hands you the answer.
+
+<div class="journey">
+  <div class="jbox"><div class="jn">STEP 1</div><div class="jt">Understand</div><div class="jd">Copilot reads your question and picks out what matters.</div></div>
+  <div class="jarrow">&rarr;</div>
+  <div class="jbox"><div class="jn">STEP 2</div><div class="jt">Look it up</div><div class="jd">Searches the approved systems for the real facts.</div></div>
+  <div class="jarrow">&rarr;</div>
+  <div class="jbox"><div class="jn">STEP 3</div><div class="jt">Check access</div><div class="jd">Confirms what you are allowed to see.</div></div>
+  <div class="jarrow">&rarr;</div>
+  <div class="jbox"><div class="jn">STEP 4</div><div class="jt">Answer</div><div class="jd">Writes a short, sourced reply from that data.</div></div>
+</div>
+
+<div class="sources">
+<span class="src-lbl">In Step 2 it searches (read-only):</span>
+<span class="chip2">ESMT</span><span class="chip2">Forte</span><span class="chip2">Employee Directory</span>
+<br/><span class="sub">It is smart about wording too, so "k8s" still finds "Kubernetes."</span>
+</div>
+
+<!--
+Walk left to right through the four boxes with the front-desk analogy. Point at the sources strip:
+"it goes out to the real OPS systems and brings back facts." Do not go deeper than this. ~50 seconds.
+-->
+
+---
+
+## Who does what, and the one rule
+
+<div class="lanes">
+  <div class="lane"><div class="lane-h">Microsoft Copilot</div><div class="lane-b">Understands your question and words the answer.<br/><b>Steps 1 and 4.</b></div></div>
+  <div class="lane"><div class="lane-h">The approved systems</div><div class="lane-b">Provide the real facts: people, tickets, skills.<br/><b>Step 2.</b></div></div>
+  <div class="lane"><div class="lane-h">The permission layer</div><div class="lane-b">Decides what you are allowed to see.<br/><b>Step 3.</b></div></div>
+</div>
+
+<div class="callout">
+
+**The one rule:** the AI helps you **find** things and **word** them. It never decides what you are allowed to see, and it never makes up facts. The **real data** and the **permission rules** do that.
+
+</div>
+
+<!--
+Slow down. This split, plus the one rule, wins the compliance criterion and builds trust with a
+cautious audience. Deliver the rule as your thesis. ~45 seconds.
+-->
+
+---
+
+<!-- ==================== PART 4 DIVIDER ==================== -->
+<!-- _class: lead -->
+<!-- _paginate: false -->
+
+<div class="part">PART 4</div>
+
+# Making It Real
+
+<div class="rule"></div>
+
+## Safe, affordable, and ready to roll out.
+
+---
+
+## Safe and on-policy <span class="req">Privacy · Security · Accessibility</span>
 
 <div class="two">
 
 <div>
 
-### Demo it live
-- **Settings** — seat sharing **off by default**; "who can message me" control
-- Open **Admin as a non-admin** → access **blocked / redirected** (enforced in code)
+### See it for yourself
+- In **Settings**, sharing your desk location is **off unless you turn it on.**
+- Open the manager dashboard as a regular user, and **it will not let you in.**
 
 </div>
 
 <div>
 
-### The guarantees
-- **Microsoft Copilot is the only AI** — summarize & recommend only
-- Access decisions in the **permission layer**, never the model
-- Data stays in the **OPS tenant (Canada)**; no training on OPS data
-- SSO · RBAC · audit logging · encryption
-- Built to **WCAG 2.2 AA**
+### The promises behind it
+- **Microsoft Copilot is the only AI**, used only to summarize and suggest.
+- The app **never touches ESMT or Forte directly** — every request goes through a checked, read-only layer.
+- Your data **stays in the OPS's own Microsoft environment, in Canada**, and is not used to train the AI.
+- You sign in with your **normal OPS account**; everything is logged and encrypted.
+- Built to be **accessible** (AODA / WCAG 2.2 AA).
 
 </div>
 
 </div>
 
 <!--
-Showing default-off privacy + the admin redirect in the real UI is the hardest thing to fake and our
-biggest credibility gain. WCAG touches already in build: aria-live result counts, reduced-motion, dark mode.
-~50 seconds.
+Showing default-off privacy and the admin redirect in the real UI is the hardest thing to fake and
+our biggest credibility win. Do it live if time allows. ~50 seconds.
 -->
 
 ---
 
-## Cost — fits the budget on purpose  <span class="req">Financial feasibility ✓</span>
+## What it costs <span class="req">Financial feasibility</span>
 
-| Cost area | 3-yr | Note |
+| What we pay for | 3 years | In plain terms |
 |---|---|---|
-| Development team (staff + co-ops) | $1,046k | Lean 2.8 → 2.2 FTE |
-| Infrastructure, hosting, monitoring | $126k | Marginal use of existing platform |
-| ESMT / Forte / Directory / Copilot integration | $52k | Read-only connectors |
-| Security, privacy, accessibility review | $34k | PIA, TRA, WCAG audit, pen-test |
-| Training & change management | $22k | In-Teams rollout, champions |
-| Contingency (~12%) | $150k | Integration surprises |
-| **Total (3 yrs)** | **$1,430k** | **Y1 $500k · Y2 $470k · Y3 $310k — under the $1.5M cap** |
+| The team building it | $1.05M | A small team of 2 to 3, including co-op students |
+| Hosting and running it | $126k | Uses tools the OPS already has |
+| Connecting to OPS systems | $52k | Read-only: it can look, not change |
+| Privacy, security, accessibility reviews | $34k | The proper checks before launch |
+| Training and rollout | $22k | Lives in Teams, so little to learn |
+| Safety buffer | $150k | For the surprises every project has |
+| **Total (3 years)** | **$1.43M** | **Under the $1.5M budget** |
 
 <div class="note">
 
-Staffed with permanent staff + co-ops on purpose — a **contractor team would cost ~1.4–2× more and breach the cap.**
+**A word on these numbers:** costs like these are genuinely hard to pin down up front, that is the nature of a cross-system integration in an organization this large. Treat them as **rough, directional estimates, not precise figures.** What we are confident about is the **shape**: a small team, reusing tools the OPS already owns, kept inside the $1.5M budget with a real buffer for the unknowns.
 
 </div>
 
-<!-- Don't read the table. Land the total and the contractor comparison. ~40 seconds. -->
+<!-- Be upfront: these are directional estimates, not exact figures. Land the shape, not the decimals: small team, reused tools, under budget with a buffer. Honesty here reads as strength. ~40 seconds. -->
 
 ---
 
-## Return that survives scrutiny
+## What it gives back
 
 <div class="two">
 
 <div>
 
 <span class="mega">~$4M+</span>
-**reclaimed per year** at conservative scale
-<span class="sub">~10k active users × 10 min/week ≈ 77,000 hrs/yr</span>
+
+**in reclaimed time each year**, on deliberately cautious math.
+<span class="sub">Illustration: ~10,000 people saving 10 minutes a week ≈ 77,000 hours a year.</span>
 
 </div>
 
 <div>
 
-- Payback **under 6 months** at scale
-- **~9–10×** annual return vs. ~$310k steady-state run cost
-- Onboarding acceleration adds **~$2M/yr**
+- On these rough numbers, it pays for itself in **well under a year.**
+- Faster onboarding likely adds more on top.
+
+<div class="note">
+
+These are **illustrative, order-of-magnitude figures, not promises.** The real value depends on adoption we cannot predict, so we used low assumptions on purpose. The honest takeaway: even if we are **well off** and only a quarter of people use it, the benefit still **comfortably beats** the cost.
 
 </div>
 
 </div>
 
-<div class="callout">
-
-**The line to remember:** even at **25%** of projected adoption, OPSConnect still returns **more than 2× its total cost.** Conservative math, defensible numbers.
-
 </div>
 
-<!-- Conservative sensitivity reads as honesty. Emphasize the >2x floor. ~40 seconds. -->
+<!-- Lead with honesty: these are cautious illustrations, not guarantees. The point is the benefit dwarfs a small, bounded cost even under pessimistic assumptions. ~35 seconds. -->
 
 ---
 
-## Roadmap & risk  <span class="req">Roadmap ✓</span> <span class="req">Change management ✓</span>
+## Our plan, and how we will measure it <span class="req">Roadmap</span>
 
-| Phase | Timeline | Focus |
+| Phase | When | What happens |
 |---|---|---|
-| 1 · Discovery & Design | FY2026-27 | Data sources, permission model, metrics; **PIA & TRA** |
-| 2 · Foundation Build | FY2026-27 | Auth, frontend, API, DB, logging; **assistant live in Teams** |
-| 3 · Data Integration | FY2027-28 | Read-only connectors; connection network + analytics |
-| 4 · Pilot & Rollout | FY2027-29 | Validate with teams, improve accuracy, expand |
+| 1 · Plan and design | FY2026-27 | Agree data sources and privacy rules; complete the required reviews |
+| 2 · Build the basics | FY2026-27 | Sign-in, the app, the plumbing; **goes live in Teams** |
+| 3 · Connect the data | FY2027-28 | Safely link ESMT, Forte, the Directory; build the team map and dashboard |
+| 4 · Pilot and grow | FY2027-29 | Test with a few teams, improve, then roll out wider |
 
-| Risk | Mitigation |
-|---|---|
-| Low adoption | Lives **inside Teams** — no new tool to learn; champions network |
-| Restricted-data exposure | Permission layer + data-owner approval + full audit logging |
-| Budget overrun | Staff + co-op staffing; reuse approved platform; ~16% headroom |
+**We will track:** time to find the right answer (target: **under 60 seconds**), requests solved without bouncing around (**8 in 10 or better**), and new-hire time to their first 10 connections (**at least 50% faster**).
 
-<!-- Sweep both tables. PIA/TRA up front signals we know the OPS process. ~40 seconds. -->
+<!-- Doing the privacy reviews first signals we understand the OPS process. Point at the targets. ~40 seconds. -->
 
 ---
 
-<!-- ============================ PART 5 — CLOSE ============================ -->
 
-## We met the brief
-
-| Required deliverable | Status |
-|---|---|
-| Problem + proposed solution | <span class="req">✓ shown</span> |
-| Current → future process map | <span class="req">✓ shown</span> |
-| **Working prototype** | <span class="req">✓ you used it</span> |
-| Cost-benefit analysis | <span class="req">✓ within $1.5M cap</span> |
-| Rollout roadmap (phases, timelines) | <span class="req">✓ 4 phases</span> |
-| Privacy · accessibility · security · change mgmt | <span class="req">✓ demonstrated in-app</span> |
-| Microsoft Copilot as the only AI | <span class="req">✓ by design</span> |
-
-<!--
-This slide removes all doubt on the "did they meet requirements" judging axis.
-Read down the column: "Every box — checked. And the prototype box, you checked yourselves." ~30 seconds.
--->
-
----
-
-<!-- _class: lead -->
-
-# The ask
-
-<div class="rule"></div>
-
-## Already prototyped — **you just used it.** Staffed sustainably. Funded within budget.
-
-It turns one of the OPS's most common frictions **from hours into seconds.**
-
-### **We recommend proceeding with Phase 1 — discovery, design, and pilot.**
-
-*The version you tested today is the starting line, not the pitch.*
-
-<!--
-End on momentum. Slow, confident. Leave the demo QR up during Q&A so judges keep exploring.
--->
-
----
-
+<!-- ==================== THANK YOU ==================== -->
 <!-- _class: lead -->
 <!-- _paginate: false -->
 
@@ -506,14 +535,16 @@ End on momentum. Slow, confident. Leave the demo QR up during Q&A so judges keep
 
 ## Questions?
 
-**Try it now:** opsconnect.demo   ·   **[ QR CODE ]**
+**Try it now:** <span class="link">opsconnectt.netlify.app</span>
 
 Jackie Liang · Richard Duc Anh Nguyen · Manraj Rakhraj · Ali Hamoudi
 
 <!--
-Q&A backup facts if asked:
-- 30 employees, 6 ministries, 7 projects, 5 ticketing systems in the seed data.
-- Swap plan: mockAIService → Copilot; mockAuth → MSAL/Entra ID; store.ts → real DB. Response shapes unchanged.
-- Tech: React+TS+Vite (frontend), Node+Express+TS (backend), layered routes→controllers→services→data.
-- WCAG touches already built: aria-live result counts, reduced-motion handling, dark mode, keyboard nav.
+Leave the link on screen during Q&A so judges keep exploring.
+Backup facts if asked:
+- Seed data: 30 core employees, 6 ministries, 7 projects, 5 ticketing systems.
+- Production swap: mock AI to Copilot; mock login to Entra ID sign-in; mock store to a real database.
+  The app's structure stays the same.
+- Accessibility already built: live result counts announced to screen readers, reduced-motion support,
+  dark mode, keyboard navigation.
 -->
