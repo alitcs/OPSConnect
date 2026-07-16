@@ -86,6 +86,29 @@ section::after { color: var(--muted); font-size: 13px; }
 .lane-h { background:var(--blue); color:#fff; font-weight:800; font-size:19px; padding:13px 14px; text-align:center; }
 .lane-b { padding:16px 18px; font-size:18px; color:var(--body); line-height:1.4; }
 
+/* Part 3: routing fan-out */
+.router { display:flex; align-items:center; gap:14px; margin-top:22px; }
+.rcol { flex:1; display:flex; flex-direction:column; gap:9px; }
+.ritem { background:#fff; border:1.5px solid var(--line); border-left:4px solid var(--blue); border-radius:10px; padding:9px 13px; font-size:16px; color:var(--body); }
+.ritem b { color:var(--ink); }
+.rhub { background:var(--blue); color:#fff; border-radius:16px; padding:20px 16px; text-align:center; font-weight:800; min-width:150px; }
+.rhub .rh-t { font-size:20px; letter-spacing:.06em; }
+.rhub .rh-s { font-size:13px; font-weight:600; opacity:.92; margin-top:5px; }
+.rarrow { color:var(--blue); font-size:32px; font-weight:800; }
+
+/* Part 3: under-the-hood pipeline */
+.pipe { display:flex; flex-direction:column; align-items:center; gap:2px; margin-top:8px; }
+.pnode { width:100%; max-width:900px; border:1.5px solid var(--line); border-radius:11px; padding:7px 16px; background:#fff; }
+.pnode .pt { font-weight:800; color:var(--ink); font-size:17.5px; }
+.pnode .pd { color:var(--muted); font-size:14px; line-height:1.26; margin-top:2px; }
+.pnode.hot { border-color:var(--blue); border-width:2px; }
+.pnode.gate { border-left:5px solid var(--green); background:var(--green-bg); }
+.pdown { color:var(--blue); font-size:14px; font-weight:800; line-height:1; }
+.techtag { display:inline-block; background:var(--hdr); color:var(--blue-dk); font-size:12px; font-weight:700; padding:2px 8px; border-radius:5px; margin-left:8px; vertical-align:middle; }
+
+/* Part 3: 4-role lanes */
+.lanes4 { display:grid; grid-template-columns:repeat(4,1fr); gap:14px; margin-top:22px; }
+
 /* Section divider (lead) slides */
 section.lead { background: linear-gradient(135deg, #10233a 0%, #0a3a66 60%, #0066cc 100%); color:#eef3f8; justify-content:center; }
 section.lead h1 { color:#ffffff; font-size:56px; }
@@ -341,39 +364,91 @@ It helps managers **get ahead of problems** instead of reacting to them.
 
 ---
 
-## How a question flows through OPSConnect
+## The big picture: a smart switchboard
 
-It works like a **helpful front desk**: it understands what you asked, looks it up, checks you are allowed to see it, then hands you the answer.
+Think of a **helpful switchboard operator.** You ask in plain English; it works out what you need, sends it to the right place, checks your clearance, then reads you the answer.
 
 <div class="journey">
-  <div class="jbox"><div class="jn">STEP 1</div><div class="jt">Understand</div><div class="jd">Copilot reads your question and picks out what matters.</div></div>
+  <div class="jbox"><div class="jn">STEP 1</div><div class="jt">Route</div><div class="jd">Works out what kind of question you asked.</div></div>
   <div class="jarrow">&rarr;</div>
-  <div class="jbox"><div class="jn">STEP 2</div><div class="jt">Look it up</div><div class="jd">Searches the approved systems for the real facts.</div></div>
+  <div class="jbox"><div class="jn">STEP 2</div><div class="jt">Fetch</div><div class="jd">Sends it to the right skill and gets the real facts.</div></div>
   <div class="jarrow">&rarr;</div>
-  <div class="jbox"><div class="jn">STEP 3</div><div class="jt">Check access</div><div class="jd">Confirms what you are allowed to see.</div></div>
+  <div class="jbox"><div class="jn">STEP 3</div><div class="jt">Filter</div><div class="jd">Keeps only what you are allowed to see.</div></div>
   <div class="jarrow">&rarr;</div>
   <div class="jbox"><div class="jn">STEP 4</div><div class="jt">Answer</div><div class="jd">Writes a short, sourced reply from that data.</div></div>
 </div>
 
-<div class="sources">
-<span class="src-lbl">In Step 2 it searches (read-only):</span>
-<span class="chip2">ESMT</span><span class="chip2">Forte</span><span class="chip2">Employee Directory</span>
-<br/><span class="sub">It is smart about wording too, so "k8s" still finds "Kubernetes."</span>
+<div class="sub" style="margin-top:14px;">The next two slides zoom in on the interesting parts: the <b>routing</b> (Step 1) and what happens <b>under the hood</b> (Step 2).</div>
+
+<!--
+Walk left to right with the switchboard analogy. Keep this one deliberately simple — it is the
+"anyone can follow this" slide. The depth comes on the next two. ~40 seconds.
+-->
+
+---
+
+## Different questions, routed the right way
+
+The **router** reads your question, works out what *kind* of request it is, and hands it to the skill built for exactly that.
+
+<div class="router">
+  <div class="rcol">
+    <div class="ritem"><b>"Who knows Tableau?"</b></div>
+    <div class="ritem"><b>"Who owns HDP-482?"</b></div>
+    <div class="ritem"><b>"Build a team for Python + Azure"</b></div>
+    <div class="ritem"><b>"What teams do data analytics?"</b></div>
+    <div class="ritem"><b>"How many co-ops in Infrastructure?"</b></div>
+  </div>
+  <div class="rarrow">&rarr;</div>
+  <div class="rhub"><div class="rh-t">ROUTER</div><div class="rh-s">detects the intent</div></div>
+  <div class="rarrow">&rarr;</div>
+  <div class="rcol">
+    <div class="ritem">Person &amp; skill finder</div>
+    <div class="ritem">Ticket &amp; project lookup</div>
+    <div class="ritem">Team builder <span class="sub">(+ flags missing skills)</span></div>
+    <div class="ritem">Team &amp; org navigator</div>
+    <div class="ritem">Quick counts &amp; stats</div>
+  </div>
+</div>
+
+<div class="sub" style="margin-top:12px;">One front door, many specialised skills behind it — so every kind of question gets handled properly.</div>
+
+<!--
+The point: it is not one giant AI guessing at everything. Different questions go to purpose-built
+skills. Read a couple of examples left-to-right so people see the mapping. ~45 seconds.
+-->
+
+---
+
+## Under the hood: how it actually finds the answer
+
+<div class="pipe">
+  <div class="pnode"><span class="pt">Your question</span><div class="pd">e.g. "Who can help on a Kubernetes project?"</div></div>
+  <div class="pdown">&darr;</div>
+  <div class="pnode hot"><span class="pt">Router</span><span class="techtag">intent detection</span><div class="pd">Decides which skill should handle it, and which tools it needs.</div></div>
+  <div class="pdown">&darr;</div>
+  <div class="pnode"><span class="pt">It picks the right tool</span><div class="pd"><b>Exact lookups</b> &mdash; a direct, read-only query to approved systems (tickets, org chart, directory).<br/><b>Fuzzy matches</b> &mdash; semantic search over an index <span class="techtag">vector database</span> so "k8s" still finds "Kubernetes", and similar skills or past problems surface.</div></div>
+  <div class="pdown">&darr;</div>
+  <div class="pnode gate"><span class="pt">Permission check</span><span class="techtag">role-based access</span><div class="pd">Filters the results down to what <i>you</i> are allowed to see — before anything reaches you.</div></div>
+  <div class="pdown">&darr;</div>
+  <div class="pnode"><span class="pt">Copilot writes the answer</span><div class="pd">A short, sourced reply. The people and project cards come straight from the real data — not invented by the AI.</div></div>
 </div>
 
 <!--
-Walk left to right through the four boxes with the front-desk analogy. Point at the sources strip:
-"it goes out to the real OPS systems and brings back facts." Do not go deeper than this. ~50 seconds.
+This is the "for the technical folks" slide. Two ideas to land: (1) an agent picks the right tool, and
+(2) fuzzy matching uses a vector search so wording never blocks a good answer. The green box is the
+trust moment — permissions are checked before you see anything. ~55 seconds.
 -->
 
 ---
 
 ## Who does what, and the one rule
 
-<div class="lanes">
-  <div class="lane"><div class="lane-h">Microsoft Copilot</div><div class="lane-b">Understands your question and words the answer.<br/><b>Steps 1 and 4.</b></div></div>
-  <div class="lane"><div class="lane-h">The approved systems</div><div class="lane-b">Provide the real facts: people, tickets, skills.<br/><b>Step 2.</b></div></div>
-  <div class="lane"><div class="lane-h">The permission layer</div><div class="lane-b">Decides what you are allowed to see.<br/><b>Step 3.</b></div></div>
+<div class="lanes4">
+  <div class="lane"><div class="lane-h">Router</div><div class="lane-b">Works out what you are asking and picks the right skill.</div></div>
+  <div class="lane"><div class="lane-h">Tools + data</div><div class="lane-b">Fetch the real facts from approved systems and the search index.</div></div>
+  <div class="lane"><div class="lane-h">Permission layer</div><div class="lane-b">Decides what you are allowed to see.</div></div>
+  <div class="lane"><div class="lane-h">Copilot</div><div class="lane-b">Understands the wording and writes the final answer.</div></div>
 </div>
 
 <div class="callout">
