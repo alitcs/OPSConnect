@@ -1,93 +1,54 @@
-import { useState, type FormEvent } from 'react';
+import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import {
-  ALLOWED_DOMAIN,
-  AuthError,
-  DEMO_ADMIN,
-  isOntarioEmail,
-  PASSWORD_REQUIREMENTS,
-  passwordIssues,
-} from '../api/auth';
+import { AuthError } from '../api/auth';
 import { useAuth } from '../context/AuthContext';
 import Icon from '../components/Icon';
 
-// Access is restricted to Ontario Public Service accounts — only "@ontario.ca"
-// email addresses may sign up or log in.
-// TODO (production): replace this mock auth with Microsoft Entra ID / Azure AD via MSAL.
+// Access to ConnectOPS is exclusively via Microsoft Teams single sign-on — there
+// is no email/password sign-up. This screen mocks that flow: the reviewer clicks
+// "Sign in with Microsoft Teams" and is signed straight into the seeded John Paul
+// (admin) profile after a brief fake SSO handshake.
+// TODO (production): replace this mock SSO with Microsoft Entra ID via MSAL.
 
-type Mode = 'login' | 'signup';
+type Phase = 'idle' | 'connecting';
+
+/** The seeded profile every Teams sign-in lands on (John Paul — admin). */
+const ADMIN_EMAIL = 'john.paul@ontario.ca';
+
+// Small Microsoft four-square logo, drawn inline so it renders anywhere.
+function MicrosoftLogo({ size = 18 }: { size?: number }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 21 21" aria-hidden="true">
+      <rect x="1" y="1" width="9" height="9" fill="#f25022" />
+      <rect x="11" y="1" width="9" height="9" fill="#7fba00" />
+      <rect x="1" y="11" width="9" height="9" fill="#00a4ef" />
+      <rect x="11" y="11" width="9" height="9" fill="#ffb900" />
+    </svg>
+  );
+}
 
 export default function LoginPage() {
   const navigate = useNavigate();
-  const { login, signup } = useAuth();
+  const { loginWithTeams } = useAuth();
 
-  const [mode, setMode] = useState<Mode>('login');
-  const [name, setName] = useState('');
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [showPassword, setShowPassword] = useState(false);
+  const [phase, setPhase] = useState<Phase>('idle');
   const [error, setError] = useState<string | null>(null);
-  const [submitting, setSubmitting] = useState(false);
 
-  const emailEntered = email.trim().length > 0;
-  const emailValid = isOntarioEmail(email);
-  const isSignup = mode === 'signup';
-
-  const switchMode = (next: Mode) => {
-    if (next === mode) return;
-    setMode(next);
+  const startTeamsSignIn = () => {
     setError(null);
-    setPassword('');
-    setShowPassword(false);
-  };
-
-  const handleSubmit = async (e: FormEvent) => {
-    e.preventDefault();
-    setError(null);
-
-    if (isSignup && !name.trim()) {
-      setError('Please enter your full name.');
-      return;
-    }
-    if (!emailValid) {
-      setError(`Please use your @${ALLOWED_DOMAIN} email address.`);
-      return;
-    }
-    if (isSignup && passwordIssues(password).length > 0) {
-      setError('Please meet all the password requirements below.');
-      return;
-    }
-
-    setSubmitting(true);
-    try {
-      if (isSignup) {
-        await signup({ name, email, password });
-      } else {
-        await login({ email, password });
+    setPhase('connecting');
+    // Fake the redirect/handshake latency of a real SSO round-trip, then sign in.
+    window.setTimeout(async () => {
+      try {
+        await loginWithTeams(ADMIN_EMAIL);
+        navigate('/');
+      } catch (err) {
+        setError(
+          err instanceof AuthError ? err.message : 'Something went wrong. Please try again.',
+        );
+        setPhase('idle');
       }
-      navigate('/');
-    } catch (err) {
-      setError(
-        err instanceof AuthError ? err.message : 'Something went wrong. Please try again.',
-      );
-    } finally {
-      setSubmitting(false);
-    }
-  };
-
-  const handleDemoAdmin = async () => {
-    setError(null);
-    setSubmitting(true);
-    try {
-      await login({ email: DEMO_ADMIN.email, password: DEMO_ADMIN.password });
-      navigate('/');
-    } catch (err) {
-      setError(
-        err instanceof AuthError ? err.message : 'Something went wrong. Please try again.',
-      );
-    } finally {
-      setSubmitting(false);
-    }
+    }, 900);
   };
 
   return (
@@ -99,10 +60,8 @@ export default function LoginPage() {
               <Icon name="logo" size={26} />
             </div>
             <h1 className="login__title">ConnectOPS</h1>
-            <p className="login__subtitle" key={mode}>
-              {isSignup
-                ? 'Create your Ontario Public Service account.'
-                : 'Welcome back. Sign in to continue.'}
+            <p className="login__subtitle" key={phase}>
+              Sign in with your Ontario Public Service account.
             </p>
             <span className="copilot-badge">
               <span className="copilot-badge__icon">
@@ -112,153 +71,35 @@ export default function LoginPage() {
             </span>
           </div>
 
-          <div
-            className="auth-tabs"
-            role="tablist"
-            aria-label="Log in or sign up"
-            data-active={isSignup ? 'signup' : 'login'}
-          >
-            <button
-              type="button"
-              role="tab"
-              aria-selected={!isSignup}
-              className={`auth-tabs__tab ${!isSignup ? 'active' : ''}`}
-              onClick={() => switchMode('login')}
-            >
-              Log in
-            </button>
-            <button
-              type="button"
-              role="tab"
-              aria-selected={isSignup}
-              className={`auth-tabs__tab ${isSignup ? 'active' : ''}`}
-              onClick={() => switchMode('signup')}
-            >
-              Sign up
-            </button>
-          </div>
-
-          <form className="auth-form" onSubmit={handleSubmit} noValidate>
-            {isSignup && (
-              <label className="auth-form__field auth-form__field--enter">
-                <span className="auth-form__label">Full name</span>
-                <input
-                  className="auth-form__input"
-                  type="text"
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
-                  placeholder="Jordan Lee"
-                  autoComplete="name"
-                  required
-                />
-              </label>
-            )}
-
-            <label className="auth-form__field">
-              <span className="auth-form__label">Work email</span>
-              <input
-                className={`auth-form__input ${emailEntered && !emailValid ? 'invalid' : ''}`}
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                placeholder={`jordan.lee@${ALLOWED_DOMAIN}`}
-                autoComplete="email"
-                aria-invalid={emailEntered && !emailValid}
-                required
-              />
-              <span className={`auth-form__hint ${emailEntered && !emailValid ? 'error' : ''}`}>
-                {emailEntered && !emailValid
-                  ? `Only @${ALLOWED_DOMAIN} addresses are allowed.`
-                  : `Use your @${ALLOWED_DOMAIN} email address.`}
-              </span>
-            </label>
-
-            <label className="auth-form__field">
-              <span className="auth-form__label">Password</span>
-              <div className="auth-form__password">
-                <input
-                  className="auth-form__input"
-                  type={showPassword ? 'text' : 'password'}
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  placeholder={isSignup ? 'At least 8 characters' : 'Your password'}
-                  autoComplete={isSignup ? 'new-password' : 'current-password'}
-                  minLength={isSignup ? 8 : undefined}
-                  required
-                />
-                <button
-                  type="button"
-                  className="auth-form__reveal"
-                  onClick={() => setShowPassword((v) => !v)}
-                  aria-pressed={showPassword}
-                  aria-label={showPassword ? 'Hide password' : 'Show password'}
-                >
-                  {showPassword ? 'Hide' : 'Show'}
-                </button>
-              </div>
-              {isSignup && (
-                <ul className="auth-form__reqs" aria-label="Password requirements">
-                  {PASSWORD_REQUIREMENTS.map((req) => {
-                    const met = req.test(password);
-                    return (
-                      <li
-                        key={req.label}
-                        className={`auth-form__req ${met ? 'is-met' : ''}`}
-                      >
-                        <Icon
-                          name={met ? 'check' : 'info'}
-                          size={12}
-                          strokeWidth={met ? 3 : 2}
-                        />
-                        {req.label}
-                      </li>
-                    );
-                  })}
-                </ul>
+          {phase === 'idle' && (
+            <div className="teams-auth">
+              <button
+                type="button"
+                className="teams-signin"
+                onClick={startTeamsSignIn}
+              >
+                <MicrosoftLogo size={18} />
+                Sign in with Microsoft Teams
+              </button>
+              <p className="teams-auth__note">
+                <Icon name="shield" size={13} />
+                Single sign-on with your @ontario.ca work account.
+              </p>
+              {error && (
+                <div className="auth-form__error" role="alert">
+                  <Icon name="info" size={15} />
+                  <span>{error}</span>
+                </div>
               )}
-            </label>
+            </div>
+          )}
 
-            {error && (
-              <div className="auth-form__error" role="alert">
-                <Icon name="info" size={15} />
-                <span>{error}</span>
-              </div>
-            )}
-
-            <button className="auth-form__submit" type="submit" disabled={submitting}>
-              {submitting ? (
-                <span className="auth-form__spinner" aria-hidden="true" />
-              ) : isSignup ? (
-                'Create account'
-              ) : (
-                'Log in'
-              )}
-            </button>
-          </form>
-
-          <p className="auth-switch">
-            {isSignup ? 'Already have an account?' : "Don't have an account?"}{' '}
-            <button
-              type="button"
-              className="auth-switch__link"
-              onClick={() => switchMode(isSignup ? 'login' : 'signup')}
-            >
-              {isSignup ? 'Log in' : 'Sign up'}
-            </button>
-          </p>
-
-          <div className="auth-demo">
-            <span className="auth-demo__label">Just exploring?</span>
-            <button
-              type="button"
-              className="auth-demo__btn"
-              onClick={handleDemoAdmin}
-              disabled={submitting}
-            >
-              <Icon name="sparkle" size={14} />
-              Sign in as demo admin
-            </button>
-          </div>
+          {phase === 'connecting' && (
+            <div className="teams-connecting" role="status" aria-live="polite">
+              <span className="teams-connecting__spinner" aria-hidden="true" />
+              <p className="teams-connecting__text">Connecting to Microsoft Teams…</p>
+            </div>
+          )}
         </div>
 
         <p className="login__footnote">

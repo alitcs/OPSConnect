@@ -10,11 +10,8 @@ import {
 import { api } from '../api/client';
 import {
   getSessionUserId,
-  login as authLogin,
+  loginWithTeams as authLoginWithTeams,
   logout as authLogout,
-  signup as authSignup,
-  type LoginInput,
-  type SignupInput,
 } from '../api/auth';
 import type { User } from '../types';
 
@@ -22,10 +19,8 @@ interface AuthContextValue {
   currentUser: User | null;
   loading: boolean;
   isAuthenticated: boolean;
-  /** Log in with an @ontario.ca email and password. */
-  login: (input: LoginInput) => Promise<void>;
-  /** Register a new @ontario.ca account. */
-  signup: (input: SignupInput) => Promise<void>;
+  /** Sign in via the mock Microsoft Teams SSO flow using an @ontario.ca account. */
+  loginWithTeams: (email: string) => Promise<void>;
   /** End the current session. */
   logout: () => void;
   /** Re-fetch the current user (e.g. after editing the profile). */
@@ -47,22 +42,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setCurrentUser(user);
   }, []);
 
-  const login = useCallback(
-    async (input: LoginInput) => {
-      authLogin(input);
-      setLoading(true);
-      try {
-        await refresh();
-      } finally {
-        setLoading(false);
-      }
-    },
-    [refresh],
-  );
-
-  const signup = useCallback(
-    async (input: SignupInput) => {
-      authSignup(input);
+  const loginWithTeams = useCallback(
+    async (email: string) => {
+      authLoginWithTeams(email);
       setLoading(true);
       try {
         await refresh();
@@ -87,12 +69,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       currentUser,
       loading,
       isAuthenticated: currentUser !== null,
-      login,
-      signup,
+      loginWithTeams,
       logout,
       refresh,
     }),
-    [currentUser, loading, login, signup, logout, refresh],
+    [currentUser, loading, loginWithTeams, logout, refresh],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

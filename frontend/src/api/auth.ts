@@ -247,3 +247,101 @@ export function login({ email, password }: LoginInput): { userId: number } {
 export function logout(): void {
   clearSession();
 }
+
+// --- Mock Microsoft Teams single sign-on -------------------------------------
+//
+// In production, access is exclusively via Microsoft Teams / Entra ID SSO — there
+// is no separate email+password sign-up. The functions below fake that flow: a
+// "Sign in with Microsoft Teams" button surfaces a mock account picker, and
+// selecting an account signs the reviewer straight into a seeded profile.
+// TODO (production): replace with the real MSAL / Entra ID token exchange.
+
+/** A single entry in the mock Teams "Pick an account" picker. */
+export interface TeamsAccount {
+  email: string;
+  name: string;
+  title: string;
+  initials: string;
+  /** Marks the account with admin/coordinator access. */
+  isAdmin: boolean;
+}
+
+/** Seeded @ontario.ca profiles surfaced in the mock Teams account picker. */
+const TEAMS_ACCOUNT_EMAILS: Array<{ email: string; isAdmin: boolean }> = [
+  { email: 'john.paul@ontario.ca', isAdmin: true },
+  { email: 'angela.okafor@ontario.ca', isAdmin: false },
+  { email: 'marcus.chen@ontario.ca', isAdmin: false },
+  { email: 'fatima.alrashid@ontario.ca', isAdmin: false },
+];
+
+function initialsFromName(name: string): string {
+  const parts = name.trim().split(/\s+/).filter(Boolean);
+  if (parts.length === 0) return '?';
+  const first = parts[0][0] ?? '';
+  const last = parts.length > 1 ? parts[parts.length - 1][0] ?? '' : '';
+  return (first + last).toUpperCase();
+}
+
+/** The list of accounts to show in the mock Teams account picker. */
+export function getTeamsAccounts(): TeamsAccount[] {
+  return TEAMS_ACCOUNT_EMAILS.flatMap(({ email, isAdmin }) => {
+    const user = backend.findUserByEmail(email);
+    if (!user) return [];
+    return [
+      {
+        email: user.email,
+        name: user.name,
+        title: user.title,
+        initials: initialsFromName(user.name),
+        isAdmin,
+      },
+    ];
+  });
+}
+
+/**
+ * Sign in via the mock Teams SSO flow. Any @ontario.ca account is accepted:
+ * seeded/existing profiles sign straight in, and any other address gets a fresh
+ * directory profile created on the fly (mirroring first-time SSO provisioning).
+ */
+export function loginWithTeams(email: string): { userId: number } {
+  const cleanEmail = email.trim().toLowerCase();
+
+  if (!isOntarioEmail(cleanEmail)) {
+    throw new AuthError(`Only @${ALLOWED_DOMAIN} accounts can access ConnectOPS.`);
+  }
+
+  // 1) A locally-registered account from a previous session.
+  const account = findAccount(cleanEmail);
+  if (account) {
+    backend.registerUser(account.user);
+    setSessionUserId(account.user.id);
+    return { userId: account.user.id };
+  }
+
+  // 2) A seeded directory profile — sign straight in.
+  const existing = backend.findUserByEmail(cleanEmail);
+  if (existing) {
+    setSessionUserId(existing.id);
+    return { userId: existing.id };
+  }
+
+  // 3) First-time sign-in — provision a fresh profile from the email.
+  const derivedName = cleanEmail
+    .split('@')[0]
+    .split(/[._-]+/)
+    .filter(Boolean)
+    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+    .join(' ');
+  const user = backend.createUser(buildNewUserProfile(derivedName || 'OPS Employee', cleanEmail));
+  const accounts = loadAccounts();
+  accounts.push({
+    email: cleanEmail,
+    name: user.name,
+    passwordHash: '',
+    user,
+  });
+  saveAccounts(accounts);
+  setSessionUserId(user.id);
+  return { userId: user.id };
+}

@@ -2274,6 +2274,238 @@ select {
   cursor: not-allowed;
 }
 
+/* --- Mock Microsoft Teams SSO ------------------------------------------ */
+
+.teams-auth {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 14px;
+}
+
+.teams-signin {
+  width: 100%;
+  min-height: 46px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 12px 16px;
+  border-radius: var(--radius);
+  border: 1px solid var(--border-strong, var(--border));
+  background: var(--surface);
+  color: var(--text);
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: border-color 0.16s var(--ease), transform 0.16s var(--ease),
+    box-shadow 0.16s var(--ease), background 0.16s var(--ease);
+}
+
+.teams-signin:hover {
+  border-color: var(--accent);
+  box-shadow: var(--shadow-sm);
+  transform: translateY(-1px);
+}
+
+.teams-signin:active {
+  transform: translateY(0) scale(0.99);
+}
+
+.teams-auth__note {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin: 0;
+  font-size: 12px;
+  color: var(--text-tertiary);
+  text-align: center;
+}
+
+.teams-connecting {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 14px;
+  padding: 22px 0 10px;
+  animation: auth-fade 0.3s var(--ease) both;
+}
+
+.teams-connecting__spinner {
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  border: 3px solid var(--surface-2);
+  border-top-color: var(--accent);
+  animation: auth-spin 0.7s linear infinite;
+}
+
+.teams-connecting__text {
+  margin: 0;
+  font-size: 14px;
+  color: var(--text-secondary);
+}
+
+.teams-picker {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  animation: auth-rise 0.35s var(--ease) both;
+}
+
+.teams-picker__brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  padding-bottom: 4px;
+}
+
+.teams-picker__list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  overflow: hidden;
+}
+
+.teams-picker__list li + li {
+  border-top: 1px solid var(--border);
+}
+
+.teams-account {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 14px;
+  background: var(--surface);
+  border: none;
+  cursor: pointer;
+  text-align: left;
+  color: var(--text);
+  transition: background 0.14s var(--ease);
+}
+
+.teams-account:hover:not(:disabled) {
+  background: var(--surface-2);
+}
+
+.teams-account:disabled {
+  cursor: default;
+}
+
+.teams-account:disabled:not(:has(.teams-account__spinner)) {
+  opacity: 0.55;
+}
+
+.teams-account__avatar {
+  position: relative;
+  flex-shrink: 0;
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  background: var(--accent);
+  color: #fff;
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+}
+
+.teams-account__presence {
+  position: absolute;
+  right: -1px;
+  bottom: -1px;
+  width: 11px;
+  height: 11px;
+  border-radius: 50%;
+  background: var(--success, #16a34a);
+  border: 2px solid var(--surface);
+}
+
+.teams-account__info {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.teams-account__name {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.teams-account__badge {
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  padding: 1px 6px;
+  border-radius: 999px;
+  background: var(--accent-soft);
+  color: var(--accent);
+}
+
+.teams-account__email {
+  font-size: 12px;
+  color: var(--text-tertiary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.teams-account svg {
+  flex-shrink: 0;
+  color: var(--text-tertiary);
+}
+
+.teams-account__spinner {
+  flex-shrink: 0;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  border: 2px solid var(--surface-2);
+  border-top-color: var(--accent);
+  animation: auth-spin 0.7s linear infinite;
+}
+
+.teams-picker__back {
+  align-self: center;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 2px;
+  padding: 6px 8px;
+  border: none;
+  background: none;
+  color: var(--text-secondary);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: color 0.15s var(--ease);
+}
+
+.teams-picker__back:hover:not(:disabled) {
+  color: var(--accent);
+}
+
+.teams-picker__back:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
 /* --- Login / auth: motion & smoother interactions ---------------------- */
 
 .login__card {
