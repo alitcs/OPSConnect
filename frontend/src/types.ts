@@ -36,10 +36,12 @@ export interface User {
   mentoringAreas: string[];
   coopInfo: CoopInfo | null;
 
-  // --- Bulletin board availability ("open for coffee today") ---
+  // --- Bulletin board availability ("open to connect today") ---
   availableForCoffee: boolean;
   availabilityNote: string | null;
   availabilitySetAt: string | null;
+  /** The kinds of low-pressure connection the person is open to today. */
+  connectIntents: ConnectIntentId[];
 
   // --- Platform engagement ---
   isActiveUser: boolean; // actively signed up vs. passively listed from the directory
@@ -146,9 +148,9 @@ export interface Conversation {
   title: string;
   createdAt: string;
   updatedAt: string;
-  /** Which surface owns this thread. Admin (coordinator) chats are kept separate from a
-   *  member's personal Copilot history. Defaults to 'chat' when omitted. */
-  scope?: 'chat' | 'admin';
+  /** Which surface owns this thread. Admin (coordinator) chats and Connect concierge chats
+   *  are kept separate from a member's personal Copilot history. Defaults to 'chat'. */
+  scope?: 'chat' | 'admin' | 'connect';
 }
 
 export interface DirectMessage {
@@ -199,7 +201,39 @@ export interface ConnectPerson {
   /** Short proximity label (e.g. "Floor 14 · 777 Bay Street") when co-located today. */
   proximity: string | null;
   isNearby: boolean;
+  /** The connection intents this person has opted into today. */
+  intents: ConnectIntentId[];
 }
+
+// --- Connection intents ("what kind of connection are you open to today") ---
+
+/** A low-pressure signal about the kind of human connection someone welcomes today. */
+export type ConnectIntentId =
+  | 'coffee'
+  | 'lunch'
+  | 'walk'
+  | 'exchange'
+  | 'interest'
+  | 'newhere';
+
+export interface ConnectIntentInfo {
+  id: ConnectIntentId;
+  label: string;
+  /** Icon name from the shared Icon set. */
+  icon: string;
+  /** One-line, human description shown under the label. */
+  blurb: string;
+}
+
+/** All connection intents, in display order. Warm but professional — no dating framing. */
+export const CONNECT_INTENTS: ConnectIntentInfo[] = [
+  { id: 'coffee', label: 'Coffee chat', icon: 'coffee', blurb: 'A casual catch-up over coffee' },
+  { id: 'lunch', label: 'Lunch buddy', icon: 'utensils', blurb: 'Share a lunch break with someone' },
+  { id: 'walk', label: 'Walk & talk', icon: 'footprints', blurb: 'A break and a chat away from the desk' },
+  { id: 'exchange', label: 'Skill exchange', icon: 'swap', blurb: 'Trade knowledge, advice, or career notes' },
+  { id: 'interest', label: 'Shared interest', icon: 'star', blurb: 'Meet over a hobby or shared interest' },
+  { id: 'newhere', label: 'New here', icon: 'flag', blurb: 'New to the OPS and keen to meet people' },
+];
 
 /** Smart proximity summary — "N people near you on Floor X are open for coffee today." */
 export interface ProximitySummary {

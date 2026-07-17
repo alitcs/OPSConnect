@@ -1,6 +1,13 @@
 import { useState, type FormEvent } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ALLOWED_DOMAIN, AuthError, DEMO_ADMIN, isOntarioEmail } from '../api/auth';
+import {
+  ALLOWED_DOMAIN,
+  AuthError,
+  DEMO_ADMIN,
+  isOntarioEmail,
+  PASSWORD_REQUIREMENTS,
+  passwordIssues,
+} from '../api/auth';
 import { useAuth } from '../context/AuthContext';
 import Icon from '../components/Icon';
 
@@ -46,8 +53,8 @@ export default function LoginPage() {
       setError(`Please use your @${ALLOWED_DOMAIN} email address.`);
       return;
     }
-    if (isSignup && password.length < 8) {
-      setError('Password must be at least 8 characters.');
+    if (isSignup && passwordIssues(password).length > 0) {
+      setError('Please meet all the password requirements below.');
       return;
     }
 
@@ -189,6 +196,26 @@ export default function LoginPage() {
                   {showPassword ? 'Hide' : 'Show'}
                 </button>
               </div>
+              {isSignup && (
+                <ul className="auth-form__reqs" aria-label="Password requirements">
+                  {PASSWORD_REQUIREMENTS.map((req) => {
+                    const met = req.test(password);
+                    return (
+                      <li
+                        key={req.label}
+                        className={`auth-form__req ${met ? 'is-met' : ''}`}
+                      >
+                        <Icon
+                          name={met ? 'check' : 'info'}
+                          size={12}
+                          strokeWidth={met ? 3 : 2}
+                        />
+                        {req.label}
+                      </li>
+                    );
+                  })}
+                </ul>
+              )}
             </label>
 
             {error && (

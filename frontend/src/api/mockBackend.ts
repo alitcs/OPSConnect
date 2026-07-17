@@ -16,6 +16,7 @@ import type {
   AdminInsights,
   BridgeInsight,
   ChatMessage,
+  ConnectIntentId,
   ConnectPerson,
   ConnectionGraph,
   Conversation,
@@ -197,6 +198,7 @@ const SYNTH_PROGRAMS = ['Computer Science', 'Software Engineering', 'Data Scienc
       availableForCoffee: false,
       availabilityNote: null,
       availabilitySetAt: null,
+      connectIntents: [],
       messagePrivacy: 'everyone',
     } as User);
     id++;
@@ -215,37 +217,40 @@ const NOW_ISO = NOW.toISOString();
 const IDLE_IDS = new Set<number>([10, 20]);
 // Program-coordinator access to the org-level insights page.
 const ADMIN_IDS = new Set<number>([1, 5, 25]);
-// Who has set themselves "open for coffee" today, with an optional note.
-const AVAILABILITY_SEED: Array<[number, string | null]> = [
-  [1, null],
-  [12, 'Happy to walk through anything data or Tableau'],
-  [18, null],
-  [4, 'Around this afternoon — ask me about web dev'],
-  [5, 'Open between meetings'],
-  [3, null],
-  [11, 'Glad to help with cloud or security questions'],
-  [22, null],
-  [13, 'New co-op — keen to meet the team!'],
-  [17, null],
-  [24, 'Up for a quick chat or walkthrough'],
-  [9, null],
-  [26, 'Ask me anything about accessibility'],
+// Who has set themselves open to connect today, with an optional note and the kinds of
+// connection they're up for. Intents keep the board human without being a social network.
+const AVAILABILITY_SEED: Array<[number, string | null, ConnectIntentId[]]> = [
+  [1, null, ['coffee', 'exchange']],
+  [12, 'Happy to walk through anything data or Tableau', ['coffee', 'exchange']],
+  [18, null, ['lunch', 'interest']],
+  [4, 'Around this afternoon — ask me about web dev', ['coffee', 'exchange']],
+  [5, 'Open between meetings', ['coffee', 'walk']],
+  [3, null, ['walk', 'interest']],
+  [11, 'Glad to help with cloud or security questions', ['coffee', 'exchange']],
+  [22, null, ['lunch']],
+  [13, 'New co-op — keen to meet the team!', ['newhere', 'coffee', 'lunch']],
+  [17, null, ['interest', 'walk']],
+  [24, 'Up for a quick chat or walkthrough', ['coffee', 'exchange']],
+  [9, null, ['interest']],
+  [26, 'Ask me anything about accessibility', ['coffee', 'exchange']],
 ];
 
 for (const u of users) {
   u.availableForCoffee = false;
   u.availabilityNote = null;
   u.availabilitySetAt = null;
+  u.connectIntents = [];
   u.isActiveUser = !IDLE_IDS.has(u.id);
   u.isAdmin = ADMIN_IDS.has(u.id);
   u.messagePrivacy = u.messagePrivacy ?? 'everyone';
 }
-for (const [id, note] of AVAILABILITY_SEED) {
+for (const [id, note, intents] of AVAILABILITY_SEED) {
   const u = users.find((x) => x.id === id);
   if (u) {
     u.availableForCoffee = true;
     u.availabilityNote = note;
     u.availabilitySetAt = NOW_ISO;
+    u.connectIntents = intents;
   }
 }
 
@@ -403,6 +408,7 @@ function toConnectPerson(target: User, viewer: User): ConnectPerson {
     sharedInterests: sharedInterestsBetween(viewer, target).slice(0, 3),
     proximity,
     isNearby: proximity != null,
+    intents: target.connectIntents ?? [],
   };
 }
 
@@ -2074,6 +2080,184 @@ function generateReply(rawQuery: string, me: User): AIReply {
   };
 }
 
+// --- Connect concierge assistant -----------------------------------------
+//
+// A member-facing, connection-first Copilot for the Connect board. It shares the same
+// person-card + follow-up shape as the home Copilot, but it leads with human connection —
+// who to meet and why, welcoming newcomers, and drafting a friendly, low-pressure intro.
+// For anything else it reuses the member intent pipeline, so every home-Copilot answer
+// works here too. It is deliberately warm-but-professional: no ranking of people, no
+// pressure, no romantic framing.
+
+const INTENT_PHRASE: Record<ConnectIntentId, string> = {
+  coffee: 'up for a coffee chat',
+  lunch: 'looking for a lunch buddy',
+  walk: 'up for a walk & talk',
+  exchange: 'open to a skill exchange',
+  interest: 'keen to meet over a shared interest',
+  newhere: 'new to the OPS and keen to meet people',
+};
+
+function intentPhrase(intents: ConnectIntentId[]): string | null {
+  const labels = intents.map((i) => INTENT_PHRASE[i]).filter(Boolean);
+  if (!labels.length) return null;
+  if (labels.length === 1) return labels[0];
+  return `${labels.slice(0, -1).join(', ')} and ${labels[labels.length - 1]}`;
+}
+
+// Rank people worth meeting by warm, explainable signals: shared interests, open-to-connect
+// today, proximity, and complementary experience (a mentor for a co-op). No black-box score.
+function suggestConnections(me: User, limit = 4): SurfacedPerson[] {
+  const scored = users
+    .filter((u) => u.id !== me.id && u.isActiveUser)
+    .map((u) => {
+      const shared = sharedInterestsBetween(me, u);
+      const prox = proximityLabel(u, me);
+      let score = shared.length * 2;
+      if (u.availableForCoffee) score += 3;
+      if (prox) score += 2;
+      if (me.coopInfo && u.mentoringAreas.length) score += 2;
+      return { u, shared, prox, score };
+    })
+    .filter((x) => x.score > 0)
+    .sort((a, b) => b.score - a.score || a.u.name.localeCompare(b.u.name))
+    .slice(0, limit);
+
+  return scored.map(({ u, shared, prox }) => {
+    const bits: string[] = [];
+    const ip = intentPhrase(u.connectIntents ?? []);
+    bits.push(
+      u.availableForCoffee && ip
+        ? `${u.title} on the ${u.team} team — ${ip} today.`
+        : `${u.title} on the ${u.team} team.`,
+    );
+    if (shared.length) bits.push(`You both like ${shared.slice(0, 2).join(' and ')}.`);
+    if (prox) bits.push(`Nearby · ${prox}.`);
+    if (me.coopInfo && u.mentoringAreas.length) {
+      bits.push(`Open to mentoring in ${u.mentoringAreas.slice(0, 2).join(', ')}.`);
+    }
+    return surface(u, bits.join(' '));
+  });
+}
+
+// Pull the specific person an intro request is about (e.g. "draft an intro to Priya").
+function findConnectTarget(query: string, me: User): User | undefined {
+  return findPeopleByName(query, users).find((u) => u.id !== me.id);
+}
+
+function generateConnectReply(rawQuery: string, me: User): AIReply {
+  const query = norm(rawQuery).trim();
+  const first = me.name.split(' ')[0];
+
+  if (OFF_TOPIC.some((t) => query.includes(t)) && !ADJACENT.some((a) => query.includes(a))) {
+    return {
+      text: "I'm here to help you connect with people across the OPS — try \u201cwho should I meet?\u201d, \u201cwho's open to connect today?\u201d, or \u201cdraft an intro to <name>\u201d.",
+      people: [],
+    };
+  }
+
+  // 1. Draft a friendly, low-pressure intro — personalised to a named person when given.
+  if (
+    /((draft|write|help me (with|write)|give me|craft).*(intro|message|note|dm|email))|intro (message|to)|reach out to|how (do|should|would) i (message|reach|approach|say hi|introduce)|break the ice|what (do|should) i say/.test(
+      query,
+    )
+  ) {
+    const target = findConnectTarget(query, me);
+    if (target) {
+      const them = target.name.split(' ')[0];
+      const shared = sharedInterestsBetween(me, target).slice(0, 2);
+      const common = shared.length ? ` I noticed we both like ${shared.join(' and ')} —` : '';
+      const text = `Here's a short, low-pressure intro you could send ${them} on Teams:\n\n\u201cHi ${them}, I'm ${first} on the ${me.team} team.${common} I saw you on the Connect board and thought I'd say hi. No agenda \u2014 would you be up for a quick coffee sometime this week?\u201d\n\nWant it warmer, shorter, or a bit more work-focused?`;
+      return {
+        text,
+        people: [surface(target, `${target.title} on the ${target.team} team.`)],
+        followUps: ['Make it shorter', 'Make it more work-focused', 'Who else should I meet?'],
+      };
+    }
+    const text = `Here's a friendly, no-pressure intro you can adapt:\n\n\u201cHi \u2014 I'm ${first} on the ${me.team} team. I saw you're open to connect on the board and thought I'd reach out. No agenda \u2014 would you be up for a quick coffee or a walk sometime this week?\u201d\n\nTell me who it's for and I'll tailor it \u2014 I can weave in something you have in common.`;
+    return {
+      text,
+      people: [],
+      followUps: ['Who should I meet?', "Who's open to connect today?"],
+    };
+  }
+
+  // 2. Who should I meet — suggest people worth connecting with.
+  if (
+    /(who should i (meet|connect|know|talk to|reach out)|suggest (someone|people|a person)|recommend (someone|people)|introduce me|someone (new )?to (meet|connect)|help me (meet|connect|network)|meet (new|someone)|expand my network|broaden my network|make (a )?(new )?connection|good (person|people) to meet|who (could|should) i grab)/.test(
+      query,
+    )
+  ) {
+    const people = suggestConnections(me, 4);
+    if (!people.length) {
+      return {
+        text: "Add a few interests to your profile and set yourself open to connect \u2014 I'll start suggesting good people to meet once there's a bit to go on.",
+        people: [],
+      };
+    }
+    return {
+      text: "Here are a few people I think you'd enjoy meeting \u2014 based on what you have in common and who's open to connect today:",
+      people,
+      followUps: ['Draft an intro to the first person', "Who's open to connect today?", 'Who shares my interests?'],
+    };
+  }
+
+  // 3. Who's new — newcomers who'd appreciate a friendly hello.
+  if (
+    /(who'?s new|newcomer|new (co-?op|hire|hires|people|folks|faces|employee)|new to (the )?(ops|team)|welcome|just (joined|started|arrived)|fresh face)/.test(
+      query,
+    )
+  ) {
+    const newcomers = users
+      .filter(
+        (u) =>
+          u.id !== me.id &&
+          u.isActiveUser &&
+          (u.coopInfo != null || (u.connectIntents ?? []).includes('newhere')),
+      )
+      .sort((a, b) => Number(b.availableForCoffee) - Number(a.availableForCoffee))
+      .slice(0, 5)
+      .map((u) => {
+        const tag = u.coopInfo
+          ? `Co-op student (${u.coopInfo.program})`
+          : `${u.title} on the ${u.team} team`;
+        const avail = u.availableForCoffee ? ' Open to connect today.' : '';
+        return surface(u, `${tag}.${avail} A warm welcome goes a long way.`);
+      });
+    if (!newcomers.length) {
+      return {
+        text: "No one's flagged themselves as new right now \u2014 but everyone on the board would welcome a hello.",
+        people: [],
+      };
+    }
+    return {
+      text: 'These folks are newer to the OPS \u2014 a friendly hello would mean a lot:',
+      people: newcomers,
+      followUps: ['Draft a welcome message', "Who's open to connect today?"],
+    };
+  }
+
+  // 4. Fall back to the shared member pipeline (open-to-connect, shared interests, person
+  //    lookup, skills, teams, projects…), then a connection-first default.
+  const matched = runIntents(query, me);
+  if (matched) return matched;
+
+  if (ADJACENT.some((a) => query.includes(a))) {
+    return {
+      text: 'There are a few good spots near 777 Bay Street \u2014 the College Park food court and the Bay Street caf\u00e9s are team favourites for a coffee or lunch. Want me to suggest someone to go with?',
+      people: [],
+      followUps: ['Who should I meet?', "Who's open to connect today?"],
+    };
+  }
+
+  const people = suggestConnections(me, 3);
+  return {
+    text: "I'm your connection concierge \u2014 I can suggest people to meet, tell you who's open to connect today, help welcome newcomers, or draft a friendly intro. Here are a few people to start with:",
+    people,
+    followUps: ["Who's open to connect today?", 'Who shares my interests?', 'Draft an intro for me'],
+  };
+}
+
 // --- Admin analytics assistant -------------------------------------------
 //
 // A second, admin-only AI surface. The org-wide Copilot above is deliberately
@@ -3000,12 +3184,14 @@ export const backend = {
     availableForCoffee: boolean;
     availabilityNote: string | null;
     availabilitySetAt: string | null;
+    connectIntents: ConnectIntentId[];
   } {
     const u = requireUser(userId);
     return {
       availableForCoffee: u.availableForCoffee,
       availabilityNote: u.availabilityNote,
       availabilitySetAt: u.availabilitySetAt,
+      connectIntents: u.connectIntents ?? [],
     };
   },
 
@@ -3013,16 +3199,24 @@ export const backend = {
     userId: number,
     available: boolean,
     note?: string | null,
-  ): { availableForCoffee: boolean; availabilityNote: string | null; availabilitySetAt: string | null } {
+    intents?: ConnectIntentId[],
+  ): {
+    availableForCoffee: boolean;
+    availabilityNote: string | null;
+    availabilitySetAt: string | null;
+    connectIntents: ConnectIntentId[];
+  } {
     const u = requireUser(userId);
     u.availableForCoffee = available;
     u.availabilityNote = available ? (note?.trim() ? note.trim().slice(0, 120) : null) : null;
     u.availabilitySetAt = available ? new Date().toISOString() : null;
+    u.connectIntents = available ? (intents ?? u.connectIntents ?? []) : [];
     u.isActiveUser = true; // setting availability activates you
     return {
       availableForCoffee: u.availableForCoffee,
       availabilityNote: u.availabilityNote,
       availabilitySetAt: u.availabilitySetAt,
+      connectIntents: u.connectIntents,
     };
   },
 
@@ -3068,7 +3262,7 @@ export const backend = {
   // --- Chat ---
   listConversations(userId: number): Conversation[] {
     return conversations
-      .filter((c) => c.userId === userId && c.scope !== 'admin')
+      .filter((c) => c.userId === userId && c.scope !== 'admin' && c.scope !== 'connect')
       .sort((a, b) => b.updatedAt.localeCompare(a.updatedAt));
   },
 
@@ -3083,7 +3277,11 @@ export const backend = {
     return { conversation, messages };
   },
 
-  createConversation(userId: number, title?: string, scope: 'chat' | 'admin' = 'chat'): Conversation {
+  createConversation(
+    userId: number,
+    title?: string,
+    scope: 'chat' | 'admin' | 'connect' = 'chat',
+  ): Conversation {
     const now = new Date().toISOString();
     const conversation: Conversation = {
       id: `conv-${uuid()}`,
@@ -3147,6 +3345,96 @@ export const backend = {
     const reply = generateReply(text, requireUser(userId));
     const assistantMessage: ChatMessage = {
       id: `msg-${uuid()}`,
+      conversationId: convId,
+      role: 'assistant',
+      text: reply.text,
+      people: reply.people,
+      projects: reply.projects,
+      followUps: reply.followUps,
+      createdAt: now(),
+    };
+    chatMessages.push(assistantMessage);
+    touch(convId);
+
+    return { conversationId: convId, message: assistantMessage };
+  },
+
+  // --- Connect concierge (member-facing, connection-first) ---
+  //
+  // Concierge threads are persisted like member chats but tagged scope: 'connect' so they
+  // stay out of the personal Copilot history and only surface on the Connect board.
+  listConnectConversations(userId: number): Conversation[] {
+    return conversations
+      .filter((c) => c.userId === userId && c.scope === 'connect')
+      .sort((a, b) => b.updatedAt.localeCompare(a.updatedAt));
+  },
+
+  getConnectConversation(
+    userId: number,
+    id: string,
+  ): { conversation: Conversation; messages: ChatMessage[] } {
+    const conversation = conversations.find((c) => c.id === id);
+    if (!conversation || conversation.userId !== userId || conversation.scope !== 'connect') {
+      throw new ApiError(404, 'Conversation not found');
+    }
+    const messages = chatMessages
+      .filter((m) => m.conversationId === id)
+      .sort((a, b) => a.createdAt.localeCompare(b.createdAt));
+    return { conversation, messages };
+  },
+
+  deleteConnectConversation(userId: number, id: string): void {
+    const conversation = conversations.find((c) => c.id === id);
+    if (!conversation || conversation.userId !== userId || conversation.scope !== 'connect') {
+      throw new ApiError(404, 'Conversation not found');
+    }
+    const index = conversations.findIndex((c) => c.id === id);
+    conversations.splice(index, 1);
+    for (let i = chatMessages.length - 1; i >= 0; i--) {
+      if (chatMessages[i].conversationId === id) chatMessages.splice(i, 1);
+    }
+  },
+
+  // Persists the exchange under a connect-scoped conversation so members can revisit past
+  // suggestions. Pass conversationId to continue a saved thread.
+  sendConnectChat(
+    userId: number,
+    message: string,
+    conversationId?: string,
+  ): { conversationId: string; message: ChatMessage } {
+    const text = message?.trim();
+    if (!text) throw new ApiError(400, 'message is required');
+
+    let convId = conversationId;
+    if (convId) {
+      const existing = conversations.find((c) => c.id === convId);
+      if (!existing || existing.userId !== userId || existing.scope !== 'connect') {
+        throw new ApiError(404, 'Conversation not found');
+      }
+    } else {
+      const title = text.length > 40 ? `${text.slice(0, 40)}…` : text;
+      convId = this.createConversation(userId, title, 'connect').id;
+    }
+
+    const now = () => new Date().toISOString();
+    const touch = (id: string) => {
+      const c = conversations.find((x) => x.id === id);
+      if (c) c.updatedAt = new Date().toISOString();
+    };
+
+    const userMessage: ChatMessage = {
+      id: `conn-${uuid()}`,
+      conversationId: convId,
+      role: 'user',
+      text,
+      createdAt: now(),
+    };
+    chatMessages.push(userMessage);
+    touch(convId);
+
+    const reply = generateConnectReply(text, requireUser(userId));
+    const assistantMessage: ChatMessage = {
+      id: `conn-${uuid()}`,
       conversationId: convId,
       role: 'assistant',
       text: reply.text,
@@ -3404,6 +3692,7 @@ export const backend = {
       availableForCoffee: user.availableForCoffee ?? false,
       availabilityNote: user.availabilityNote ?? null,
       availabilitySetAt: user.availabilitySetAt ?? null,
+      connectIntents: user.connectIntents ?? [],
       isActiveUser: user.isActiveUser ?? true,
       isAdmin: user.isAdmin ?? false,
       messagePrivacy: user.messagePrivacy ?? 'everyone',

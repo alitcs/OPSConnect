@@ -40,6 +40,10 @@ export type IconName =
   | 'ticket'
   | 'clock'
   | 'flag'
+  | 'utensils'
+  | 'footprints'
+  | 'swap'
+  | 'star'
   | 'layers';
 const PATHS: Record<IconName, JSX.Element> = {
   logo: (
@@ -272,6 +276,30 @@ const PATHS: Record<IconName, JSX.Element> = {
       <path d="m3 12 9 5 9-5" />
       <path d="m3 17 9 5 9-5" />
     </>
+  ),
+  utensils: (
+    <>
+      <path d="M4 3v6a2 2 0 0 0 2 2 2 2 0 0 0 2-2V3" />
+      <path d="M6 11v10" />
+      <path d="M18 3c-1.7 0-3 1.8-3 4.5S16 12 18 12v9" />
+    </>
+  ),
+  footprints: (
+    <>
+      <path d="M4 16v-2.4C4 11.5 3 10.6 3 8.4 3 6 4.3 3 6.5 3 8 3 8.5 4.3 8.5 5.6c0 2.3-1.5 4.2-1.5 6.5V16a2 2 0 1 1-3 0Z" />
+      <path d="M20 21v-2.4c0-2.1 1-3 1-5.2 0-2.4-1.3-5.4-3.5-5.4-1.5 0-2 1.3-2 2.6 0 2.3 1.5 4.2 1.5 6.5V21a2 2 0 1 0 3 0Z" />
+    </>
+  ),
+  swap: (
+    <>
+      <path d="M8 3 4 7l4 4" />
+      <path d="M4 7h16" />
+      <path d="m16 21 4-4-4-4" />
+      <path d="M20 17H4" />
+    </>
+  ),
+  star: (
+    <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
   ),
 };
 

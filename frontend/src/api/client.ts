@@ -9,6 +9,7 @@ import type {
   ActivityMetrics,
   AdminInsights,
   ChatMessage,
+  ConnectIntentId,
   ConnectPerson,
   ConnectionGraph,
   Conversation,
@@ -69,13 +70,19 @@ export const api = {
 
   // --- Connect / bulletin board ---
   getAvailability: () =>
-    run<{ availableForCoffee: boolean; availabilityNote: string | null; availabilitySetAt: string | null }>(
-      () => backend.getAvailability(me()),
-    ),
-  setAvailability: (available: boolean, note?: string | null) =>
-    run<{ availableForCoffee: boolean; availabilityNote: string | null; availabilitySetAt: string | null }>(
-      () => backend.setAvailability(me(), available, note),
-    ),
+    run<{
+      availableForCoffee: boolean;
+      availabilityNote: string | null;
+      availabilitySetAt: string | null;
+      connectIntents: ConnectIntentId[];
+    }>(() => backend.getAvailability(me())),
+  setAvailability: (available: boolean, note?: string | null, intents?: ConnectIntentId[]) =>
+    run<{
+      availableForCoffee: boolean;
+      availabilityNote: string | null;
+      availabilitySetAt: string | null;
+      connectIntents: ConnectIntentId[];
+    }>(() => backend.setAvailability(me(), available, note, intents)),
   getConnectFeed: () => run<ConnectPerson[]>(() => backend.getConnectFeed(me())),
   getProximity: () => run<ProximitySummary>(() => backend.getProximity(me())),
   getDailyNudge: () => run<DailyNudge>(() => backend.getDailyNudge(me())),
@@ -103,6 +110,20 @@ export const api = {
   createConversation: (title?: string) =>
     run<Conversation>(() => backend.createConversation(me(), title)),
   deleteConversation: (id: string) => run<void>(() => backend.deleteConversation(me(), id)),
+
+  // --- Connect concierge (member-facing, connection-first) ---
+  sendConnectChat: (message: string, conversationId?: string) =>
+    run<{ conversationId: string; message: ChatMessage }>(() =>
+      backend.sendConnectChat(me(), message, conversationId),
+    ),
+  listConnectConversations: () =>
+    run<Conversation[]>(() => backend.listConnectConversations(me())),
+  getConnectConversation: (id: string) =>
+    run<{ conversation: Conversation; messages: ChatMessage[] }>(() =>
+      backend.getConnectConversation(me(), id),
+    ),
+  deleteConnectConversation: (id: string) =>
+    run<void>(() => backend.deleteConnectConversation(me(), id)),
 
   // --- Admin analytics assistant (individual engagement, coordinators only) ---
   sendAdminChat: (message: string, mode?: EdgeMode, conversationId?: string) =>

@@ -364,9 +364,9 @@ It helps managers **get ahead of problems** instead of reacting to them.
 
 ---
 
-## The big picture: a smart switchboard
+## The big picture: a smart front desk
 
-Think of a **helpful switchboard operator.** You ask in plain English; it works out what you need, sends it to the right place, checks your clearance, then reads you the answer.
+Think of a **helpful front desk.** You ask in plain English; it works out what you need, sends it to the right place, checks your clearance, then hands you the answer.
 
 <div class="journey">
   <div class="jbox"><div class="jn">STEP 1</div><div class="jt">Route</div><div class="jd">Works out what kind of question you asked.</div></div>
@@ -381,7 +381,7 @@ Think of a **helpful switchboard operator.** You ask in plain English; it works 
 <div class="sub" style="margin-top:14px;">The next two slides zoom in on the interesting parts: the <b>routing</b> (Step 1) and what happens <b>under the hood</b> (Step 2).</div>
 
 <!--
-Walk left to right with the switchboard analogy. Keep this one deliberately simple — it is the
+Walk left to right with the front-desk analogy. Keep this one deliberately simple — it is the
 "anyone can follow this" slide. The depth comes on the next two. ~40 seconds.
 -->
 

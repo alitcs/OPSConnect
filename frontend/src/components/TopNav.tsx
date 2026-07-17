@@ -9,7 +9,6 @@ import Icon, { type IconName } from './Icon';
 const NAV: { to: string; label: string; icon: IconName; end: boolean; adminOnly?: boolean }[] = [
   { to: '/', label: 'Copilot', icon: 'sparkle', end: true },
   { to: '/connect', label: 'Connect', icon: 'coffee', end: false },
-  { to: '/directory', label: 'Directory', icon: 'directory', end: false },
   { to: '/messages', label: 'Messages', icon: 'messages', end: false },
   { to: '/profile', label: 'Profile', icon: 'profile', end: false },
   { to: '/admin', label: 'Insights', icon: 'chart', end: false, adminOnly: true },
@@ -22,6 +21,10 @@ export default function TopNav() {
   const navigate = useNavigate();
 
   const navItems = NAV.filter((item) => !item.adminOnly || currentUser?.isAdmin);
+  // The desktop sidebar already shows the user's avatar in the footer (which opens their
+  // profile), so the Profile nav link there is redundant — hide it on desktop but keep it
+  // in the mobile tab bar, where there is no footer avatar.
+  const desktopNav = navItems.filter((item) => item.to !== '/profile');
 
   const handleLogout = () => {
     logout();
@@ -43,7 +46,7 @@ export default function TopNav() {
         </NavLink>
 
         <nav className="sidebar__nav" aria-label="Main navigation">
-          {navItems.map((item) => (
+          {desktopNav.map((item) => (
             <NavLink
               key={item.to}
               to={item.to}

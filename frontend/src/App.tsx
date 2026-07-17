@@ -6,7 +6,6 @@ import { PreviewCardProvider } from './context/PreviewCardContext';
 import { useAuth } from './context/AuthContext';
 import ChatPage from './pages/Chat';
 import ConnectPage from './pages/Connect';
-import DirectoryPage from './pages/Directory';
 import ProfilePage from './pages/Profile';
 import SettingsPage from './pages/Settings';
 import UserProfilePage from './pages/UserProfile';
@@ -54,7 +53,6 @@ export default function App() {
           <Routes>
             <Route path="/" element={<ChatPage />} />
             <Route path="/connect" element={<ConnectPage />} />
-            <Route path="/directory" element={<DirectoryPage />} />
             <Route path="/profile" element={<ProfilePage />} />
             <Route path="/settings" element={<SettingsPage />} />
             <Route path="/messages" element={<MessagesPage />} />

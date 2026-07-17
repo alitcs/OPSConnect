@@ -147,6 +147,7 @@ function buildNewUserProfile(name: string, email: string): Omit<User, 'id'> {
     availableForCoffee: false,
     availabilityNote: null,
     availabilitySetAt: null,
+    connectIntents: [],
     isActiveUser: true,
     isAdmin: false,
     messagePrivacy: 'everyone',
@@ -159,6 +160,24 @@ export interface SignupInput {
   password: string;
 }
 
+/** A single password-policy rule, surfaced live in the sign-up form and enforced on submit. */
+export interface PasswordRequirement {
+  label: string;
+  test: (pw: string) => boolean;
+}
+
+/** Minimum password requirements for new accounts. Kept sensible, not annoying. */
+export const PASSWORD_REQUIREMENTS: PasswordRequirement[] = [
+  { label: 'At least 8 characters', test: (pw) => pw.length >= 8 },
+  { label: 'An uppercase and a lowercase letter', test: (pw) => /[a-z]/.test(pw) && /[A-Z]/.test(pw) },
+  { label: 'At least one number', test: (pw) => /\d/.test(pw) },
+];
+
+/** The requirement labels a password fails, in order. Empty means the password is valid. */
+export function passwordIssues(password: string): string[] {
+  return PASSWORD_REQUIREMENTS.filter((r) => !r.test(password)).map((r) => r.label);
+}
+
 /** Register a new @ontario.ca account, creating a directory profile for them. */
 export function signup({ name, email, password }: SignupInput): { userId: number } {
   const cleanName = name.trim();
@@ -168,8 +187,8 @@ export function signup({ name, email, password }: SignupInput): { userId: number
   if (!isOntarioEmail(cleanEmail)) {
     throw new AuthError(`Only @${ALLOWED_DOMAIN} email addresses can access ConnectOPS.`);
   }
-  if (password.length < 8) {
-    throw new AuthError('Password must be at least 8 characters.');
+  if (passwordIssues(password).length > 0) {
+    throw new AuthError('Password does not meet the minimum requirements.');
   }
   if (findAccount(cleanEmail) || backend.findUserByEmail(cleanEmail)) {
     throw new AuthError('An account with this email already exists. Try logging in.');

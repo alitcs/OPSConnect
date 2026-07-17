@@ -229,7 +229,7 @@ export default function ChatPage() {
       <div className="chat__main">
         <button className="chat__mobile-toggle" onClick={() => setSidebarOpen(true)}>
           <Icon name="menu" size={16} />
-          Conversations
+          Chats &amp; people
         </button>
 
         <div
