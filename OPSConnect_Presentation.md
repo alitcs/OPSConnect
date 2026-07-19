@@ -118,10 +118,37 @@ section.lead p, section.lead li { color:#dbe6f2; }
 section.lead strong { color:#ffffff; }
 section.lead .rule { width:74px; height:5px; background:#4d9fff; border-radius:3px; margin:16px 0 22px; }
 section.lead .part { color:#7fb2ee; font-weight:800; letter-spacing:.14em; font-size:20px; }
+
+/* ---- Live-demo QR: big slide + per-slide corner badge ---- */
+.qr-big {
+  display:block; width:360px; height:360px; margin:12px auto 16px;
+  background:#fff; padding:18px; border-radius:18px;
+  box-shadow:0 8px 30px rgba(0,0,0,.35);
+}
+section::before {
+  content:"opsconnectt.netlify.app";
+  position:absolute; top:14px; right:14px; z-index:100; box-sizing:border-box;
+  height:74px; padding:0 14px 0 78px;
+  background:#ffffff url("qr.svg") no-repeat 9px center;
+  background-size:60px 60px;
+  border:1px solid var(--line); border-radius:12px;
+  box-shadow:0 2px 8px rgba(16,35,58,.22);
+  color:var(--ink); font-family:"Segoe UI",Arial,sans-serif;
+  font-size:14px; font-weight:800; letter-spacing:.01em; line-height:74px;
+}
+section.notag::before { content:none; background:none; border:none; box-shadow:none; }
+
+/* ---- Compact slide (fits a tall pipe + callout) ---- */
+section.dense p { margin:5px 0; }
+section.dense .pipe { gap:0; margin-top:6px; }
+section.dense .pnode { padding:5px 16px; }
+section.dense .pnode .pd { margin-top:1px; line-height:1.22; }
+section.dense .pdown { font-size:12px; }
+section.dense .callout { margin-top:8px; padding:9px 16px; font-size:18px; }
 </style>
 
 <!-- ==================== TITLE ==================== -->
-<!-- _class: lead -->
+<!-- _class: lead notag -->
 <!-- _paginate: false -->
 
 # OPSConnect
@@ -138,6 +165,26 @@ Jackie Liang · Richard Duc Anh Nguyen · Manraj Rakhraj · Ali Hamoudi
 <!--
 Warm open. One sentence: "We built a working tool that helps any OPS employee find the right
 person, skill, or answer in seconds, and you can try it yourselves whenever you like." Move on.
+-->
+
+---
+
+<!-- ==================== SCAN TO TRY (BIG QR) ==================== -->
+<!-- _class: lead notag -->
+<!-- _paginate: false -->
+
+# Try the live demo — scan to open it
+
+<div class="rule"></div>
+
+<img class="qr-big" src="qr.svg" alt="QR code linking to opsconnectt.netlify.app" />
+
+<div class="link">opsconnectt.netlify.app</div>
+
+<!--
+Hold here a beat: "Scan this now and follow along on your own device for the rest of the talk."
+Everything is live, so judges can explore in parallel. The same code sits in the corner of every
+slide, so anyone can scan whenever they like.
 -->
 
 ---
@@ -578,6 +625,8 @@ our biggest credibility win. Do it live if time allows. ~50 seconds.
 
 ---
 
+<!-- _class: dense -->
+
 ## Data protection built into every answer
 
 Copilot never receives the full OPS database — only the **minimum, authorized** facts needed to answer your question.
@@ -757,7 +806,7 @@ production. The manager-analytics guardrail pre-empts the obvious privacy object
 
 <div class="note">
 
-**Being straight with you:** we're **co-op students**, not OPS finance — we don't know every internal rate or shared-service arrangement. These are **deliberately conservative** estimates against **generic public-sector benchmarks.** Because so much **reuses tools the OPS already owns**, the real cost most likely lands **at or below** this — leaving clear room under the cap, not scraping it.
+These are **deliberately conservative** estimates, built on **generic public-sector benchmarks.** Because so much **reuses tools and licensing the OPS already owns**, the real cost most likely lands **at or below** this — leaving **clear room under the $1.5M cap**, rather than a figure scraping the ceiling.
 
 </div>
 
