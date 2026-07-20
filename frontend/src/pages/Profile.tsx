@@ -17,7 +17,7 @@ export default function ProfilePage() {
           Auto-filled up top. Add details below so others can find you.
         </p>
 
-        <ProfileSection1 user={currentUser} />
+        <ProfileSection1 user={currentUser} self />
 
         <div className="profile__section-sep" />
 

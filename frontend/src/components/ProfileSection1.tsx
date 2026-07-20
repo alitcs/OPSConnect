@@ -7,7 +7,7 @@ import StatusDot from './StatusDot';
 
 // Section 1 — the "business card". Clean, glanceable Tier 1 data. Read-only display used
 // on both the user's own profile and when viewing someone else's.
-export default function ProfileSection1({ user }: { user: User }) {
+export default function ProfileSection1({ user, self = false }: { user: User; self?: boolean }) {
   const { openPreview } = usePreviewCard();
   const [manager, setManager] = useState<UserSummary | null>(null);
   const [reports, setReports] = useState<UserSummary[]>([]);
@@ -25,7 +25,15 @@ export default function ProfileSection1({ user }: { user: User }) {
           <div className="business-card__name">{user.name}</div>
           <div className="business-card__title">{user.title}</div>
           <div className="muted" style={{ fontSize: 13.5, display: 'flex', alignItems: 'center', gap: 6, marginTop: 2 }}>
-            <StatusDot status={user.status} /> {user.status} · {user.workHours}
+            {self ? (
+              <>
+                {user.status} <StatusDot status={user.status} /> · {user.workHours}
+              </>
+            ) : (
+              <>
+                <StatusDot status={user.status} /> {user.status} · {user.workHours}
+              </>
+            )}
           </div>
         </div>
       </div>

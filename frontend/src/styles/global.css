@@ -975,7 +975,7 @@ select {
   flex: 1;
   min-height: 100%;
   display: flex;
-  align-items: center;
+  align-items: safe center;
   justify-content: center;
   text-align: center;
   color: var(--text-secondary);

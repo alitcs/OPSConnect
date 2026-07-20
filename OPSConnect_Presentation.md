@@ -2,7 +2,7 @@
 marp: true
 paginate: true
 size: 16:9
-title: ConnectOPS — OGT Summer 2026 Pitch
+title: ConnectOPS: OGT Summer 2026 Pitch
 author: Jackie Liang, Richard Duc Anh Nguyen, Manraj Rakhraj, Ali Hamoudi
 footer: 'ConnectOPS · Ops Got Talent · connectops.netlify.app'
 ---
@@ -157,7 +157,7 @@ section.dense .callout { margin-top:8px; padding:9px 16px; font-size:18px; }
 
 ## Find the right person, skill, and answer in **seconds, not hours.**
 
-**Ontario Public Service · Ops Got Talent — Summer 2026**
+**Ontario Public Service · Ops Got Talent · Summer 2026**
 Track 3 · Knowledge Retrieval and Information Access
 
 Jackie Liang · Richard Duc Anh Nguyen · Manraj Rakhraj · Ali Hamoudi
@@ -173,7 +173,7 @@ person, skill, or answer in seconds, and you can try it yourselves whenever you 
 <!-- _class: lead notag -->
 <!-- _paginate: false -->
 
-# Try the live demo — scan to open it
+# Try the live demo: scan to open it
 
 <div class="rule"></div>
 
@@ -199,7 +199,7 @@ slide, so anyone can scan whenever they like.
 
 <div class="rule"></div>
 
-## The knowledge already exists — the **people and places** that hold it are hard to reach.
+## The knowledge already exists. The **people and places** that hold it are hard to reach.
 
 ---
 
@@ -210,7 +210,7 @@ slide, so anyone can scan whenever they like.
 <div>
 
 ### Places
-The answer sits in a **system** — a ticket, ESMT, Forte, a doc.
+The answer sits in a **system**: a ticket, ESMT, Forte, a doc.
 
 But there are **too many**, and **no single way in.**
 
@@ -221,7 +221,7 @@ But there are **too many**, and **no single way in.**
 ### People
 The answer sits with a **person.**
 
-But expertise has **no map** — and **reaching out cold takes a leap.**
+But expertise has **no map**, and **reaching out cold takes a leap.**
 
 </div>
 
@@ -229,8 +229,8 @@ But expertise has **no map** — and **reaching out cold takes a leap.**
 
 <!--
 This is the whole problem on one slide. Talk to each half. Left: the everyday friction of hunting
-across systems that don't talk to each other — every team on a different tool, requests misrouted.
-Right: the human half — in a 66,000-person service the thing you need is usually another person,
+across systems that don't talk to each other, every team on a different tool, requests misrouted.
+Right: the human half, in a 66,000-person service the thing you need is usually another person,
 expertise is invisible, and the real blocker to reaching someone is not wanting to bother them.
 Everything after this answers these two halves. ~60 seconds.
 -->
@@ -286,15 +286,15 @@ Land the number, then the scale. Don't rush. This is the "why it matters" moment
 <div class="lanes">
   <div class="lane">
     <div class="lane-h">Ask</div>
-    <div class="lane-b">Reach what the <b>systems</b> know — in plain English.</div>
+    <div class="lane-b">Reach what the <b>systems</b> know, in plain English.</div>
   </div>
   <div class="lane">
     <div class="lane-h">Connect</div>
-    <div class="lane-b">Reach the <b>people</b> — quietly, and opt-in.</div>
+    <div class="lane-b">Reach the <b>people</b>, quietly and opt-in.</div>
   </div>
   <div class="lane">
     <div class="lane-h">Understand</div>
-    <div class="lane-b">See <b>how the org connects</b> — for the leaders responsible for team health.</div>
+    <div class="lane-b">See <b>how the org connects</b>, for the leaders responsible for team health.</div>
   </div>
 </div>
 
@@ -321,14 +321,14 @@ Land the number, then the scale. Don't rush. This is the "why it matters" moment
 </div>
 
 <!--
-The mirror to the problem: Places → Ask, People → Connect, Understand zooms out for leaders — say
+The mirror to the problem: Places → Ask, People → Connect, Understand zooms out for leaders, say
 that mapping out loud, it's the spine of the pitch. Then the before/after: the clearest proof we
 fixed the workflow itself, not just added a tool. Point left, then right. ~40 seconds.
 -->
 
 ---
 
-## Ask — reach what the systems know
+## Ask: reach what the systems know
 
 Ask in plain English. It searches every approved source and hands the answer back.
 
@@ -337,41 +337,41 @@ Ask in plain English. It searches every approved source and hands the answer bac
 - *"Who can I shadow for DevOps?"*
 
 <!--
-Answers the "places" half. They've seen it work in the demo, so keep it light — a couple of real
+Answers the "places" half. They've seen it work in the demo, so keep it light: a couple of real
 questions and move on. Under the hood it searches 7 projects across 5 tools (Jira, Azure DevOps,
 ServiceNow, Trello, Confluence) and respects permissions, but don't belabour it. ~25 seconds.
 -->
 
 ---
 
-## Connect — reach the people
+## Connect: reach the people
 
 Flip on **“open to connect,”** and browse the colleagues who are open too.
 
-- **Opt-in, on your terms** — you choose to be open, and how you'd like to meet: a **coffee, a walk, a skill exchange.**
-- **These connections are yours** — a personal space to reach out, not a performance metric.
+- **Opt-in, on your terms.** You choose to be open, and how you'd like to meet: a **coffee, a walk, a skill exchange.**
+- **These connections are yours**: a personal space to reach out, not a performance metric.
 
 <div class="callout">
 
-We're social by nature. Connect doesn't push people together — it just lowers the doorway, so the connections already worth making can finally happen.
+We're social by nature. Connect doesn't push people together; it just lowers the doorway, so the connections already worth making can finally happen.
 
 </div>
 
 <!--
-Slow down here — this is the one to speak to, not read off. The other pillars show hard numbers, time
+Slow down here: this is the one to speak to, not read off. The other pillars show hard numbers, time
 saved; this one is a deliberate leap and that's fine. The case, out loud: humans are social
 creatures. For the first time in history we're surrounded by people we know almost nothing about,
 and the friction of socializing with near-strangers means useful connections never form. The single
 biggest blocker is not wanting to bother someone. A quiet, mutual, opt-in signal removes that
-friction — and once two people connect, the upside is open-ended: mentorship, collaboration,
+friction, and once two people connect, the upside is open-ended: mentorship, collaboration,
 belonging. Keep the slide light; make the argument in person. ~60 seconds.
 -->
 
 ---
 
-## Understand — the leader's view
+## Understand: the leader's view
 
-For the **managers and coordinators** responsible for a healthy team — and only them.
+For the **managers and coordinators** responsible for a healthy team, and only them.
 
 - Which teams are **connected**, and which are **cut off.**
 - Where a key skill sits with **just one person.**
@@ -385,9 +385,9 @@ Built to help leaders <b>support their people</b> and get ahead of problems.
 
 <!--
 Lead with access + purpose: this is limited to the managers and coordinators responsible for team
-health, and it exists to help — spot who's isolated, support co-ops settling in, catch key-person
+health, and it exists to help: spot who's isolated, support co-ops settling in, catch key-person
 risk before someone leaves. If a judge pushes on privacy, be honest: yes, a coordinator can see how
-their own people are engaging, much like a manager already knows who's on their team — it's
+their own people are engaging, much like a manager already knows who's on their team; it's
 access-controlled and bound to supporting people, not performance monitoring. ~45 seconds.
 -->
 
@@ -424,7 +424,7 @@ Think of a **helpful front desk.** You ask in plain English; it works out what y
 <div class="sub" style="margin-top:14px;">The next two slides zoom in on the interesting parts: the <b>routing</b> (Step 1) and what happens <b>under the hood</b> (Step 2).</div>
 
 <!--
-Walk left to right with the front-desk analogy. Keep this one deliberately simple — it is the
+Walk left to right with the front-desk analogy. Keep this one deliberately simple: it is the
 "anyone can follow this" slide. The depth comes on the next two. ~40 seconds.
 -->
 
@@ -454,7 +454,7 @@ The **router** reads your question, works out what *kind* of request it is, and 
   </div>
 </div>
 
-<div class="sub" style="margin-top:12px;">One front door, many specialised skills behind it — so every kind of question gets handled properly.</div>
+<div class="sub" style="margin-top:12px;">One front door, many specialised skills behind it, so every kind of question gets handled properly.</div>
 
 <!--
 The point: it is not one giant AI guessing at everything. Different questions go to purpose-built
@@ -470,31 +470,31 @@ skills. Read a couple of examples left-to-right so people see the mapping. ~45 s
   <div class="pdown">&darr;</div>
   <div class="pnode hot"><span class="pt">Router</span><span class="techtag">intent detection</span><div class="pd">Decides which skill should handle it, and which tools it needs.</div></div>
   <div class="pdown">&darr;</div>
-  <div class="pnode"><span class="pt">It picks the right tool</span><div class="pd"><b>Exact lookups</b> &mdash; a direct, read-only query to approved systems (tickets, org chart, directory).<br/><b>Fuzzy matches</b> &mdash; semantic search over an index <span class="techtag">vector database</span> so "k8s" still finds "Kubernetes", and similar skills or past problems surface.</div></div>
+  <div class="pnode"><span class="pt">It picks the right tool</span><div class="pd"><b>Exact lookups</b>: a direct, read-only query to approved systems (tickets, org chart, directory).<br/><b>Fuzzy matches</b>: semantic search over an index <span class="techtag">vector database</span> so "k8s" still finds "Kubernetes", and similar skills or past problems surface.</div></div>
   <div class="pdown">&darr;</div>
-  <div class="pnode gate"><span class="pt">Permission check</span><span class="techtag">role-based access</span><div class="pd">Filters the results down to what <i>you</i> are allowed to see — before anything reaches you.</div></div>
+  <div class="pnode gate"><span class="pt">Permission check</span><span class="techtag">role-based access</span><div class="pd">Filters the results down to what <i>you</i> are allowed to see, before anything reaches you.</div></div>
   <div class="pdown">&darr;</div>
-  <div class="pnode"><span class="pt">Copilot writes the answer</span><div class="pd">A short, sourced reply. The people and project cards come straight from the real data — not invented by the AI.</div></div>
+  <div class="pnode"><span class="pt">Copilot writes the answer</span><div class="pd">A short, sourced reply. The people and project cards come straight from the real data, not invented by the AI.</div></div>
 </div>
 
 <!--
 This is the "for the technical folks" slide. Two ideas to land: (1) an agent picks the right tool, and
 (2) fuzzy matching uses a vector search so wording never blocks a good answer. The green box is the
-trust moment — permissions are checked before you see anything. ~55 seconds.
+trust moment: permissions are checked before you see anything. ~55 seconds.
 -->
 
 ---
 
 ## Where every piece of information comes from
 
-ConnectOPS doesn't keep a giant copy of everyone. It pulls each piece from the system that already owns it — and a few personal things only you can add.
+ConnectOPS doesn't keep a giant copy of everyone. It pulls each piece from the system that already owns it, and a few personal things only you can add.
 
 <div class="lanes">
   <div class="lane"><div class="lane-h">Pulled from OPS systems</div><div class="lane-b">
-  <b>Directory / Entra ID</b> — name, title, team, ministry, manager, email, phone<br/>
-  <b>Microsoft Teams</b> — live status &amp; working hours<br/>
-  <b>EWRS</b> — desk &amp; floor <span class="sub">(only if you share)</span><br/>
-  <b>ESMT &amp; Forte</b> — tickets, projects, support paths
+  <b>Directory / Entra ID</b>: name, title, team, ministry, manager, email, phone<br/>
+  <b>Microsoft Teams</b>: live status &amp; working hours<br/>
+  <b>EWRS</b>: desk &amp; floor <span class="sub">(only if you share)</span><br/>
+  <b>ESMT &amp; Forte</b>: tickets, projects, support paths
   </div></div>
   <div class="lane"><div class="lane-h">You enter yourself</div><div class="lane-b">
   Skills &amp; certifications<br/>
@@ -513,7 +513,7 @@ ConnectOPS doesn't keep a giant copy of everyone. It pulls each piece from the s
 
 <div class="callout">
 
-Everything from OPS systems is **read-only** — ConnectOPS looks, never changes. It's the **same directory Microsoft Teams already uses**, so there's no new master copy of staff data to maintain.
+Everything from OPS systems is **read-only**: ConnectOPS looks, never changes. It's the **same directory Microsoft Teams already uses**, so there's no new master copy of staff data to maintain.
 
 </div>
 
@@ -542,12 +542,12 @@ Walk the three columns left to right. ~50 seconds.
   </div>
 </div>
 
-<div class="sub" style="margin-top:14px;">Read-only connectors on the left. The things you enter and the connections you make live in the database in the middle. Nothing reaches you until the permission layer has checked it — and it all stays inside the OPS tenant.</div>
+<div class="sub" style="margin-top:14px;">Read-only connectors on the left. The things you enter and the connections you make live in the database in the middle. Nothing reaches you until the permission layer has checked it, and it all stays inside the OPS tenant.</div>
 
 <!--
 The architecture in one picture: the app never has the user talk to those systems directly. It reads
 through connectors, adds its own data, and gates everything through permissions. Say plainly that this
-is our proposed design — the exact connectors get confirmed with the owning teams in Phase 1. ~45 seconds.
+is our proposed design: the exact connectors get confirmed with the owning teams in Phase 1. ~45 seconds.
 -->
 
 ---
@@ -584,7 +584,7 @@ cautious audience. Deliver the rule as your thesis. ~45 seconds.
 
 <div class="rule"></div>
 
-## Zero Trust and privacy by design — safe enough for real OPS data.
+## Zero Trust and privacy by design: safe enough for real OPS data.
 
 ---
 
@@ -604,7 +604,7 @@ cautious audience. Deliver the rule as your thesis. ~45 seconds.
 
 ### The promises behind it
 - **Microsoft Copilot is the only AI**, used only to summarize and suggest.
-- The app **never touches ESMT or Forte directly** — every request goes through a checked, read-only layer.
+- The app **never touches ESMT or Forte directly**: every request goes through a checked, read-only layer.
 - Your data **stays in the OPS's own Microsoft environment, in Canada**, and is not used to train the AI.
 - You sign in with your **normal OPS account**; everything is logged and encrypted.
 - Built to be **accessible** (AODA / WCAG 2.2 AA).
@@ -624,14 +624,14 @@ our biggest credibility win. Do it live if time allows. ~50 seconds.
 
 ## Data protection built into every answer
 
-Copilot never receives the full OPS database — only the **minimum, authorized** facts needed to answer your question.
+Copilot never receives the full OPS database, only the **minimum, authorized** facts needed to answer your question.
 
 <div class="pipe">
   <div class="pnode"><span class="pt">1 · Authenticate</span><span class="techtag">Entra ID</span><div class="pd">Teams signs you in with your OPS work account and issues a secure token.</div></div>
   <div class="pdown">&darr;</div>
   <div class="pnode"><span class="pt">2 · Authorize</span><span class="techtag">role-based</span><div class="pd">ConnectOPS validates the token and checks your role, organization, and data-owner permissions.</div></div>
   <div class="pdown">&darr;</div>
-  <div class="pnode"><span class="pt">3 · Retrieve</span><span class="techtag">read-only</span><div class="pd">Connectors pull only the relevant records from approved systems — ESMT, Forte, the Directory.</div></div>
+  <div class="pnode"><span class="pt">3 · Retrieve</span><span class="techtag">read-only</span><div class="pd">Connectors pull only the relevant records from approved systems: ESMT, Forte, the Directory.</div></div>
   <div class="pdown">&darr;</div>
   <div class="pnode gate"><span class="pt">4 · Minimize &amp; filter</span><div class="pd">Restricted fields, personal information, and unauthorized records are removed <i>before</i> any AI processing.</div></div>
   <div class="pdown">&darr;</div>
@@ -648,7 +648,7 @@ The AI **cannot bypass permissions, reach the full database, or change source-sy
 
 <!--
 The heart of the security story: a checked, minimize-then-generate pipeline. The green step is the
-trust moment — filtering happens before Copilot ever sees anything. If asked which Copilot: Microsoft
+trust moment: filtering happens before Copilot ever sees anything. If asked which Copilot: Microsoft
 Copilot is the OPS-approved AI; the exact service (M365 Copilot / Azure OpenAI via an approved OPS
 service) is confirmed in Discovery alongside the TRA. ~55 seconds.
 -->
@@ -657,7 +657,7 @@ service) is confirmed in Discovery alongside the TRA. ~55 seconds.
 
 ## How much data does the AI actually see?
 
-We never hand Copilot a copy of everything. We **search first, filter by permission, then give the AI only the few results that matter** — the Retrieval-Augmented Generation (RAG) pattern.
+We never hand Copilot a copy of everything. We **search first, filter by permission, then give the AI only the few results that matter**: the Retrieval-Augmented Generation (RAG) pattern.
 
 <div class="two">
 
@@ -666,16 +666,16 @@ We never hand Copilot a copy of everything. We **search first, filter by permiss
 ### An example
 If the data holds **100,000** employee and ticket records, a question like *"Who can help with Kubernetes?"* retrieves only the **5–10 best authorized matches.**
 
-Only those results — **not the full database** — are given to Copilot.
+Only those results, **not the full database**, are given to Copilot.
 
 </div>
 
 <div>
 
 ### Why it matters
-- **Security** — Copilot can't expose what it never received.
-- **Privacy** — unnecessary personal data is never processed.
-- **Cost** — smaller prompts use fewer tokens.
+- **Security**: Copilot can't expose what it never received.
+- **Privacy**: unnecessary personal data is never processed.
+- **Cost**: smaller prompts use fewer tokens.
 
 </div>
 
@@ -683,12 +683,12 @@ Only those results — **not the full database** — are given to Copilot.
 
 <div class="note">
 
-We deliberately **don't** claim "Copilot sees 10% of the data" — that can't be guaranteed. The honest framing: it sees the **smallest relevant, authorized subset** for each request.
+We deliberately **don't** claim "Copilot sees 10% of the data"; that can't be guaranteed. The honest framing: it sees the **smallest relevant, authorized subset** for each request.
 
 </div>
 
 <!--
-Addresses the exact whiteboard note: never promise a fixed percentage. Land RAG in one line — search,
+Addresses the exact whiteboard note: never promise a fixed percentage. Land RAG in one line: search,
 permission-filter, then summarize. ~45 seconds.
 -->
 
@@ -696,11 +696,11 @@ permission-filter, then summarize. ~45 seconds.
 
 ## Defence in depth
 
-Security isn't one wall — it's **layers**, so no single failure exposes data.
+Security isn't one wall; it's **layers**, so no single failure exposes data.
 
 <div class="lanes">
   <div class="lane"><div class="lane-h">Identity &amp; access</div><div class="lane-b">
-  OPS account via <b>Entra ID</b> — never a personal one<br/>
+  OPS account via <b>Entra ID</b>, never a personal one<br/>
   Seamless <b>SSO</b> inside Teams (no new password)<br/>
   <b>MFA</b> + Conditional Access<br/>
   Role-based, least-privilege access<br/>
@@ -722,7 +722,7 @@ Security isn't one wall — it's **layers**, so no single failure exposes data.
   </div></div>
 </div>
 
-<div class="sub" style="margin-top:14px;">The AI helps you <b>find</b> and <b>word</b> things — the real data and the permission rules decide what you can see.</div>
+<div class="sub" style="margin-top:14px;">The AI helps you <b>find</b> and <b>word</b> things; the real data and the permission rules decide what you can see.</div>
 
 <!--
 Three layers, left to right. The AI-protection column is the newest concern for a 2026 audience:
@@ -753,7 +753,7 @@ prompt injection is real, and we filter permissions before Copilot ever runs. ~5
 - Optional data (like desk location) stays **off by default**
 - Defined retention for chat, cache, feedback, and audit logs
 - Guardrails so manager analytics **never** become performance monitoring
-- Data stays in the **OPS tenant, in Canada** — not used to train the AI
+- Data stays in the **OPS tenant, in Canada**, not used to train the AI
 
 </div>
 
@@ -761,7 +761,7 @@ prompt injection is real, and we filter permissions before Copilot ever runs. ~5
 
 <div class="callout">
 
-Before production: **PIA, TRA, data classification, security review, and penetration testing** — plus accessibility to **AODA / WCAG 2.2 AA.**
+Before production: **PIA, TRA, data classification, security review, and penetration testing**, plus accessibility to **AODA / WCAG 2.2 AA.**
 
 </div>
 
@@ -790,39 +790,39 @@ production. The manager-analytics guardrail pre-empts the obvious privacy object
 
 | What we pay for | 3 years | Why it can trend lower |
 |---|---|---|
-| The team building &amp; running it | $950k | Mostly OPS staff + co-op students — people are the real cost |
+| The team building &amp; running it | $950k | Mostly OPS staff + co-op students; people are the real cost |
 | Hosting &amp; operations | $85k | Runs on Azure / GDC the OPS already owns |
-| Connecting to OPS systems | $55k | Read-only connectors — no migration, no system replacement |
-| Privacy, security &amp; accessibility reviews | $30k | PIA, TRA, WCAG — often handled by internal OPS teams |
+| Connecting to OPS systems | $55k | Read-only connectors; no migration, no system replacement |
+| Privacy, security &amp; accessibility reviews | $30k | PIA, TRA, WCAG; often handled by internal OPS teams |
 | Training &amp; change management | $20k | Familiar, Teams-embedded web app |
-| AI / Copilot usage | $30k | Usage-based — minimal at launch, grows only with adoption |
+| AI / Copilot usage | $30k | Usage-based; minimal at launch, grows only with adoption |
 | Contingency (safety buffer) | $150k | Prudent public-sector budgeting |
 | **Total (3 years)** | **≈ $1.32M** | **Well under the $1.5M cap** |
 
 <div class="note">
 
-These are **deliberately conservative** estimates, built on **generic public-sector benchmarks.** Because so much **reuses tools and licensing the OPS already owns**, the real cost most likely lands **at or below** this — leaving **clear room under the $1.5M cap**, rather than a figure scraping the ceiling.
+These are **deliberately conservative** estimates, built on **generic public-sector benchmarks.** Because so much **reuses tools and licensing the OPS already owns**, the real cost most likely lands **at or below** this, leaving **clear room under the $1.5M cap**, rather than a figure scraping the ceiling.
 
 </div>
 
-<!-- Lead with the honest co-op framing, then the shape: people are the cost, everything else is reused, and we sit comfortably under $1.5M with real headroom — not at the ceiling. ~40 seconds. -->
+<!-- Lead with the honest co-op framing, then the shape: people are the cost, everything else is reused, and we sit comfortably under $1.5M with real headroom, not at the ceiling. ~40 seconds. -->
 
 ---
 
 ## Why these numbers hold up
 
-We kept the estimate **conservative on purpose** — and a lot of what makes it defensible is what we **don't** have to pay for.
+We kept the estimate **conservative on purpose**, and a lot of what makes it defensible is what we **don't** have to pay for.
 
 <div class="two">
 
 <div>
 
 ### What we're *not* paying for
-- **No new AI platform** — Microsoft Copilot only
-- **No new identity system** — reuse OPS sign-in (Entra ID)
-- **No data migration** — read-only connectors
-- **No replacing ESMT or Forte** — they stay the system of record
-- **No contractor-heavy build** — OPS staff + co-ops
+- **No new AI platform**: Microsoft Copilot only
+- **No new identity system**: reuse OPS sign-in (Entra ID)
+- **No data migration**: read-only connectors
+- **No replacing ESMT or Forte**: they stay the system of record
+- **No contractor-heavy build**: OPS staff + co-ops
 
 </div>
 
@@ -843,7 +843,7 @@ Where these are absorbed by existing OPS investments, the **real cost drops furt
 
 </div>
 
-<!-- The defensibility slide. Judges respect a team that knows what it is NOT buying. The point: our number is a conservative ceiling, and reuse of existing OPS investment pushes the true cost lower. The most fragile line is integration ($55k) — if pushed, concede enterprise integrations can run higher and that is what the contingency + Discovery phase are for. ~40 seconds. -->
+<!-- The defensibility slide. Judges respect a team that knows what it is NOT buying. The point: our number is a conservative ceiling, and reuse of existing OPS investment pushes the true cost lower. The most fragile line is integration ($55k): if pushed, concede enterprise integrations can run higher and that is what the contingency + Discovery phase are for. ~40 seconds. -->
 
 ---
 
@@ -867,7 +867,7 @@ Where these are absorbed by existing OPS investments, the **real cost drops furt
 
 <div class="note">
 
-These are **illustrative, order-of-magnitude figures, not promises.** The honest truth: the real risk here isn't cost — it's **adoption.** So we assumed just **~10,000 users (about 15% of the OPS)**, embedded in Teams with sign-in they already have. Even at a **fraction** of that, the benefit still **comfortably beats** a small, bounded cost.
+These are **illustrative, order-of-magnitude figures, not promises.** The honest truth: the real risk here isn't cost; it's **adoption.** So we assumed just **~10,000 users (about 15% of the OPS)**, embedded in Teams with sign-in they already have. Even at a **fraction** of that, the benefit still **comfortably beats** a small, bounded cost.
 
 </div>
 
