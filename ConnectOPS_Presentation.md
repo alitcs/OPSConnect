@@ -289,12 +289,12 @@ Land the number, then the scale. Don't rush. This is the "why it matters" moment
     <div class="lane-b">Reach what the <b>systems</b> know — in plain English.</div>
   </div>
   <div class="lane">
-    <div class="lane-h">Connect</div>
-    <div class="lane-b">Reach the <b>people</b> — quietly, and opt-in.</div>
-  </div>
-  <div class="lane">
     <div class="lane-h">Understand</div>
     <div class="lane-b">See <b>how the org connects</b> — for the leaders responsible for team health.</div>
+  </div>
+  <div class="lane">
+    <div class="lane-h">Connect</div>
+    <div class="lane-b">Reach the <b>people</b> — quietly, and opt-in.</div>
   </div>
 </div>
 
@@ -322,6 +322,30 @@ ServiceNow, Trello, Confluence) and respects permissions, but don't belabour it.
 
 ---
 
+## Understand — the leader's view
+
+For the **managers and coordinators** responsible for a healthy team — and only them.
+
+- Which teams are **connected**, and which are **cut off.**
+- Where a key skill sits with **just one person.**
+- Whether **new hires and co-ops** are settling in.
+
+<div class="callout">
+
+Built to help leaders <b>support their people</b> and get ahead of problems.
+
+</div>
+
+<!--
+Lead with access + purpose: this is limited to the managers and coordinators responsible for team
+health, and it exists to help — spot who's isolated, support co-ops settling in, catch key-person
+risk before someone leaves. If a judge pushes on privacy, be honest: yes, a coordinator can see how
+their own people are engaging, much like a manager already knows who's on their team — it's
+access-controlled and bound to supporting people, not performance monitoring. ~45 seconds.
+-->
+
+---
+
 ## Connect — reach the people
 
 Flip on **“open to connect,”** and browse the colleagues who are open too.
@@ -343,30 +367,6 @@ and the friction of socializing with near-strangers means useful connections nev
 biggest blocker is not wanting to bother someone. A quiet, mutual, opt-in signal removes that
 friction — and once two people connect, the upside is open-ended: mentorship, collaboration,
 belonging. Keep the slide light; make the argument in person. ~60 seconds.
--->
-
----
-
-## Understand — the leader's view
-
-For the **managers and coordinators** responsible for a healthy team — and only them.
-
-- Which teams are **connected**, and which are **cut off.**
-- Where a key skill sits with **just one person.**
-- Whether **new hires and co-ops** are settling in.
-
-<div class="callout">
-
-Built to help leaders <b>support their people</b> and get ahead of problems.
-
-</div>
-
-<!--
-Lead with access + purpose: this is limited to the managers and coordinators responsible for team
-health, and it exists to help — spot who's isolated, support co-ops settling in, catch key-person
-risk before someone leaves. If a judge pushes on privacy, be honest: yes, a coordinator can see how
-their own people are engaging, much like a manager already knows who's on their team — it's
-access-controlled and bound to supporting people, not performance monitoring. ~45 seconds.
 -->
 
 ---
