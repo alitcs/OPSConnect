@@ -392,6 +392,9 @@ export default function ConnectionGraph({
             cooldownTicks={90}
             d3AlphaDecay={0.045}
             d3VelocityDecay={0.45}
+            dagMode={mode === 'orgchart' ? 'td' : undefined}
+            dagLevelDistance={42}
+            onDagError={() => undefined}
             nodeRelSize={NODE_REL_SIZE}
             nodeVal={(node) => getNodeVal(node as GraphNode)}
             nodeColor={(node) => getNodeColor(node as GraphNode)}
@@ -404,6 +407,8 @@ export default function ConnectionGraph({
             linkColor={(link) => getLinkColor(link as GraphLink)}
             linkWidth={(link) => getLinkWidth(link as GraphLink)}
             linkOpacity={0.62}
+            linkDirectionalArrowLength={mode === 'orgchart' ? 2.6 : 0}
+            linkDirectionalArrowRelPos={1}
             onNodeClick={(node) => handleNodeClick(node as GraphNode)}
             onBackgroundClick={() => setSelected(null)}
             enableNodeDrag={false}

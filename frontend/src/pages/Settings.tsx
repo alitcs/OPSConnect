@@ -9,7 +9,7 @@ import Icon, { type IconName } from '../components/Icon';
 
 export default function SettingsPage() {
   const { theme, toggleTheme } = useTheme();
-  const { currentUser, refresh } = useAuth();
+  const { currentUser, refresh, logout } = useAuth();
   const { notify } = useToast();
   const navigate = useNavigate();
 
@@ -54,7 +54,10 @@ export default function SettingsPage() {
     }
   };
 
-  const signOut = () => navigate('/login');
+  const signOut = () => {
+    logout();
+    navigate('/login', { replace: true });
+  };
 
   return (
     <div className="page">
@@ -198,7 +201,7 @@ export default function SettingsPage() {
           </p>
           <button className="btn" onClick={signOut}>
             <Icon name="back" size={15} />
-            Switch user
+            Sign out
           </button>
         </Group>
 

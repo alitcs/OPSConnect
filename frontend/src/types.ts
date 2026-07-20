@@ -392,6 +392,7 @@ export type EdgeMode =
   | 'skills'
   | 'interests'
   | 'reporting'
+  | 'orgchart'
   | 'location'
   | 'mentorship'
   | 'cohort';
@@ -415,6 +416,7 @@ export const EDGE_MODES: EdgeModeInfo[] = [
   { id: 'skills', label: 'Shared skills', description: 'people who list the same skill' },
   { id: 'interests', label: 'Shared interests', description: 'people who share an interest' },
   { id: 'reporting', label: 'Reporting line', description: 'managers linked to their direct reports' },
+  { id: 'orgchart', label: 'Org chart', description: 'the reporting hierarchy, laid out top-down (managers above their reports)' },
   { id: 'location', label: 'Same location', description: 'people on the same building floor' },
   { id: 'mentorship', label: 'Mentorship match', description: 'mentors linked to potential mentees' },
   { id: 'cohort', label: 'Co-op cohort', description: 'co-op students from the same school and term' },

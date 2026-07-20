@@ -924,6 +924,17 @@ function edgesForMode(mode: EdgeMode): TypedEdge[] {
       }
       return edges;
     }
+    case 'orgchart': {
+      // Same manager→report relationships as the reporting lens; the graph component lays
+      // these out as a top-down hierarchy (org chart) rather than a free-floating cloud.
+      const edges: TypedEdge[] = [];
+      for (const u of users) {
+        if (u.managerId != null && getUserById(u.managerId)) {
+          edges.push({ a: u.id, b: u.managerId, weight: 2, kind: 'reporting' });
+        }
+      }
+      return edges;
+    }
     case 'project': {
       const edges: TypedEdge[] = [];
       for (const p of projects) {
@@ -1018,7 +1029,19 @@ function connectionGraph(viewerId: number, mode: EdgeMode = 'combined'): Connect
 
   const safeMode: EdgeMode = EDGE_MODES.some((m) => m.id === mode) ? mode : 'combined';
   const { edges, degree } = buildNetwork(safeMode);
-  const links = edges.map((e) => ({ source: e.a, target: e.b, weight: e.weight, kind: e.kind }));
+  let links = edges.map((e) => ({ source: e.a, target: e.b, weight: e.weight, kind: e.kind }));
+
+  // The org-chart lens needs *directed* links (manager → report) so the 3D view can lay
+  // the nodes out as a top-down hierarchy. buildNetwork normalises edge direction for its
+  // degree/undirected maths, so rebuild the links here with the manager as the source.
+  if (safeMode === 'orgchart') {
+    links = [];
+    for (const u of users) {
+      if (u.managerId != null && getUserById(u.managerId)) {
+        links.push({ source: u.managerId, target: u.id, weight: 2, kind: 'reporting' });
+      }
+    }
+  }
 
   const nodes = users.map((u) => ({
     id: u.id,

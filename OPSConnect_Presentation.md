@@ -189,26 +189,6 @@ slide, so anyone can scan whenever they like.
 
 ---
 
-<!-- ==================== TRY IT LIVE ==================== -->
-<!-- _class: lead -->
-
-## This is not a mock-up. It is live right now.
-
-# Try it yourself, anytime:
-
-<div class="rule"></div>
-
-<div class="link">opsconnectt.netlify.app</div>
-
-Everything in this presentation is real. Open the link whenever you like and explore it at your own pace.
-
-<!--
-Plant the link early so judges can explore on their own time. Say: "It is live, here is the link,
-try it whenever you like." Then move on, no live walkthrough.
--->
-
----
-
 <!-- ==================== PART 1 DIVIDER ==================== -->
 <!-- _class: lead -->
 <!-- _paginate: false -->
@@ -219,32 +199,45 @@ try it whenever you like." Then move on, no live walkthrough.
 
 <div class="rule"></div>
 
-## Good people, good systems — but finding the right one takes too long.
+## The knowledge already exists — the **people and places** that hold it are hard to reach.
 
 ---
 
-## The everyday friction
+## Two halves of one problem
 
-An employee starts with **partial context**: a ticket number, a system name, or a vague problem. To act on it, they have to find the right owner, expert, or next step.
+<div class="two">
 
-- They hunt across **ESMT, Forte, email, Teams, and SharePoint**, or ask around informally.
-- Requests get **delayed or misrouted** when it is unclear who owns what.
-- Every team uses a **different tool**, so just to ask one question you often have to learn *someone else's* system first.
-- Some information **cannot be freely shared**, so the workarounds people use today are also a **privacy risk**.
+<div>
 
-<div class="note">
+### Places
+The answer sits in a **system** — a ticket, ESMT, Forte, a doc.
 
-This is the exact problem the challenge describes: **scattered knowledge, inconsistent hand-offs, and limited visibility** into who owns what.
+But there are **too many**, and **no single way in.**
+
+</div>
+
+<div>
+
+### People
+The answer sits with a **person.**
+
+But expertise has **no map** — and **reaching out cold takes a leap.**
+
+</div>
 
 </div>
 
 <!--
-Keep it human and relatable. Everyone in the room has lived this. ~45 seconds.
+This is the whole problem on one slide. Talk to each half. Left: the everyday friction of hunting
+across systems that don't talk to each other — every team on a different tool, requests misrouted.
+Right: the human half — in a 66,000-person service the thing you need is usually another person,
+expertise is invisible, and the real blocker to reaching someone is not wanting to bother them.
+Everything after this answers these two halves. ~60 seconds.
 -->
 
 ---
 
-## What it costs today
+## What it costs
 
 <div class="two">
 
@@ -252,17 +245,17 @@ Keep it human and relatable. Everyone in the room has lived this. ~45 seconds.
 
 <span class="mega">~1.8 hrs</span>
 
-**lost per person, every day**, searching for information and tracking down colleagues.
+**lost per person, every day**, hunting for information and people.
 <span class="sub">Source: McKinsey knowledge-worker research</span>
 
 </div>
 
 <div>
 
-### Across the OPS
-Roughly **66,000 staff**.
+### Across 66,000 staff
+Even a sliver of that is **millions in lost capacity a year.**
 
-Even a small slice of that lost time is **millions of dollars in recoverable capacity every year** — plus duplicated work and misrouted requests.
+Plus the costs that never hit the clock: **slow onboarding, weak collaboration, knowledge stuck in silos.**
 
 </div>
 
@@ -284,117 +277,119 @@ Land the number, then the scale. Don't rush. This is the "why it matters" moment
 
 <div class="rule"></div>
 
-## OPSConnect: one place to ask, in plain language, and get a trusted answer.
+## One place to reach it all.
 
 ---
 
-## What OPSConnect is
+## One app, three ways in
 
-A single, secure **standalone applicaiton** you sign into with your OPS account.
+<div class="lanes">
+  <div class="lane">
+    <div class="lane-h">Ask</div>
+    <div class="lane-b">Reach what the <b>systems</b> know — in plain English.</div>
+  </div>
+  <div class="lane">
+    <div class="lane-h">Connect</div>
+    <div class="lane-b">Reach the <b>people</b> — quietly, and opt-in.</div>
+  </div>
+  <div class="lane">
+    <div class="lane-h">Understand</div>
+    <div class="lane-b">See <b>how the org connects</b> — for the leaders responsible for team health.</div>
+  </div>
+</div>
 
-- You **ask in plain language** — "who knows Tableau?", "who can staff this project?", "who owns HDP-482?"
-- It **searches the approved OPS systems** for you — ESMT, Forte, the Employee Directory.
-- It **recommends** the right person, team using related history and suggests next steps.
-- It only shows what **you are allowed to see.**
-
-
-
-<!--
-Frame it as additive, not disruptive — that reassures a public-sector audience. ~40 seconds.
--->
-
----
-
-## From today, to OPSConnect
-
-<div class="two">
+<div class="two" style="margin-top:22px;">
 
 <div>
 
 ### Today
-- Manual search across many systems
-- Owner, expert, or path is unclear
-- Sensitive data over-shared **or** unavailable
-- Follow-up relies on manual messages
+- Hunt across **many systems**
+- The right **person is invisible**
+- Data over-shared **or** out of reach
 
 </div>
 
 <div>
 
 ### With OPSConnect
-- Ask once, in **one** place
-- Get the **team, contact, history, and next step**
-- **Permission-based** results protect restricted info
-- Feedback and an audit trail improve routing over time
+- **Ask once**, in one place
+- **Reach the person** in a tap
+- **Permission-based** by default
 
 </div>
 
 </div>
 
 <!--
-This is the clearest proof we fixed the workflow itself. Point left, then right. ~40 seconds.
+The mirror to the problem: Places → Ask, People → Connect, Understand zooms out for leaders — say
+that mapping out loud, it's the spine of the pitch. Then the before/after: the clearest proof we
+fixed the workflow itself, not just added a tool. Point left, then right. ~40 seconds.
 -->
 
 ---
 
-## What you can ask it
+## Ask — reach what the systems know
 
-Any employee can ask, in plain English, questions like:
+Ask in plain English. It searches every approved source and hands the answer back.
 
-- *"Who can help on a Python, data visualization, and Azure project?"*
-- *"Who could work on HDP-482?"*
-- *"Tell me about Priya."*
-- *"What teams work on data analytics?"*
+- *"Who can staff a Python + Azure project?"*
+- *"Who owns HDP-482?"*
 - *"Who can I shadow for DevOps?"*
-- *"Who works in cybersecurity?"*
-
-<div class="note">
-
-The demo app already holds **7 projects across 5 different tools** — Jira, Azure DevOps, ServiceNow, Trello, and Confluence. **You do not need to know any of them.** You ask in plain English, and OPSConnect looks across all of them for you.
-
-</div>
 
 <!--
-Shows the breadth of what it answers and mirrors the brief's "fragmented tools" reality. Judges can
-try any of these on the live link at their leisure. ~30 seconds.
+Answers the "places" half. They've seen it work in the demo, so keep it light — a couple of real
+questions and move on. Under the hood it searches 7 projects across 5 tools (Jira, Azure DevOps,
+ServiceNow, Trello, Confluence) and respects permissions, but don't belabour it. ~25 seconds.
 -->
 
 ---
 
-## The manager's view
+## Connect — reach the people
 
-Managers and coordinators get a live picture of how their people connect and where to act:
+Flip on **“open to connect,”** and browse the colleagues who are open too.
 
-<div class="two">
-
-<div>
-
-### Three simple tools
-- **The team map** — see how everyone connects; change the view and it redraws.
-- **A quick dashboard** — adoption, cross-team links, and thin spots, readable in **30 seconds.**
-- **Just ask** — plain-language questions, straight answers. Nothing to learn.
-
-</div>
-
-<div>
-
-### What leaders see at a glance
-- Who is **isolated** or newly arrived
-- Who **bridges the most ministries** (worth keeping)
-- Where a skill rests on **one person** (a real risk)
-- Whether silos are **shrinking over time**
-
-</div>
-
-</div>
+- **Opt-in, on your terms** — you choose to be open, and how you'd like to meet: a **coffee, a walk, a skill exchange.**
+- **These connections are yours** — a personal space to reach out, not a performance metric.
 
 <div class="callout">
 
-It helps managers **get ahead of problems** instead of reacting to them.
+We're social by nature. Connect doesn't push people together — it just lowers the doorway, so the connections already worth making can finally happen.
 
 </div>
 
-<!-- ~40 seconds. This manager view is our biggest differentiator. -->
+<!--
+Slow down here — this is the one to speak to, not read off. The other pillars show hard numbers, time
+saved; this one is a deliberate leap and that's fine. The case, out loud: humans are social
+creatures. For the first time in history we're surrounded by people we know almost nothing about,
+and the friction of socializing with near-strangers means useful connections never form. The single
+biggest blocker is not wanting to bother someone. A quiet, mutual, opt-in signal removes that
+friction — and once two people connect, the upside is open-ended: mentorship, collaboration,
+belonging. Keep the slide light; make the argument in person. ~60 seconds.
+-->
+
+---
+
+## Understand — the leader's view
+
+For the **managers and coordinators** responsible for a healthy team — and only them.
+
+- Which teams are **connected**, and which are **cut off.**
+- Where a key skill sits with **just one person.**
+- Whether **new hires and co-ops** are settling in.
+
+<div class="callout">
+
+Built to help leaders <b>support their people</b> and get ahead of problems.
+
+</div>
+
+<!--
+Lead with access + purpose: this is limited to the managers and coordinators responsible for team
+health, and it exists to help — spot who's isolated, support co-ops settling in, catch key-person
+risk before someone leaves. If a judge pushes on privacy, be honest: yes, a coordinator can see how
+their own people are engaging, much like a manager already knows who's on their team — it's
+access-controlled and bound to supporting people, not performance monitoring. ~45 seconds.
+-->
 
 ---
 

@@ -2657,6 +2657,13 @@ select {
     transition: color 0.15s var(--ease);
   }
 
+  /* The Log out tab is a <button>, so strip native button chrome to match the links. */
+  .tabbar__link--logout {
+    border: none;
+    background: none;
+    font-family: inherit;
+  }
+
   .tabbar__link.active {
     color: var(--accent);
   }
@@ -2671,11 +2678,20 @@ select {
     bottom: var(--tabbar-height);
     left: 0;
     z-index: 35;
+    /* Solid surface so the drawer never lets the page content bleed through it. */
+    background: var(--surface);
     transform: translateX(-100%);
     transition: transform 0.24s var(--ease);
     box-shadow: var(--shadow-lg);
     width: 84%;
-    max-width: 300px;
+    max-width: 320px;
+    padding-top: env(safe-area-inset-top, 0);
+  }
+
+  /* Widened Connect/home panel needs a touch more room on phones. */
+  .chat__sidebar.connect-sidebar {
+    width: 86%;
+    max-width: 340px;
   }
 
   .chat__sidebar.open {
@@ -2725,6 +2741,18 @@ select {
   .page__title {
     font-size: 22px;
   }
+
+  /* The desktop "zoomed-out" density (zoom: 0.9) desyncs tap hit-testing on mobile —
+     taps can land on the wrong element — and needlessly shrinks already-small text.
+     Reset to natural scale on phones so pages are readable and every control is tappable. */
+  .page:not(:has(.ins-workspace)),
+  .admin-page__inner > :not(.ins-workspace) {
+    zoom: normal;
+  }
+
+  .chat__mobile-toggle {
+    white-space: nowrap;
+  }
 }
 
 /* Small phones: smaller UI, more breathing room, minimalist bottom nav. */
@@ -2757,11 +2785,12 @@ select {
   .mini-card { padding: 8px 9px; gap: 9px; }
   .mini-card__meta, .mini-card__rationale { font-size: 11.5px; }
 
-  /* Chat: much smaller text on phones. */
-  .chat__input textarea { font-size: 9.5px; }
-  .copilot-hero .chat__input textarea { font-size: 4.5px; }
-  .message-bubble { font-size: 11.5px; }
-  .chat__input-hint { font-size: 10px; }
+  /* Chat: readable text on phones. Inputs stay at 16px so they're comfortable to type
+     in (and never trigger iOS focus-zoom); message copy stays close to desktop size. */
+  .chat__input textarea { font-size: 16px; }
+  .copilot-hero .chat__input textarea { font-size: 15px; }
+  .message-bubble { font-size: 13.5px; }
+  .chat__input-hint { font-size: 10.5px; }
 
   /* Keep the main chat landing on a single screen — no page scroll on phones. */
   .chat__thread { padding: 14px 14px; }
@@ -3452,6 +3481,20 @@ select {
 }
 .connect-topbar__me:hover {
   box-shadow: 0 0 0 3px var(--accent-ring);
+}
+
+/* Phones: keep the concierge top bar to one tidy row — toggle on the left, avatar on
+   the right — and drop the decorative brand label that otherwise wraps to two lines.
+   Placed after the base rules above so it wins on source order (media queries add no
+   specificity). */
+@media (max-width: 767px) {
+  .connect-topbar {
+    padding: 10px 14px;
+    gap: 10px;
+  }
+  .connect-topbar__brand {
+    display: none;
+  }
 }
 
 .nudge-card {
@@ -4630,7 +4673,7 @@ select {
 
 /* Placed after the desktop rule above so it wins on phones (equal specificity). */
 @media (max-width: 560px) {
-  .copilot-hero .chat__input textarea { font-size: 9.5px; }
+  .copilot-hero .chat__input textarea { font-size: 15px; }
 }
 
 /* Program-analytics section beneath the workspace */

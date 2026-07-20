@@ -109,6 +109,16 @@ export default function TopNav() {
             <span>{item.label}</span>
           </NavLink>
         ))}
+        {/* Sign out — mirrors the arrow in the desktop sidebar footer, which is hidden on mobile. */}
+        <button
+          type="button"
+          className="tabbar__link tabbar__link--logout"
+          onClick={handleLogout}
+          aria-label="Log out"
+        >
+          <Icon name="back" size={20} />
+          <span>Log out</span>
+        </button>
       </nav>
     </>
   );
