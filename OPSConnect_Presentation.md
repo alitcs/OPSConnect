@@ -210,7 +210,7 @@ slide, so anyone can scan whenever they like.
 <div>
 
 ### Places
-The answer sits in a **system**: a ticket, ESMT, Forte, a doc.
+The answer sits in a **system**: a ticket, ESMT, Jira, a doc.
 
 But there are **too many**, and **no single way in.**
 

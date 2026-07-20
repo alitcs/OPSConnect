@@ -210,7 +210,7 @@ slide, so anyone can scan whenever they like.
 <div>
 
 ### Places
-The answer sits in a **system** — a ticket, ESMT, Forte, a doc.
+The answer sits in a **system** — a ticket, ESMT, Jira, a doc.
 
 But there are **too many**, and **no single way in.**
 
@@ -296,28 +296,6 @@ Land the number, then the scale. Don't rush. This is the "why it matters" moment
     <div class="lane-h">Understand</div>
     <div class="lane-b">See <b>how the org connects</b> — for the leaders responsible for team health.</div>
   </div>
-</div>
-
-<div class="two" style="margin-top:22px;">
-
-<div>
-
-### Today
-- Hunt across **many systems**
-- The right **person is invisible**
-- Data over-shared **or** out of reach
-
-</div>
-
-<div>
-
-### With ConnectOPS
-- **Ask once**, in one place
-- **Reach the person** in a tap
-- **Permission-based** by default
-
-</div>
-
 </div>
 
 <!--
