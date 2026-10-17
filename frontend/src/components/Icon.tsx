@@ -44,6 +44,9 @@ export type IconName =
   | 'footprints'
   | 'swap'
   | 'star'
+  | 'edit'
+  | 'bookOpen'
+  | 'bookmark'
   | 'layers';
 const PATHS: Record<IconName, JSX.Element> = {
   logo: (
@@ -298,6 +301,14 @@ const PATHS: Record<IconName, JSX.Element> = {
       <path d="M20 17H4" />
     </>
   ),
+  edit: <path d="m16 4 4 4M4 20l4-.8L19 8a2.12 2.12 0 0 0-3-3L5 16l-1 4Z" />,
+  bookOpen: (
+    <>
+      <path d="M12 7v14" />
+      <path d="M3 18V5a1 1 0 0 1 1-1h3a5 5 0 0 1 5 5 5 5 0 0 1 5-5h3a1 1 0 0 1 1 1v13a1 1 0 0 1-1 1h-4a4 4 0 0 0-4 2 4 4 0 0 0-4-2H4a1 1 0 0 1-1-1Z" />
+    </>
+  ),
+  bookmark: <path d="M6 4.75A1.75 1.75 0 0 1 7.75 3h8.5A1.75 1.75 0 0 1 18 4.75V21l-6-4-6 4V4.75Z" />,
   star: (
     <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
   ),

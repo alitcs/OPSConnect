@@ -16,8 +16,11 @@ export default function AvailabilityCard({ onChange }: { onChange?: () => void }
   const [intents, setIntents] = useState<ConnectIntentId[]>([]);
   const [loaded, setLoaded] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [loadError, setLoadError] = useState(false);
 
-  useEffect(() => {
+  const load = () => {
+    setLoaded(false);
+    setLoadError(false);
     api
       .getAvailability()
       .then((a) => {
@@ -25,20 +28,27 @@ export default function AvailabilityCard({ onChange }: { onChange?: () => void }
         setNote(a.availabilityNote ?? '');
         setIntents(a.connectIntents ?? []);
       })
+      .catch(() => setLoadError(true))
       .finally(() => setLoaded(true));
+  };
+
+  useEffect(() => {
+    load();
   }, []);
 
   const persist = async (
     nextAvailable: boolean,
     nextNote: string,
     nextIntents: ConnectIntentId[],
-  ) => {
+  ): Promise<boolean> => {
     setSaving(true);
     try {
       await api.setAvailability(nextAvailable, nextNote, nextIntents);
       onChange?.();
+      return true;
     } catch {
       notify('Could not update your status. Please try again.', 'error');
+      return false;
     } finally {
       setSaving(false);
     }
@@ -46,11 +56,17 @@ export default function AvailabilityCard({ onChange }: { onChange?: () => void }
 
   const toggle = async () => {
     const next = !available;
+    const previousIntents = intents;
     setAvailable(next);
     // Default to a coffee chat when switching on with nothing picked, so the entry reads well.
     const nextIntents: ConnectIntentId[] = next ? (intents.length ? intents : ['coffee']) : [];
     setIntents(nextIntents);
-    await persist(next, note, nextIntents);
+    const saved = await persist(next, note, nextIntents);
+    if (!saved) {
+      setAvailable(available);
+      setIntents(previousIntents);
+      return;
+    }
     notify(
       next
         ? "You're on the board — colleagues can see how you'd like to connect."
@@ -63,20 +79,27 @@ export default function AvailabilityCard({ onChange }: { onChange?: () => void }
     if (!available) return;
     const next = intents.includes(id) ? intents.filter((x) => x !== id) : [...intents, id];
     setIntents(next);
-    await persist(true, note, next);
+    if (!(await persist(true, note, next))) setIntents(intents);
   };
 
   return (
     <section className={`availability-card ${available ? 'is-on' : ''}`}>
+      {loadError && (
+        <div className="directory-state directory-state--error" role="alert">
+          <span>Could not load your availability.</span>
+          <button type="button" onClick={load}>Retry</button>
+        </div>
+      )}
       <div className="availability-card__row">
         <div className="availability-card__text">
           <div className="availability-card__title">Open to connect today</div>
           <div className="availability-card__sub">A quiet signal — no pings, no rejection.</div>
         </div>
         <button
+          type="button"
           className={`toggle ${available ? 'on' : ''}`}
           onClick={toggle}
-          disabled={!loaded || saving}
+          disabled={!loaded || saving || loadError}
           aria-pressed={available}
           aria-label="Open to connect today"
         >

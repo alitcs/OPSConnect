@@ -149,9 +149,9 @@ export default function SettingsPage() {
               <Icon name="info" size={16} />
             </span>
             <span>
-              <strong>How your data is used.</strong> Copilot runs inside the OPS
-              Microsoft&nbsp;365 tenant — your data never leaves the OPS boundary or trains
-              external models. You only see what each colleague makes public.
+              <strong>Prototype data handling.</strong> This demo uses browser storage and
+              mock data. Do not enter confidential OPS or personal information. A production
+              release requires approved OPS identity, storage, and AI services.
             </span>
           </div>
         </Group>
@@ -196,8 +196,7 @@ export default function SettingsPage() {
 
         <Group title="Account" icon="profile">
           <p className="muted" style={{ margin: '0 0 12px' }}>
-            Signed in as <strong>{currentUser?.name ?? '—'}</strong> via Microsoft Entra ID
-            single sign-on.
+            Signed in as <strong>{currentUser?.name ?? '—'}</strong> with the local demo session.
           </p>
           <button className="btn" onClick={signOut}>
             <Icon name="back" size={15} />

@@ -7,13 +7,14 @@ import {
   useState,
   type ReactNode,
 } from 'react';
+import { getBrowserStorage, readStorageText, writeStorageText } from '../storage/safeStorage';
 
 type Theme = 'light' | 'dark';
 
 const STORAGE_KEY = 'connectops.theme';
 
 function getInitialTheme(): Theme {
-  const stored = localStorage.getItem(STORAGE_KEY);
+  const { value: stored } = readStorageText(getBrowserStorage(), STORAGE_KEY);
   if (stored === 'light' || stored === 'dark') return stored;
   return window.matchMedia('(prefers-color-scheme: dark)').matches
     ? 'dark'
@@ -33,7 +34,7 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     document.documentElement.dataset.theme = theme;
-    localStorage.setItem(STORAGE_KEY, theme);
+    writeStorageText(getBrowserStorage(), STORAGE_KEY, theme);
   }, [theme]);
 
   const setTheme = useCallback((next: Theme) => setThemeState(next), []);

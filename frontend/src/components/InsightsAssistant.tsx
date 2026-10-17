@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import type { ChatMessage as ChatMessageType, Conversation, EdgeMode, UserSummary } from '../types';
 import { EDGE_MODES } from '../types';
 import { api } from '../api/client';
@@ -94,12 +94,15 @@ export default function InsightsAssistant({
   const barRef = useRef<HTMLDivElement>(null);
   const streamTimer = useRef<number | null>(null);
 
-  const loadConversations = () =>
-    api.listAdminConversations().then(setConversations).catch(() => setConversations([]));
+  const loadConversations = useCallback(() =>
+    api.listAdminConversations().then(setConversations).catch(() => {
+      setConversations([]);
+      notify('Could not load saved insights chats.', 'error');
+    }), [notify]);
 
   useEffect(() => {
-    loadConversations();
-  }, []);
+    void loadConversations();
+  }, [loadConversations]);
 
   // Close the history panel when clicking outside the header bar.
   useEffect(() => {

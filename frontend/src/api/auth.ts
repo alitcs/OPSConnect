@@ -10,6 +10,7 @@
 
 import type { User } from '../types';
 import { backend } from './mockBackend';
+import { getBrowserStorage, readStorageJson, readStorageText, removeStorageText, writeStorageJson, writeStorageText } from '../storage/safeStorage';
 
 /** The only email domain permitted to access the app. */
 export const ALLOWED_DOMAIN = 'ontario.ca';
@@ -75,18 +76,12 @@ function hashPassword(password: string): string {
 }
 
 function loadAccounts(): Account[] {
-  try {
-    const raw = localStorage.getItem(ACCOUNTS_KEY);
-    if (!raw) return [];
-    const parsed = JSON.parse(raw) as Account[];
-    return Array.isArray(parsed) ? parsed : [];
-  } catch {
-    return [];
-  }
+  const { value } = readStorageJson<unknown>(getBrowserStorage(), ACCOUNTS_KEY, []);
+  return Array.isArray(value) ? value as Account[] : [];
 }
 
-function saveAccounts(accounts: Account[]): void {
-  localStorage.setItem(ACCOUNTS_KEY, JSON.stringify(accounts));
+function saveAccounts(accounts: Account[]): boolean {
+  return writeStorageJson(getBrowserStorage(), ACCOUNTS_KEY, accounts);
 }
 
 function findAccount(email: string): Account | undefined {
@@ -99,18 +94,20 @@ function findAccount(email: string): Account | undefined {
 loadAccounts().forEach((account) => backend.registerUser(account.user));
 
 export function getSessionUserId(): number | null {
-  const raw = localStorage.getItem(SESSION_KEY);
+  const { value: raw } = readStorageText(getBrowserStorage(), SESSION_KEY);
   if (!raw) return null;
   const id = Number(raw);
   return Number.isFinite(id) ? id : null;
 }
 
 export function setSessionUserId(id: number): void {
-  localStorage.setItem(SESSION_KEY, String(id));
+  if (!writeStorageText(getBrowserStorage(), SESSION_KEY, String(id))) {
+    throw new AuthError('Browser storage is unavailable. This demo session could not be saved.');
+  }
 }
 
 export function clearSession(): void {
-  localStorage.removeItem(SESSION_KEY);
+  removeStorageText(getBrowserStorage(), SESSION_KEY);
 }
 
 export function isAuthenticated(): boolean {
@@ -202,7 +199,9 @@ export function signup({ name, email, password }: SignupInput): { userId: number
     passwordHash: hashPassword(password),
     user,
   });
-  saveAccounts(accounts);
+  if (!saveAccounts(accounts)) {
+    throw new AuthError('Browser storage is unavailable. This demo account could not be saved.');
+  }
   setSessionUserId(user.id);
   return { userId: user.id };
 }

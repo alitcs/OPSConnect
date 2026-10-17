@@ -3,6 +3,7 @@ import { Navigate, useNavigate, useParams, useSearchParams } from 'react-router-
 import type { User } from '../types';
 import { api } from '../api/client';
 import { useAuth } from '../context/AuthContext';
+import { usePeopleLibrary } from '../context/PeopleContext';
 import ProfileSection1 from '../components/ProfileSection1';
 import FloorMap from '../components/FloorMap';
 import Icon from '../components/Icon';
@@ -17,6 +18,7 @@ export default function UserProfilePage() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const { currentUser } = useAuth();
+  const { recordViewedPerson } = usePeopleLibrary();
   const isSelf = currentUser?.id === userId;
   const preview = searchParams.get('preview') === '1';
   const [user, setUser] = useState<User | null>(null);
@@ -24,11 +26,24 @@ export default function UserProfilePage() {
   const [showMap, setShowMap] = useState(false);
 
   useEffect(() => {
+    let active = true;
     setUser(null);
     setError(null);
     setShowMap(false);
-    api.getUser(userId).then(setUser).catch((e) => setError(e.message));
-  }, [userId]);
+    api
+      .getUser(userId)
+      .then((person) => {
+        if (!active) return;
+        setUser(person);
+        recordViewedPerson(person);
+      })
+      .catch((e) => {
+        if (active) setError(e.message);
+      });
+    return () => {
+      active = false;
+    };
+  }, [userId, recordViewedPerson]);
 
   // Viewing yourself normally redirects to the editable profile — unless you explicitly
   // asked to preview how your profile appears to others.

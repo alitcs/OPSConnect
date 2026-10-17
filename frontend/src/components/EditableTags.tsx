@@ -6,10 +6,14 @@ import Icon from './Icon';
 export default function EditableTags({
   values,
   placeholder,
+  inputId,
+  ariaLabel,
   onChange,
 }: {
   values: string[];
   placeholder: string;
+  inputId?: string;
+  ariaLabel?: string;
   onChange: (next: string[]) => void;
 }) {
   const [draft, setDraft] = useState('');
@@ -31,13 +35,15 @@ export default function EditableTags({
       {values.map((v) => (
         <span key={v} className="tag">
           {v}
-          <button className="tag__remove" onClick={() => remove(v)} aria-label={`Remove ${v}`}>
+          <button type="button" className="tag__remove" onClick={() => remove(v)} aria-label={`Remove ${v}`}>
             <Icon name="x" size={11} strokeWidth={2.5} />
           </button>
         </span>
       ))}
       <input
+        id={inputId}
         className="tag-input"
+        aria-label={ariaLabel}
         value={draft}
         placeholder={placeholder}
         onChange={(e) => setDraft(e.target.value)}

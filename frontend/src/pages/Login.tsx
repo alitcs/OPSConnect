@@ -4,10 +4,8 @@ import { AuthError } from '../api/auth';
 import { useAuth } from '../context/AuthContext';
 import Icon from '../components/Icon';
 
-// Access to ConnectOPS is exclusively via Microsoft Teams single sign-on — there
-// is no email/password sign-up. This screen mocks that flow: the reviewer clicks
-// "Sign in with Microsoft Teams" and is signed straight into the seeded John Paul
-// (admin) profile after a brief fake SSO handshake.
+// Prototype-only sign-in: the button below uses the local mock account and does
+// not contact Microsoft Teams or Entra ID.
 // TODO (production): replace this mock SSO with Microsoft Entra ID via MSAL.
 
 type Phase = 'idle' | 'connecting';
@@ -29,7 +27,7 @@ function MicrosoftLogo({ size = 18 }: { size?: number }) {
 
 export default function LoginPage() {
   const navigate = useNavigate();
-  const { loginWithTeams } = useAuth();
+  const { loginWithTeams, authError } = useAuth();
 
   const [phase, setPhase] = useState<Phase>('idle');
   const [error, setError] = useState<string | null>(null);
@@ -79,16 +77,16 @@ export default function LoginPage() {
                 onClick={startTeamsSignIn}
               >
                 <MicrosoftLogo size={18} />
-                Sign in with Microsoft Teams
+                Continue with demo account
               </button>
               <p className="teams-auth__note">
                 <Icon name="shield" size={13} />
-                Single sign-on with your @ontario.ca work account.
+                Prototype session only. No Microsoft account is contacted.
               </p>
-              {error && (
+              {(error || authError) && (
                 <div className="auth-form__error" role="alert">
                   <Icon name="info" size={15} />
-                  <span>{error}</span>
+                  <span>{error ?? authError}</span>
                 </div>
               )}
             </div>

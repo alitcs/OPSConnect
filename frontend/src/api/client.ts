@@ -7,7 +7,7 @@
 
 import type {
   ActivityMetrics,
-  AdminInsights,
+  AdminInsightsView,
   ChatMessage,
   ConnectIntentId,
   ConnectPerson,
@@ -18,6 +18,7 @@ import type {
   EdgeMode,
   DirectoryFilterOptions,
   FloorMapData,
+  InviteRecord,
   MessageThreadSummary,
   ProximitySummary,
   SurfacedPerson,
@@ -93,7 +94,7 @@ export const api = {
     run<ActivityMetrics>(() => backend.logCoffeeChat(me(), withUserId)),
 
   // --- Admin insights ---
-  getAdminInsights: () => run<AdminInsights>(() => backend.getAdminInsights(me())),
+  getAdminInsights: () => run<AdminInsightsView>(() => backend.getAdminInsights(me())),
   getConnectionGraph: (mode?: EdgeMode) =>
     run<ConnectionGraph>(() => backend.getConnectionGraph(me(), mode)),
 
@@ -149,6 +150,12 @@ export const api = {
     }>(() => backend.getThread(me(), threadId)),
   sendMessage: (userId: number, text: string) =>
     run<{ message: DirectMessage }>(() => backend.sendMessage(me(), userId, text)),
+  
+  // --- Invitations ---
+  // Replace these mock calls with GET /api/invites and POST /api/invites when delivery is wired.
+  listInvites: () => run<InviteRecord[]>(() => backend.listInvites(me())),
+  sendInvites: (emails: string[], message: string) =>
+    run<InviteRecord[]>(() => backend.sendInvites(me(), emails, message)),
 
   // --- Floor map ---
   getFloorMap: (floorId: string, seat: string, building: string) =>

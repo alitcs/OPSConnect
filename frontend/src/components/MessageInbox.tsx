@@ -19,6 +19,7 @@ export default function MessageInbox({
 
   const renderThread = (t: MessageThreadSummary) => (
     <button
+      type="button"
       key={t.id}
       className={`thread-item ${activeThreadId === t.id ? 'active' : ''}`}
       onClick={() => onSelect(t)}

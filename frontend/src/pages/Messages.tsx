@@ -4,16 +4,19 @@
 // it can be removed cleanly without affecting other features. To remove: delete this page,
 // the two message components, the messages route in App.tsx, and the Messages nav item.
 
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import type { MessageThreadSummary, UserSummary } from '../types';
 import { api } from '../api/client';
 import { useAuth } from '../context/AuthContext';
+import { useToast } from '../context/ToastContext';
 import MessageInbox from '../components/MessageInbox';
-import MessageThread, { threadKeyFor } from '../components/MessageThread';
+import MessageThread from '../components/MessageThread';
+import { threadKeyFor } from '../utils/threadKeyFor';
 
 export default function MessagesPage() {
   const { currentUser } = useAuth();
+  const { notify } = useToast();
   const { threadId } = useParams();
   const [searchParams, setSearchParams] = useSearchParams();
   const navigate = useNavigate();
@@ -22,11 +25,17 @@ export default function MessagesPage() {
   const [threads, setThreads] = useState<MessageThreadSummary[]>([]);
   const [activeUser, setActiveUser] = useState<UserSummary | null>(null);
 
-  const loadThreads = () => api.listThreads().then(setThreads).catch(() => setThreads([]));
+  const loadThreads = useCallback(async () => {
+    try {
+      setThreads(await api.listThreads());
+    } catch {
+      notify('Could not load your messages.', 'error');
+    }
+  }, [notify]);
 
   useEffect(() => {
-    loadThreads();
-  }, [currentUser?.id]);
+    void loadThreads();
+  }, [currentUser?.id, loadThreads]);
 
   // Resolve the active conversation partner from either ?to=<userId> or /messages/:threadId.
   useEffect(() => {

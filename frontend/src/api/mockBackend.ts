@@ -13,7 +13,7 @@ import { projects } from '../data/projects';
 import { EDGE_MODES } from '../types';
 import type {
   ActivityMetrics,
-  AdminInsights,
+  AdminInsightsView,
   BridgeInsight,
   ChatMessage,
   ConnectIntentId,
@@ -25,6 +25,7 @@ import type {
   DirectoryFilterOptions,
   EdgeMode,
   FloorMapData,
+  InviteRecord,
   MessageThreadSummary,
   ProximitySummary,
   SurfacedPerson,
@@ -61,6 +62,7 @@ const users: User[] = JSON.parse(JSON.stringify(seedUsers)) as User[];
 const conversations: Conversation[] = JSON.parse(
   JSON.stringify(seedConversations),
 ) as Conversation[];
+const invites: Array<InviteRecord & { inviterId: number }> = [];
 
 function toSummary(u: User): UserSummary {
   return {
@@ -527,7 +529,7 @@ function activityMetrics(viewerId: number): ActivityMetrics {
   };
 }
 
-function adminInsights(viewerId: number): AdminInsights {
+function adminInsights(viewerId: number): AdminInsightsView {
   const viewer = requireUser(viewerId);
   if (!viewer.isAdmin) {
     throw new ApiError(403, 'Insights are available to program coordinators only.');
@@ -3274,7 +3276,7 @@ export const backend = {
   },
 
   // --- Admin insights (program coordinators) ---
-  getAdminInsights(userId: number): AdminInsights {
+  getAdminInsights(userId: number): AdminInsightsView {
     return adminInsights(userId);
   },
 
@@ -3627,6 +3629,35 @@ export const backend = {
       participant,
       messages,
     };
+  },
+
+  listInvites(userId: number): InviteRecord[] {
+    requireUser(userId);
+    return invites
+      .filter((invite) => invite.inviterId === userId)
+      .map(({ inviterId: _inviterId, ...invite }) => invite)
+      .sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+  },
+
+  sendInvites(userId: number, emails: string[], _message: string): InviteRecord[] {
+    requireUser(userId);
+    const normalized = [...new Set(emails.map((email) => email.trim().toLowerCase()).filter(Boolean))];
+    if (!normalized.length) throw new ApiError(400, 'At least one email address is required.');
+    if (normalized.length > 20) throw new ApiError(400, 'You can invite up to 20 people at a time.');
+    if (normalized.some((email) => !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email))) {
+      throw new ApiError(400, 'One or more email addresses are invalid.');
+    }
+
+    const createdAt = new Date().toISOString();
+    const created = normalized.map((email) => ({
+      id: `invite-${uuid()}`,
+      email,
+      createdAt,
+      deliveryStatus: 'mocked' as const,
+      inviterId: userId,
+    }));
+    invites.push(...created);
+    return created.map(({ inviterId: _inviterId, ...invite }) => invite);
   },
 
   sendMessage(userId: number, toUserId: number, text: string): { message: DirectMessage } {

@@ -2,6 +2,7 @@ import type { ConnectPerson, Conversation, ProximitySummary } from '../types';
 import { Link } from 'react-router-dom';
 import AvailabilityCard from './AvailabilityCard';
 import ConnectCard from './ConnectCard';
+import ConversationList from './ConversationList';
 import Icon from './Icon';
 
 // The Connect board's side panel. Combines three things the way the user reads the room:
@@ -19,7 +20,9 @@ export default function ConnectSidebar({
   feed,
   proximity,
   loadingFeed,
+  feedError,
   onAvailabilityChange,
+  onRetryFeed,
 }: {
   conversations: Conversation[];
   activeId: string | null;
@@ -31,7 +34,9 @@ export default function ConnectSidebar({
   feed: ConnectPerson[];
   proximity: ProximitySummary | null;
   loadingFeed: boolean;
+  feedError: string;
   onAvailabilityChange: () => void;
+  onRetryFeed: () => void;
 }) {
   return (
     <>
@@ -45,42 +50,14 @@ export default function ConnectSidebar({
         </div>
 
         <div className="connect-sidebar__scroll">
-          {/* Saved concierge chats */}
-          <section className="connect-sidebar__section">
-            <div className="chat__conversations-label">Recent chats</div>
-            {conversations.length === 0 ? (
-              <p className="connect-sidebar__empty">No saved chats yet.</p>
-            ) : (
-              <div className="connect-sidebar__convos">
-                {conversations.map((c) => (
-                  <div
-                    key={c.id}
-                    className={`conversation-item ${activeId === c.id ? 'active' : ''}`}
-                  >
-                    <button
-                      type="button"
-                      className="conversation-item__select"
-                      onClick={() => onSelect(c.id)}
-                      aria-current={activeId === c.id ? 'true' : undefined}
-                    >
-                      <span className="conversation-item__icon">
-                        <Icon name="chat" size={16} />
-                      </span>
-                      <span className="conversation-item__title">{c.title}</span>
-                    </button>
-                    <button
-                      type="button"
-                      className="conversation-item__delete"
-                      onClick={() => onDelete(c.id)}
-                      aria-label={`Delete conversation: ${c.title}`}
-                    >
-                      <Icon name="trash" size={15} />
-                    </button>
-                  </div>
-                ))}
-              </div>
-            )}
-          </section>
+          <ConversationList
+            title="Recent chats"
+            emptyMessage="No saved chats yet."
+            conversations={conversations}
+            activeId={activeId}
+            onSelect={onSelect}
+            onDelete={onDelete}
+          />
 
           {/* Your own "open to connect" status */}
           <section className="connect-sidebar__section">
@@ -127,6 +104,11 @@ export default function ConnectSidebar({
                     </div>
                   </div>
                 ))
+              ) : feedError && feed.length === 0 ? (
+                <div className="directory-state directory-state--error" role="alert">
+                  <span>{feedError}</span>
+                  <button type="button" onClick={onRetryFeed}>Retry</button>
+                </div>
               ) : feed.length === 0 ? (
                 <div className="connect-empty connect-empty--compact">
                   <span className="connect-empty__icon">
@@ -137,6 +119,12 @@ export default function ConnectSidebar({
                 </div>
               ) : (
                 feed.map((p) => <ConnectCard key={p.user.id} person={p} />)
+              )}
+              {feedError && feed.length > 0 && (
+                <div className="directory-state directory-state--error" role="alert">
+                  <span>{feedError} Showing the last available results.</span>
+                  <button type="button" onClick={onRetryFeed}>Retry</button>
+                </div>
               )}
             </div>
           </section>

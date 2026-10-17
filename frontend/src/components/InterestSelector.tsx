@@ -41,7 +41,7 @@ export default function InterestSelector({
         {values.map((v) => (
           <span key={v} className="tag">
             {v}
-            <button className="tag__remove" onClick={() => remove(v)} aria-label={`Remove ${v}`}>
+            <button type="button" className="tag__remove" onClick={() => remove(v)} aria-label={`Remove ${v}`}>
               <Icon name="x" size={11} strokeWidth={2.5} />
             </button>
           </span>

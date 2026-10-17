@@ -6,6 +6,7 @@ import { EDGE_MODES } from '../types';
 import { api } from '../api/client';
 import { useTheme } from '../context/ThemeContext';
 import Icon from './Icon';
+import { escapeHtml } from '../utils/escapeHtml';
 
 // Vivid, well-separated categorical hues so ministries read as distinct clusters at a
 // glance. Kept bright and saturated so nodes stay legible against the dark/light scene
@@ -138,6 +139,8 @@ export default function ConnectionGraph({
   const [graph, setGraph] = useState<ConnectionGraph | null>(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [loadError, setLoadError] = useState('');
+  const [retryCount, setRetryCount] = useState(0);
   const [size, setSize] = useState({ width: 800, height: 560 });
   const [selected, setSelected] = useState<GraphNode | null>(null);
 
@@ -148,10 +151,14 @@ export default function ConnectionGraph({
     let cancelled = false;
     setSelected(null);
     setRefreshing(true);
+    setLoadError('');
     api
       .getConnectionGraph(mode)
       .then((g) => {
         if (!cancelled) setGraph(g);
+      })
+      .catch(() => {
+        if (!cancelled) setLoadError('Could not load the connection network.');
       })
       .finally(() => {
         if (!cancelled) {
@@ -162,7 +169,7 @@ export default function ConnectionGraph({
     return () => {
       cancelled = true;
     };
-  }, [mode]);
+  }, [mode, retryCount]);
 
   useEffect(() => {
     const el = containerRef.current;
@@ -363,6 +370,26 @@ export default function ConnectionGraph({
             </select>
           </label>
           {graph && (
+            <label className="graph-mode">
+              <span className="graph-mode__label">Focus person</span>
+              <select
+                className="graph-mode__select"
+                value={selected?.id ?? ''}
+                aria-label="Focus a person in the network"
+                onChange={(event) => {
+                  const node = (data.nodes as GraphNode[]).find((person) => String(person.id) === event.target.value);
+                  if (node) focusNode(node);
+                  else setSelected(null);
+                }}
+              >
+                <option value="">Choose a person…</option>
+                {[...graph.nodes].sort((a, b) => a.name.localeCompare(b.name)).map((node) => (
+                  <option key={node.id} value={node.id}>{node.name}</option>
+                ))}
+              </select>
+            </label>
+          )}
+          {graph && (
             <div className="graph-panel__stat">
               <span>{graph.connectedCount} connected</span>
               <span className="graph-panel__dot" />
@@ -376,6 +403,12 @@ export default function ConnectionGraph({
       </div>
 
       <div className="graph-panel__stage" ref={containerRef}>
+        {loadError && (
+          <div className="graph-panel__error" role="alert">
+            <span>{loadError}</span>
+            <button type="button" onClick={() => setRetryCount((count) => count + 1)}>Retry</button>
+          </div>
+        )}
         {(loading || size.width === 0 || size.height === 0) && (
           <div className="graph-panel__loading">Building network…</div>
         )}
@@ -402,7 +435,7 @@ export default function ConnectionGraph({
             nodeResolution={14}
             nodeLabel={(node) => {
               const n = node as GraphNode;
-              return `<div class="graph-tip"><strong>${n.name}</strong><span>${n.title}</span><span>${n.team}</span></div>`;
+              return `<div class="graph-tip"><strong>${escapeHtml(n.name)}</strong><span>${escapeHtml(n.title)}</span><span>${escapeHtml(n.team)}</span></div>`;
             }}
             linkColor={(link) => getLinkColor(link as GraphLink)}
             linkWidth={(link) => getLinkWidth(link as GraphLink)}
@@ -444,8 +477,9 @@ export default function ConnectionGraph({
         )}
 
         {selected && (
-          <div className="graph-detail" role="dialog" aria-label={`${selected.name} details`}>
+          <div className="graph-detail" role="region" aria-label={`${selected.name} details`}>
             <button
+              type="button"
               className="graph-detail__close"
               onClick={() => setSelected(null)}
               aria-label="Close"
@@ -466,6 +500,7 @@ export default function ConnectionGraph({
             </div>
 
             <button
+              type="button"
               className="graph-detail__cta"
               onClick={() => navigate(`/users/${selected.id}`)}
             >

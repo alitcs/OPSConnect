@@ -28,19 +28,34 @@ function timeAgo(iso: string): string {
 export default function ActivityMetric() {
   const [metrics, setMetrics] = useState<ActivityMetrics | null>(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(false);
+  const [retryCount, setRetryCount] = useState(0);
 
   useEffect(() => {
+    setLoading(true);
+    setError(false);
     api
       .getActivityMetrics()
       .then(setMetrics)
+      .catch(() => setError(true))
       .finally(() => setLoading(false));
-  }, []);
+  }, [retryCount]);
 
   if (loading) {
     return (
       <section className="card activity-metric">
         <div className="skeleton" style={{ height: 16, width: '40%', marginBottom: 16 }} />
         <div className="skeleton" style={{ height: 60, width: '100%' }} />
+      </section>
+    );
+  }
+  if (!metrics && error) {
+    return (
+      <section className="card activity-metric" role="alert">
+        <p>Could not load your activity.</p>
+        <button type="button" className="btn" onClick={() => setRetryCount((count) => count + 1)}>
+          Try again
+        </button>
       </section>
     );
   }

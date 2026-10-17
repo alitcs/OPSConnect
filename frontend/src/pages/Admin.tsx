@@ -1,7 +1,7 @@
 import { Suspense, lazy, useEffect, useRef, useState } from 'react';
 import { Navigate } from 'react-router-dom';
-import type { AdminInsights, EdgeMode, TeamInsight } from '../types';
-import { api } from '../api/client';
+import type { AdminInsightsView, EdgeMode, TeamInsight } from '../types';
+import { api, ApiError } from '../api/client';
 import { useAuth } from '../context/AuthContext';
 import Icon, { type IconName } from '../components/Icon';
 
@@ -14,9 +14,11 @@ const InsightsAssistant = lazy(() => import('../components/InsightsAssistant'));
 // settling in?
 export default function AdminPage() {
   const { currentUser } = useAuth();
-  const [data, setData] = useState<AdminInsights | null>(null);
+  const [data, setData] = useState<AdminInsightsView | null>(null);
   const [loading, setLoading] = useState(true);
   const [denied, setDenied] = useState(false);
+  const [loadError, setLoadError] = useState('');
+  const [retryCount, setRetryCount] = useState(0);
   // A "find <person>" request from the assistant (by name) or a person-card tap (by id),
   // consumed by the graph to focus that node.
   const [focusRequest, setFocusRequest] = useState<{
@@ -29,12 +31,18 @@ export default function AdminPage() {
   const [edgeMode, setEdgeMode] = useState<EdgeMode>('combined');
 
   useEffect(() => {
+    setLoading(true);
+    setLoadError('');
+    setDenied(false);
     api
       .getAdminInsights()
       .then(setData)
-      .catch(() => setDenied(true))
+      .catch((error: unknown) => {
+        if (error instanceof ApiError && error.status === 403) setDenied(true);
+        else setLoadError('Could not load program insights.');
+      })
       .finally(() => setLoading(false));
-  }, []);
+  }, [retryCount]);
 
   if (currentUser && !currentUser.isAdmin) return <Navigate to="/" replace />;
 
@@ -51,6 +59,12 @@ export default function AdminPage() {
 
         {denied && !loading && (
           <p className="muted">You don't have access to program insights.</p>
+        )}
+        {loadError && !loading && (
+          <div className="directory-state directory-state--error" role="alert">
+            <span>{loadError}</span>
+            <button type="button" onClick={() => setRetryCount((count) => count + 1)}>Retry</button>
+          </div>
         )}
 
         <div className="ins-workspace">
@@ -95,7 +109,7 @@ export default function AdminPage() {
   );
 }
 
-function InsightsBoard({ data }: { data: AdminInsights }) {
+function InsightsBoard({ data }: { data: AdminInsightsView }) {
   const idle = data.totalEmployees - data.activeUsers;
   const topTeams = data.teams.slice(0, 4);
   const lowTeams = data.teams.length > 4 ? [...data.teams].reverse().slice(0, 3) : [];

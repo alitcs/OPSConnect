@@ -45,7 +45,7 @@ export default function ChatMessage({
         <div className="message-bubble">
           {isStreaming ? (
             <>
-              <span aria-hidden="true">{message.text}</span>
+              <span>{message.text}</span>
               <span className="message-cursor" aria-hidden="true" />
             </>
           ) : (

@@ -18,6 +18,7 @@ import type { User } from '../types';
 interface AuthContextValue {
   currentUser: User | null;
   loading: boolean;
+  authError: string | null;
   isAuthenticated: boolean;
   /** Sign in via the mock Microsoft Teams SSO flow using an @ontario.ca account. */
   loginWithTeams: (email: string) => Promise<void>;
@@ -32,6 +33,7 @@ const AuthContext = createContext<AuthContextValue | undefined>(undefined);
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
+  const [authError, setAuthError] = useState<string | null>(null);
 
   const refresh = useCallback(async () => {
     if (getSessionUserId() === null) {
@@ -44,10 +46,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const loginWithTeams = useCallback(
     async (email: string) => {
+      setAuthError(null);
       authLoginWithTeams(email);
       setLoading(true);
       try {
         await refresh();
+      } catch (error) {
+        setAuthError('Could not restore your demo session. Please sign in again.');
+        throw error;
       } finally {
         setLoading(false);
       }
@@ -58,22 +64,29 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const logout = useCallback(() => {
     authLogout();
     setCurrentUser(null);
+    setAuthError(null);
   }, []);
 
   useEffect(() => {
-    refresh().finally(() => setLoading(false));
+    refresh()
+      .catch(() => {
+        setCurrentUser(null);
+        setAuthError('Could not restore your demo session. Please sign in again.');
+      })
+      .finally(() => setLoading(false));
   }, [refresh]);
 
   const value = useMemo(
     () => ({
       currentUser,
       loading,
+      authError,
       isAuthenticated: currentUser !== null,
       loginWithTeams,
       logout,
       refresh,
     }),
-    [currentUser, loading, loginWithTeams, logout, refresh],
+    [currentUser, loading, authError, loginWithTeams, logout, refresh],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

@@ -2,6 +2,7 @@ import { useState } from 'react';
 import type { User } from '../types';
 import { api } from '../api/client';
 import { useAuth } from '../context/AuthContext';
+import { useToast } from '../context/ToastContext';
 import EditableTags from './EditableTags';
 import InterestSelector from './InterestSelector';
 
@@ -10,6 +11,7 @@ import InterestSelector from './InterestSelector';
 // scroll here. This section is always visible — no accordion/toggle, just further down.
 export default function ProfileSection2({ user }: { user: User }) {
   const { refresh } = useAuth();
+  const { notify } = useToast();
   const [draft, setDraft] = useState<User>(user);
   const [saving, setSaving] = useState(false);
   const [savedAt, setSavedAt] = useState<number | null>(null);
@@ -31,6 +33,8 @@ export default function ProfileSection2({ user }: { user: User }) {
       });
       await refresh();
       setSavedAt(Date.now());
+    } catch {
+      notify('Could not save your profile changes. Please try again.', 'error');
     } finally {
       setSaving(false);
     }
@@ -42,7 +46,7 @@ export default function ProfileSection2({ user }: { user: User }) {
         <h2 style={{ margin: 0, fontSize: 18 }}>Extended Info</h2>
         <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
           {savedAt && <span className="muted" style={{ fontSize: 13 }}>Saved ✓</span>}
-          <button className="btn btn--primary" onClick={save} disabled={saving}>
+          <button type="button" className="btn btn--primary" onClick={save} disabled={saving}>
             {saving ? 'Saving…' : 'Save changes'}
           </button>
         </div>
@@ -141,16 +145,22 @@ function TagField({
 }) {
   return (
     <div className="section2__field">
-      <div className="field__label" style={{ marginBottom: 8 }}>{label}</div>
+      <label className="field__label" htmlFor={`profile-tag-${label.toLowerCase().replace(/[^a-z0-9]+/g, '-')}`} style={{ marginBottom: 8 }}>{label}</label>
       {values.length === 0 && <div className="placeholder-text" style={{ marginBottom: 8 }}>{empty}</div>}
-      <EditableTags values={values} placeholder={placeholder} onChange={onChange} />
+      <EditableTags
+        inputId={`profile-tag-${label.toLowerCase().replace(/[^a-z0-9]+/g, '-')}`}
+        ariaLabel={`${label}: add item`}
+        values={values}
+        placeholder={placeholder}
+        onChange={onChange}
+      />
     </div>
   );
 }
 
 function CoopInput({ label, value, onChange }: { label: string; value: string; onChange: (v: string) => void }) {
   return (
-    <div className="field">
+    <label className="field">
       <span className="field__label">{label}</span>
       <input
         className="directory__search"
@@ -159,7 +169,7 @@ function CoopInput({ label, value, onChange }: { label: string; value: string; o
         onChange={(e) => onChange(e.target.value)}
         placeholder={label}
       />
-    </div>
+    </label>
   );
 }
 
@@ -167,7 +177,7 @@ function Toggle({ label, on, onToggle }: { label: string; on: boolean; onToggle:
   return (
     <div className="toggle-row">
       <span>{label}</span>
-      <button className={`toggle ${on ? 'on' : ''}`} onClick={onToggle} aria-pressed={on} aria-label={label}>
+      <button type="button" className={`toggle ${on ? 'on' : ''}`} onClick={onToggle} aria-pressed={on} aria-label={label}>
         <span className="toggle__knob" />
       </button>
     </div>

@@ -3,6 +3,7 @@ import { Navigate, Route, Routes } from 'react-router-dom';
 import TopNav from './components/TopNav';
 import SplashScreen from './components/SplashScreen';
 import { PreviewCardProvider } from './context/PreviewCardContext';
+import { PeopleProvider } from './context/PeopleContext';
 import { useAuth } from './context/AuthContext';
 import ChatPage from './pages/Chat';
 import ConnectPage from './pages/Connect';
@@ -12,6 +13,13 @@ import UserProfilePage from './pages/UserProfile';
 import MessagesPage from './pages/Messages';
 import AdminPage from './pages/Admin';
 import LoginPage from './pages/Login';
+import InvitePage from './pages/Invite';
+import KnowledgeHubPage from './pages/KnowledgeHub';
+import KnowledgeArticlePage from './pages/KnowledgeArticle';
+import { KnowledgeLibraryProvider } from './context/KnowledgeLibraryContext';
+import PeoplePage from './pages/People';
+import DashboardPage from './pages/Dashboard';
+import { NotificationProvider } from './context/NotificationContext';
 
 export default function App() {
   const { currentUser, isAuthenticated, loading } = useAuth();
@@ -42,28 +50,39 @@ export default function App() {
   }
 
   return (
-    <PreviewCardProvider>
-      {splash}
-      <a href="#main-content" className="skip-link">
-        Skip to main content
-      </a>
-      <div className="app-shell">
-        <TopNav />
-        <main className="app-main" id="main-content" tabIndex={-1}>
-          <Routes>
-            <Route path="/" element={<ChatPage />} />
-            <Route path="/connect" element={<ConnectPage />} />
-            <Route path="/profile" element={<ProfilePage />} />
-            <Route path="/settings" element={<SettingsPage />} />
-            <Route path="/messages" element={<MessagesPage />} />
-            <Route path="/messages/:threadId" element={<MessagesPage />} />
-            <Route path="/users/:id" element={<UserProfilePage />} />
-            <Route path="/admin" element={<AdminPage />} />
-            <Route path="/login" element={<Navigate to="/" replace />} />
-            <Route path="*" element={<Navigate to="/" replace />} />
-          </Routes>
-        </main>
-      </div>
-    </PreviewCardProvider>
+    <PeopleProvider key={currentUser?.id ?? 'anonymous'} userId={currentUser?.id ?? 1}>
+     <NotificationProvider key={currentUser?.id ?? 'anonymous'} userId={currentUser?.id ?? 1}>
+      <KnowledgeLibraryProvider key={currentUser?.id ?? 'anonymous'} userId={currentUser?.id ?? 1}>
+       <PreviewCardProvider>
+        {splash}
+        <a href="#main-content" className="skip-link">
+          Skip to main content
+        </a>
+        <div className="app-shell">
+          <TopNav />
+          <main className="app-main" id="main-content" tabIndex={-1}>
+            <Routes>
+              <Route path="/" element={<ChatPage />} />
+                <Route path="/dashboard" element={<DashboardPage />} />
+              <Route path="/connect" element={<ConnectPage />} />
+              <Route path="/profile" element={<ProfilePage />} />
+              <Route path="/settings" element={<SettingsPage />} />
+              <Route path="/messages" element={<MessagesPage />} />
+              <Route path="/messages/:threadId" element={<MessagesPage />} />
+              <Route path="/invite" element={<InvitePage />} />
+                <Route path="/people" element={<PeoplePage />} />
+              <Route path="/knowledge" element={<KnowledgeHubPage />} />
+              <Route path="/knowledge/:articleId" element={<KnowledgeArticlePage />} />
+              <Route path="/users/:id" element={<UserProfilePage />} />
+              <Route path="/admin" element={<AdminPage />} />
+              <Route path="/login" element={<Navigate to="/" replace />} />
+              <Route path="*" element={<Navigate to="/" replace />} />
+            </Routes>
+          </main>
+        </div>
+       </PreviewCardProvider>
+      </KnowledgeLibraryProvider>
+     </NotificationProvider>
+    </PeopleProvider>
   );
 }

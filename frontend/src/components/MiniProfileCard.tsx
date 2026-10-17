@@ -13,12 +13,16 @@ export default function MiniProfileCard({
   rationale,
   matchStrength,
   onPersonClick,
+  favorite = false,
+  onToggleFavorite,
 }: {
   person: UserSummary;
   rationale?: string;
   matchStrength?: 'high' | 'medium';
   /** Optional override for the main tap — e.g. highlight the person on the network graph. */
   onPersonClick?: (person: UserSummary) => void;
+  favorite?: boolean;
+  onToggleFavorite?: () => void;
 }) {
   const { openPreview } = usePreviewCard();
   const { currentUser } = useAuth();
@@ -57,15 +61,31 @@ export default function MiniProfileCard({
         </div>
       </button>
 
-      {!isSelf && (
-        <button
-          type="button"
-          className="mini-card__msg"
-          onClick={() => navigate(`/messages?to=${person.id}`)}
-          aria-label={`Message ${person.name}`}
-        >
-          <Icon name="messages" size={16} />
-        </button>
+      {(onToggleFavorite || !isSelf) && (
+        <div className="mini-card__actions">
+          {onToggleFavorite && (
+            <button
+              type="button"
+              className={`mini-card__favorite ${favorite ? 'is-favorite' : ''}`}
+              onClick={onToggleFavorite}
+              aria-label={favorite ? `Remove ${person.name} from favorites` : `Add ${person.name} to favorites`}
+              aria-pressed={favorite}
+              title={favorite ? 'Remove favorite' : 'Add favorite'}
+            >
+              <Icon name="star" size={15} />
+            </button>
+          )}
+          {!isSelf && (
+            <button
+              type="button"
+              className="mini-card__msg"
+              onClick={() => navigate(`/messages?to=${person.id}`)}
+              aria-label={`Message ${person.name}`}
+            >
+              <Icon name="messages" size={16} />
+            </button>
+          )}
+        </div>
       )}
     </div>
   );

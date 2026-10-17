@@ -1,103 +1,48 @@
-import { useEffect, useRef, useState } from 'react';
-import type { ChatMessage as ChatMessageType, Conversation } from '../types';
+import { useEffect, useRef } from 'react';
 import { api } from '../api/client';
-import { useAuth } from '../context/AuthContext';
-import { useToast } from '../context/ToastContext';
 import ChatSidebar from '../components/ChatSidebar';
 import ChatMessage from '../components/ChatMessage';
 import ChatInput from '../components/ChatInput';
 import Icon, { type IconName } from '../components/Icon';
+import { useConversationWorkspace } from '../hooks/useConversationWorkspace';
 
-// Starter prompts shown on the empty state. Kept together in one clean grid; the tag is a
-// subtle hint of who each is for, not a section divider.
+const CHAT_OPERATIONS = {
+  list: api.listConversations,
+  get: api.getConversation,
+  send: api.sendChat,
+  remove: api.deleteConversation,
+  loadError: 'Could not load your recent chats.',
+  openError: 'Could not open that conversation. Please try again.',
+  deleteError: 'Could not delete that conversation.',
+  sendError: 'Copilot could not respond just now. Please try again.',
+};
+
 const SUGGESTIONS: { text: string; icon: IconName; tag: string }[] = [
-  {
-    text: "I'm starting a project that needs Python, data visualization, and Azure — who can help?",
-    icon: 'sparkle',
-    tag: 'Managers',
-  },
-  {
-    text: 'Who could work on HDP-482, the health analytics dashboard?',
-    icon: 'layers',
-    tag: 'Projects',
-  },
-  {
-    text: 'What projects are due soon or blocked across the OPS?',
-    icon: 'ticket',
-    tag: 'Projects',
-  },
-  {
-    text: 'How is the OPS structured?',
-    icon: 'directory',
-    tag: 'Explore',
-  },
-  {
-    text: 'Who works in the Ministry of Health?',
-    icon: 'pin',
-    tag: 'Explore',
-  },
-  {
-    text: "I'm a new co-op — who should I meet on my team?",
-    icon: 'coffee',
-    tag: 'Co-ops',
-  },
-  {
-    text: 'Who has a security certification?',
-    icon: 'shield',
-    tag: 'Explore',
-  },
-  {
-    text: 'Who shares my interests?',
-    icon: 'messages',
-    tag: 'Co-ops',
-  },
+  { text: "I'm starting a project that needs Python, data visualization, and Azure — who can help?", icon: 'sparkle', tag: 'Managers' },
+  { text: 'Who could work on HDP-482, the health analytics dashboard?', icon: 'layers', tag: 'Projects' },
+  { text: 'What projects are due soon or blocked across the OPS?', icon: 'ticket', tag: 'Projects' },
+  { text: 'How is the OPS structured?', icon: 'directory', tag: 'Explore' },
+  { text: 'Who works in the Ministry of Health?', icon: 'pin', tag: 'Explore' },
+  { text: "I'm a new co-op — who should I meet on my team?", icon: 'coffee', tag: 'Co-ops' },
+  { text: 'Who has a security certification?', icon: 'shield', tag: 'Explore' },
+  { text: 'Who shares my interests?', icon: 'messages', tag: 'Co-ops' },
 ];
 
-const prefersReducedMotion =
-  typeof window !== 'undefined' &&
-  window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-
 export default function ChatPage() {
-  const { currentUser } = useAuth();
-  const { notify } = useToast();
-  const [conversations, setConversations] = useState<Conversation[]>([]);
-  const [activeId, setActiveId] = useState<string | null>(null);
-  const [messages, setMessages] = useState<ChatMessageType[]>([]);
-  const [sending, setSending] = useState(false);
-  const [loadingThread, setLoadingThread] = useState(false);
-  const [sidebarOpen, setSidebarOpen] = useState(false);
-  const [streamingId, setStreamingId] = useState<string | null>(null);
+  const workspace = useConversationWorkspace(CHAT_OPERATIONS);
   const threadRef = useRef<HTMLDivElement>(null);
-  const streamTimer = useRef<number | null>(null);
   const followRaf = useRef<number | null>(null);
   const followActive = useRef(false);
 
-  const loadConversations = () =>
-    api.listConversations().then(setConversations).catch(() => setConversations([]));
-
   useEffect(() => {
-    loadConversations();
-  }, [currentUser?.id]);
+    if (followActive.current) return;
+    if (threadRef.current) threadRef.current.scrollTop = threadRef.current.scrollHeight;
+  }, [workspace.messages, workspace.sending]);
 
-  // Clean up any in-flight streaming timer on unmount.
-  useEffect(() => {
-    return () => {
-      if (streamTimer.current) window.clearInterval(streamTimer.current);
-      if (followRaf.current) cancelAnimationFrame(followRaf.current);
-    };
+  useEffect(() => () => {
+    if (followRaf.current !== null) cancelAnimationFrame(followRaf.current);
   }, []);
 
-  useEffect(() => {
-    // While the people cards are staggering in, an eased follow-scroll is running —
-    // don't fight it with an instant jump.
-    if (followActive.current) return;
-    if (threadRef.current) {
-      threadRef.current.scrollTop = threadRef.current.scrollHeight;
-    }
-  }, [messages, sending]);
-
-  // Gently ease the thread down to the bottom over the same window the surfaced people
-  // cards take to stagger in, so the view follows each card instead of jumping.
   const followScroll = (cardCount: number) => {
     const el = threadRef.current;
     if (!el) return;
@@ -115,9 +60,8 @@ export default function ChatPage() {
       const eased = 1 - Math.pow(1 - t, 2);
       const target = node.scrollHeight - node.clientHeight;
       node.scrollTop = start + (target - start) * eased;
-      if (t < 1) {
-        followRaf.current = requestAnimationFrame(step);
-      } else {
+      if (t < 1) followRaf.current = requestAnimationFrame(step);
+      else {
         followRaf.current = null;
         followActive.current = false;
       }
@@ -125,109 +69,32 @@ export default function ChatPage() {
     followRaf.current = requestAnimationFrame(step);
   };
 
-  const selectConversation = async (id: string) => {
-    setActiveId(id);
-    setSidebarOpen(false);
-    setLoadingThread(true);
-    try {
-      const { messages: msgs } = await api.getConversation(id);
-      setMessages(msgs);
-    } catch {
-      notify('Could not open that conversation. Please try again.', 'error');
-      setMessages([]);
-    } finally {
-      setLoadingThread(false);
-    }
-  };
-
-  const newChat = () => {
-    setActiveId(null);
-    setMessages([]);
-    setSidebarOpen(false);
-  };
-
-  const deleteConversation = async (id: string) => {
-    try {
-      await api.deleteConversation(id);
-      if (activeId === id) newChat();
-      loadConversations();
-    } catch {
-      notify('Could not delete that conversation.', 'error');
-    }
-  };
-
-  // Progressively reveal the assistant reply so it reads like a live Copilot response.
-  // Falls back to instant display when the user prefers reduced motion.
-  const presentAssistant = (full: ChatMessageType) => {
-    const tokens = full.text ? full.text.split(/(\s+)/) : [];
-    if (prefersReducedMotion || tokens.length <= 1) {
-      setMessages((m) => [...m, full]);
-      return;
-    }
-    setMessages((m) => [...m, { ...full, text: '', people: [], followUps: [] }]);
-    setStreamingId(full.id);
-    let i = 0;
-    streamTimer.current = window.setInterval(() => {
-      i += 1;
-      const partial = tokens.slice(0, i).join('');
-      setMessages((m) => m.map((msg) => (msg.id === full.id ? { ...msg, text: partial } : msg)));
-      if (i >= tokens.length) {
-        if (streamTimer.current) window.clearInterval(streamTimer.current);
-        streamTimer.current = null;
-        const peopleCount = full.people?.length ?? 0;
-        // Flag before committing so the autoscroll effect defers to the eased follow.
-        if (peopleCount > 1) followActive.current = true;
-        setMessages((m) => m.map((msg) => (msg.id === full.id ? full : msg)));
-        setStreamingId(null);
-        if (peopleCount > 1) {
-          requestAnimationFrame(() => followScroll(peopleCount));
-        }
-      }
-    }, 22);
-  };
-
-  const send = async (text: string) => {
-    // Stop any in-progress follow-scroll from a previous answer.
-    if (followRaf.current) cancelAnimationFrame(followRaf.current);
+  const send = (text: string) => {
+    if (followRaf.current !== null) cancelAnimationFrame(followRaf.current);
     followActive.current = false;
-    // Optimistically append the user's message.
-    const optimistic: ChatMessageType = {
-      id: `temp-${Date.now()}`,
-      conversationId: activeId ?? 'pending',
-      role: 'user',
-      text,
-      createdAt: new Date().toISOString(),
-    };
-    setMessages((m) => [...m, optimistic]);
-    setSending(true);
-    try {
-      const res = await api.sendChat(text, activeId ?? undefined);
-      if (!activeId) {
-        setActiveId(res.conversationId);
-        loadConversations();
+    void workspace.sendMessage(text, (message) => {
+      const peopleCount = message.people?.length ?? 0;
+      if (peopleCount > 1) {
+        followActive.current = true;
+        requestAnimationFrame(() => followScroll(peopleCount));
       }
-      setSending(false);
-      presentAssistant(res.message);
-    } catch {
-      setSending(false);
-      notify('Copilot could not respond just now. Please try again.', 'error');
-    }
+    });
   };
 
   return (
     <div className="chat">
       <ChatSidebar
-        conversations={conversations}
-        activeId={activeId}
-        open={sidebarOpen}
-        onSelect={selectConversation}
-        onNew={newChat}
-        onDelete={deleteConversation}
-        onClose={() => setSidebarOpen(false)}
+        conversations={workspace.conversations}
+        activeId={workspace.activeId}
+        open={workspace.sidebarOpen}
+        onSelect={workspace.selectConversation}
+        onNew={workspace.newChat}
+        onDelete={workspace.deleteConversation}
+        onClose={() => workspace.setSidebarOpen(false)}
       />
 
       <div className="chat__main">
-        <button className="chat__mobile-toggle" onClick={() => setSidebarOpen(true)}>
+        <button type="button" className="chat__mobile-toggle" onClick={() => workspace.setSidebarOpen(true)}>
           <Icon name="menu" size={16} />
           Chats &amp; people
         </button>
@@ -237,10 +104,10 @@ export default function ChatPage() {
           ref={threadRef}
           role="log"
           aria-live="polite"
-          aria-busy={sending}
+          aria-busy={workspace.sending || !!workspace.streamingId}
           aria-label="Conversation with Copilot"
         >
-          {loadingThread ? (
+          {workspace.loadingThread ? (
             <div className="chat__thread-inner" aria-hidden="true">
               <div className="skeleton" style={{ height: 44, width: '55%', alignSelf: 'flex-end' }} />
               <div className="skeleton" style={{ height: 68, width: '78%' }} />
@@ -252,59 +119,45 @@ export default function ChatPage() {
                 </div>
               </div>
             </div>
-          ) : messages.length === 0 ? (
+          ) : workspace.messages.length === 0 ? (
             <div className="chat__empty">
               <div className="chat__empty-inner">
-                <div className="chat__empty-mark">
-                  <Icon name="sparkle" size={24} />
-                </div>
+                <div className="chat__empty-mark"><Icon name="sparkle" size={24} /></div>
                 <h2>What do you need?</h2>
                 <p>Ask who can help, or describe a project.</p>
-
                 <div className="prompt-grid">
-                  {SUGGESTIONS.map((s) => (
-                    <button key={s.text} className="prompt-card" onClick={() => send(s.text)}>
-                      <span className="prompt-card__icon">
-                        <Icon name={s.icon} size={16} />
-                      </span>
+                  {SUGGESTIONS.map((suggestion) => (
+                    <button key={suggestion.text} type="button" className="prompt-card" onClick={() => send(suggestion.text)}>
+                      <span className="prompt-card__icon"><Icon name={suggestion.icon} size={16} /></span>
                       <span className="prompt-card__body">
-                        <span className="prompt-card__text">{s.text}</span>
-                        <span className="prompt-card__tag">{s.tag}</span>
+                        <span className="prompt-card__text">{suggestion.text}</span>
+                        <span className="prompt-card__tag">{suggestion.tag}</span>
                       </span>
                     </button>
                   ))}
                 </div>
-
                 <div className="chat__empty-footer">
-                  <span className="copilot-badge__icon">
-                    <Icon name="sparkle" size={13} />
-                  </span>
+                  <span className="copilot-badge__icon"><Icon name="sparkle" size={13} /></span>
                   Microsoft Copilot · OPS directory
                 </div>
               </div>
             </div>
           ) : (
             <div className="chat__thread-inner">
-              {messages.map((m) => (
+              {workspace.messages.map((message) => (
                 <ChatMessage
-                  key={m.id}
-                  message={m}
-                  isStreaming={m.id === streamingId}
+                  key={message.id}
+                  message={message}
+                  isStreaming={message.id === workspace.streamingId}
                   onFollowUp={send}
                 />
               ))}
-              {sending && (
+              {workspace.sending && (
                 <div className="message-row message-row--assistant">
-                  <div className="message-avatar" aria-hidden="true">
-                    <Icon name="sparkle" size={15} />
-                  </div>
+                  <div className="message-avatar" aria-hidden="true"><Icon name="sparkle" size={15} /></div>
                   <div className="message-col" data-align="start">
                     <div className="message-bubble message-bubble--status">
-                      <span className="typing" role="status" aria-label="Copilot is searching the OPS directory">
-                        <span />
-                        <span />
-                        <span />
-                      </span>
+                      <span className="typing" role="status" aria-label="Copilot is searching the OPS directory"><span /><span /><span /></span>
                       <span className="message-status-text">Searching the OPS directory…</span>
                     </div>
                   </div>
@@ -314,7 +167,7 @@ export default function ChatPage() {
           )}
         </div>
 
-        <ChatInput onSend={send} disabled={sending} />
+        <ChatInput onSend={send} disabled={workspace.sending || !!workspace.streamingId} />
       </div>
     </div>
   );
